@@ -204,17 +204,20 @@ export function createLaboIncubatorFeature({ store } = {}) {
                         onStateChange: ({ state }) => {
                             if (state === 'purging') {
                                 preview.beginAspiration();
+                                // Hide economy panel as soon as purge starts
+                                updateEconomyPanel(null);
                             }
                         },
                         resolvePurchase: async (candidatePayload) => {
-                            // Check affordability before completing the purchase
+                            // Safety check (the buy button already blocks this, but belt & suspenders)
                             const price = currentCandidatePrice ?? computeAcquisitionCost(candidatePayload);
                             const balance = Number(store?.getState?.()?.player?.currencies?.hexagon) || 0;
 
                             if (price > balance) {
                                 const { showToast } = await import('../../utils/toast.js');
                                 showToast(`Solde insuffisant — il te faut ${price.toLocaleString('fr-FR')} ⬡`, { type: 'error' });
-                                throw new Error('INSUFFICIENT_FUNDS');
+                                // Return without throwing to avoid putting the controller in error state
+                                return;
                             }
 
                             try {
