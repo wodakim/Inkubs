@@ -316,7 +316,6 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.2),
         inset 0 -8px 14px rgba(0, 0, 0, 0.2);
     overflow: hidden;
-    animation: slime-core-breathe 3s ease-in-out infinite;
 }
 
 /* Inner glow */
@@ -342,22 +341,6 @@
     filter: blur(0.5px);
 }
 
-@keyframes slime-core-breathe {
-    0%, 100% {
-        box-shadow:
-            0 0 18px rgba(16, 185, 129, 0.3),
-            0 0 40px rgba(16, 185, 129, 0.1),
-            inset 0 1px 0 rgba(255, 255, 255, 0.2),
-            inset 0 -8px 14px rgba(0, 0, 0, 0.2);
-    }
-    50% {
-        box-shadow:
-            0 0 24px rgba(16, 185, 129, 0.4),
-            0 0 52px rgba(16, 185, 129, 0.15),
-            inset 0 1px 0 rgba(255, 255, 255, 0.2),
-            inset 0 -8px 14px rgba(0, 0, 0, 0.2);
-    }
-}
 
 /* ── Ring + Pulse ────────────────────────────────────────────────────── */
 .slime-ring,
