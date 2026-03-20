@@ -18,7 +18,7 @@ export const DEFAULT_PLAYER_STATE = Object.freeze({
     xpText: '0 / 10K XP',
     xpProgress: '0%',
     currencies: {
-        hexagon: 0,
+        hexagon: 500,
         sketch: 0,
     },
 });

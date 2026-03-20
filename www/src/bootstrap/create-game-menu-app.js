@@ -9,6 +9,10 @@ import { createBlankSectionFeature } from '../features/content/blank-section-fea
 import { createPrairieFeature } from '../features/prairie/prairie-feature.js';
 import { createLaboIncubatorFeature } from '../features/incubator/labo-incubator-feature.js';
 import { createHudController } from '../features/hud/hud-controller.js';
+import { loadPlayerState, savePlayerState } from '../features/economy/player-persistence.js';
+import { createPassiveIncomeEngine } from '../features/economy/passive-income-engine.js';
+import { getStorageRuntimeContext } from '../features/storage/storage-runtime-context.js';
+import { createNotificationSettingsController } from '../features/economy/notification-settings-controller.js';
 
 export function createGameMenuApp(root = document) {
     const refs = getDomRefs(root);
@@ -25,7 +29,7 @@ export function createGameMenuApp(root = document) {
 
     NAV_ITEMS.forEach((item) => {
         if (item.id === 'labo') {
-            contentMountController.registerFeature(item.id, () => createLaboIncubatorFeature());
+            contentMountController.registerFeature(item.id, () => createLaboIncubatorFeature({ store }));
             return;
         }
 
@@ -40,7 +44,32 @@ export function createGameMenuApp(root = document) {
     let hasInitialized = false;
     let layoutSyncRaf = 0;
 
-    hudController.hydratePlayer({});
+    // Restore persisted player state (currencies, preferences) from localStorage
+    const savedPlayer = loadPlayerState();
+    hudController.hydratePlayer(savedPlayer ?? {});
+
+    // Auto-save whenever the player state changes
+    store.subscribe((state, previousState) => {
+        if (state.player !== previousState.player) {
+            savePlayerState(state.player);
+        }
+    });
+
+    // Passive income engine — only team slots generate income
+    const storageRepository = getStorageRuntimeContext().repository;
+    const passiveIncome = createPassiveIncomeEngine({
+        store,
+        repository: storageRepository,
+    });
+
+    // Refresh HUD income rate display whenever storage changes (team composition)
+    storageRepository.subscribe(() => {
+        hudController.updateIncomeRate(passiveIncome.getTotalIncomeRate());
+    });
+
+    // Notification settings UI in profile modal
+    const notifSettingsController = createNotificationSettingsController({ store });
+
     contentMountController.renderCurrent();
 
     function requestLayoutSync() {
@@ -65,6 +94,7 @@ export function createGameMenuApp(root = document) {
         refs.shell.dataset.menuActive = 'true';
         store.dispatch({ type: 'SET_BOOTSTRAPPED', payload: { value: true } });
         dustBackgroundController.start();
+        passiveIncome.start();
         window.requestAnimationFrame(() => {
             navigationController.primeInitialLayout();
             requestLayoutSync();
@@ -75,6 +105,7 @@ export function createGameMenuApp(root = document) {
         refs.shell.dataset.menuActive = 'true';
         store.dispatch({ type: 'SET_SHELL_ACTIVE', payload: { value: true } });
         dustBackgroundController.start();
+        passiveIncome.start();
         requestLayoutSync();
     }
 
@@ -83,9 +114,12 @@ export function createGameMenuApp(root = document) {
         store.dispatch({ type: 'SET_SHELL_ACTIVE', payload: { value: false } });
         profileModalController.closeProfileModal();
         dustBackgroundController.stop();
+        passiveIncome.stop();
     }
 
     function destroy() {
+        passiveIncome.stop();
+        notifSettingsController.destroy();
         dustBackgroundController.destroy();
         navigationController.destroy();
         profileModalController.destroy();

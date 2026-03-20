@@ -198,7 +198,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         root.hidden = true;
         root.setAttribute('aria-hidden', 'true');
         root.innerHTML = `
-            <div class="storage-panel__surface"> 
+            <div class="storage-panel__surface">
                 <header class="storage-panel__header" data-storage-panel-drag-handle>
                     <div>
                         <p class="storage-panel__eyebrow">Collection</p>
@@ -208,42 +208,61 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
                 </header>
 
                 <div class="storage-panel__body" data-storage-scroll-body>
-                    <div class="storage-panel__toolbar" role="toolbar" aria-label="Tri de l'archive">
-                        <button type="button" class="storage-panel__chip is-active" data-storage-sort-key="rarity">Rareté</button>
-                        <button type="button" class="storage-panel__chip" data-storage-sort-key="level">Niveau</button>
-                        <button type="button" class="storage-panel__chip" data-storage-sort-key="type">Type</button>
+
+                    <!-- ── ÉQUIPE ACTIVE ────────────────────────────── -->
+                    <div class="storage-team-showcase">
+                        <div class="storage-team-showcase__label">
+                            <span class="storage-team-showcase__dot"></span>
+                            Équipe active
+                        </div>
+                        <div class="storage-team-showcase__slots storage-team-grid" data-storage-team-grid></div>
                     </div>
 
-                    <section class="storage-panel__section storage-panel__section--team">
-                        <div class="storage-panel__section-header">
-                            <h3>ÉQUIPE PRINCIPALE</h3>
-                            
-                        </div>
-                        <div class="storage-panel__meadow storage-panel__meadow--team">
-                            
-                            <div class="storage-team-grid" data-storage-team-grid></div>
-                        </div>
-                    </section>
+                    <!-- ── PC BOX ─────────────────────────────────── -->
+                    <div class="storage-pc-box">
 
-                    <section class="storage-panel__section storage-panel__section--archive">
-                        <div class="storage-panel__section-header">
-                            <h3>ARCHIVE</h3>
-                            <span data-storage-page-label>Page 1</span>
+                        <!-- Nav row : prev · box name · next · sort -->
+                        <div class="storage-pc-box__nav-row" role="toolbar" aria-label="Navigation et tri">
+                            <button type="button" class="storage-pc-box__nav-btn" data-storage-prev aria-label="Boîte précédente">
+                                <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true"><path d="M6.5 1.5L1.5 7L6.5 12.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
+                            <div class="storage-pc-box__box-title">
+                                <span class="storage-pc-box__box-word">Boîte</span>
+                                <span class="storage-pc-box__box-num" data-storage-page-number>1</span>
+                                <span class="storage-pc-box__box-label" data-storage-page-label style="display:none"></span>
+                                <div class="storage-pc-box__fill">
+                                    <div class="storage-pc-box__fill-track">
+                                        <div class="storage-pc-box__fill-bar" data-storage-fill-bar></div>
+                                    </div>
+                                    <span class="storage-pc-box__fill-count" data-storage-fill-count>0/16</span>
+                                </div>
+                            </div>
+                            <button type="button" class="storage-pc-box__nav-btn" data-storage-next aria-label="Boîte suivante">
+                                <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true"><path d="M1.5 1.5L6.5 7L1.5 12.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
+                            <div class="storage-pc-box__sort-chips">
+                                <button type="button" class="storage-pc-box__sort-btn is-active" data-storage-sort-key="rarity">Rareté</button>
+                                <button type="button" class="storage-pc-box__sort-btn" data-storage-sort-key="level">Niv.</button>
+                                <button type="button" class="storage-pc-box__sort-btn" data-storage-sort-key="type">Type</button>
+                            </div>
                         </div>
-                        <div class="storage-panel__meadow storage-panel__meadow--archive">
-                            <div class="storage-archive-grid" data-storage-archive-grid></div>
+
+                        <!-- Box frame : biome background + slot grid -->
+                        <div class="storage-pc-box__frame">
+                            <div class="storage-pc-box__biome"></div>
+                            <div class="storage-archive-grid storage-pc-box__grid" data-storage-archive-grid></div>
+                            <div class="storage-pc-box__frame-shine"></div>
                         </div>
-                    </section>
+
+                        <!-- Box footer info -->
+                        <div class="storage-pc-box__info-bar">
+                            <span class="storage-pc-box__info-count" data-storage-page-access>1 / 99</span>
+                        </div>
+
+                    </div>
+
                 </div>
 
-                <footer class="storage-panel__footer">
-                    <button type="button" class="storage-panel__pager" data-storage-prev>&lsaquo;</button>
-                    <div class="storage-panel__page-readout">
-                        <span data-storage-page-number>1</span>
-                        <small data-storage-page-access>Pages 1 / 99</small>
-                    </div>
-                    <button type="button" class="storage-panel__pager" data-storage-next>&rsaquo;</button>
-                </footer>
                 ${floatingPanel ? '<button type="button" class="storage-panel__resize-handle" data-storage-panel-resize aria-label="Redimensionner le storage"></button>' : ''}
             </div>
 
@@ -255,10 +274,12 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             <div class="storage-confirm-modal" data-storage-sell-modal hidden aria-hidden="true">
                 <div class="storage-confirm-modal__backdrop" data-storage-sell-cancel></div>
                 <section class="storage-confirm-modal__dialog" aria-label="Confirmer la revente">
-                    
-                    <h3 class="storage-confirm-modal__title">Confirmer la revente</h3>
-                    <p class="storage-confirm-modal__copy" data-storage-sell-copy>Ce slime sera retiré du stockage canonique.</p>
-                    
+                    <div class="storage-confirm-modal__modal-header">
+                        <span class="storage-confirm-modal__warn-icon" aria-hidden="true">⚠</span>
+                        <h3 class="storage-confirm-modal__title">Revente</h3>
+                    </div>
+                    <div class="storage-confirm-modal__subject" data-storage-sell-subject></div>
+                    <p class="storage-confirm-modal__copy" data-storage-sell-copy>Cette action est irréversible.</p>
                     <div class="storage-confirm-modal__actions">
                         <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--secondary" data-storage-sell-cancel>Annuler</button>
                         <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--danger" data-storage-sell-confirm>Revendre</button>
@@ -290,6 +311,8 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             pageLabel: root.querySelector('[data-storage-page-label]'),
             pageNumber: root.querySelector('[data-storage-page-number]'),
             pageAccess: root.querySelector('[data-storage-page-access]'),
+            fillBar: root.querySelector('[data-storage-fill-bar]'),
+            fillCount: root.querySelector('[data-storage-fill-count]'),
             detailModal: root.querySelector('[data-storage-detail-modal]'),
             detailContent: root.querySelector('[data-storage-detail-content]'),
             detailTitle: root.querySelector('[data-storage-detail-title]'),
@@ -297,6 +320,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             sellZone: root.querySelector('[data-storage-sell-zone]'),
             sellModal: root.querySelector('[data-storage-sell-modal]'),
             sellCopy: root.querySelector('[data-storage-sell-copy]'),
+            sellSubject: root.querySelector('[data-storage-sell-subject]'),
             sortChips: [...root.querySelectorAll('[data-storage-sort-key]')],
             dragHandle: root.querySelector('[data-storage-panel-drag-handle]'),
             resizeHandle: root.querySelector('[data-storage-panel-resize]'),
@@ -356,6 +380,21 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         refs.pageAccess.textContent = `${snapshot.meta.devUnlockAllPages ? snapshot.meta.maxPages : snapshot.meta.unlockedPages} / ${snapshot.meta.maxPages}`;
         refs.prevButton.disabled = currentPage <= 1;
         refs.nextButton.disabled = currentPage >= snapshot.meta.maxPages;
+
+        // Fill indicator for current page
+        const totalSlots = snapshot.meta.archiveSlotsPerPage || 16;
+        const pageSlots = snapshot.pages[String(currentPage)] || [];
+        const fillCount = pageSlots.filter(Boolean).length;
+        const fillPct = Math.round((fillCount / totalSlots) * 100);
+        const isFull = fillCount >= totalSlots;
+        if (refs.fillBar) {
+            refs.fillBar.style.width = `${fillPct}%`;
+            refs.fillBar.classList.toggle('is-full', isFull);
+        }
+        if (refs.fillCount) {
+            refs.fillCount.textContent = `${fillCount}/${totalSlots}`;
+            refs.fillCount.classList.toggle('is-full', isFull);
+        }
         refs.sortChips?.forEach((chip) => {
             chip.classList.toggle('is-active', chip.dataset.storageSortKey === activeArchiveSortKey);
         });
@@ -739,6 +778,14 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
 
     function applyArchiveSort(sortKey = 'rarity') {
         activeArchiveSortKey = sortKey;
+        // Flash animation on the active chip
+        const chip = refs.sortChips?.find((c) => c.dataset.storageSortKey === sortKey);
+        if (chip) {
+            chip.classList.remove('is-sorting');
+            void chip.offsetWidth; // force reflow
+            chip.classList.add('is-sorting');
+            chip.addEventListener('animationend', () => chip.classList.remove('is-sorting'), { once: true });
+        }
         repository.transact((draft) => {
             sortArchiveInSnapshot(draft, { sortKey });
             return draft;
@@ -790,8 +837,15 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         refs.detailTitle.textContent = record.displayName || record.storageDisplay?.label || 'Specimen';
         const display = record.storageDisplay || {};
         const genome = record.proceduralCore?.genome || {};
+        const rarityTier = display.rarityTier || 'common';
 
-        // Tags: rarity + level only (mood already shown below)
+        // Apply rarity theming to the dialog itself
+        const dialog = refs.detailModal?.querySelector?.('.storage-detail-modal__dialog');
+        if (dialog) {
+            dialog.dataset.rarityTier = rarityTier;
+        }
+
+        // Tags displayed as overlay badges inside the viewer
         const rarityTag = display.rarity ? `<span class="storage-detail-modal__tag storage-detail-modal__tag--rarity">${escapeHtml(String(display.rarity))}</span>` : '';
         const levelTag = display.level !== undefined ? `<span class="storage-detail-modal__tag storage-detail-modal__tag--level">Nv.${escapeHtml(String(display.level))}</span>` : '';
         const typeTag = (display.typeLabel || record.speciesKey) ? `<span class="storage-detail-modal__tag">${escapeHtml(String(display.typeLabel || record.speciesKey))}</span>` : '';
@@ -800,18 +854,20 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         refs.detailContent.innerHTML = `
             <section class="storage-detail-modal__top">
                 <div class="storage-detail-modal__viewer-frame">
+                    <!-- Rarity accent bar across the top -->
+                    <div class="storage-detail-modal__rarity-bar"></div>
+                    <!-- Live slime sandbox -->
                     <div class="storage-detail-modal__visual-stage storage-detail-modal__visual-stage--live" data-storage-live-stage></div>
-                </div>
-                <div class="storage-detail-modal__identity-strip">
-                    <div class="storage-detail-modal__tag-row">
+                    <!-- Badges overlaid at the bottom of the viewer -->
+                    <div class="storage-detail-modal__viewer-badges">
                         ${rarityTag}${levelTag}${typeTag}
                     </div>
-                    <div class="storage-detail-modal__rename-row">
-                        <input class="storage-detail-modal__name-input" type="text" maxlength="32" placeholder="Nom du spécimen…" value="${escapeHtml(record.displayName || '')}" data-storage-detail-name-input>
-                        <button type="button" class="storage-detail-modal__save" data-storage-detail-save-name aria-label="Sauvegarder le nom">
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2,7 5.5,10.5 12,3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </button>
-                    </div>
+                </div>
+                <div class="storage-detail-modal__rename-row">
+                    <input class="storage-detail-modal__name-input" type="text" maxlength="32" placeholder="Nom du spécimen…" value="${escapeHtml(record.displayName || '')}" data-storage-detail-name-input>
+                    <button type="button" class="storage-detail-modal__save" data-storage-detail-save-name aria-label="Sauvegarder le nom">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2,7 5.5,10.5 12,3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
                 </div>
             </section>
 
@@ -867,7 +923,18 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         pendingSell = {
             canonicalId,
         };
-        refs.sellCopy.textContent = `${record.displayName || record.storageDisplay?.label || 'Ce slime'} sera retiré du stockage canonique.`;
+
+        // Populate subject line with name + rarity badge
+        if (refs.sellSubject) {
+            const rarityTier = record.storageDisplay?.rarityTier || 'common';
+            const rarityLabel = record.storageDisplay?.rarity || '';
+            refs.sellSubject.innerHTML = `
+                <span class="storage-confirm-modal__subject-name">${escapeHtml(record.displayName || record.storageDisplay?.label || 'Ce slime')}</span>
+                ${rarityLabel ? `<span class="storage-confirm-modal__subject-rarity" data-rarity-tier="${escapeHtml(rarityTier)}">${escapeHtml(rarityLabel)}</span>` : ''}
+            `;
+        }
+
+        refs.sellCopy.textContent = 'Cette action est irréversible.';
         refs.sellModal.hidden = false;
         refs.sellModal.setAttribute('aria-hidden', 'false');
     }
@@ -984,13 +1051,19 @@ function renderStatBar(label, value) {
     }
 
     const percent = Math.max(0, Math.min(100, numeric));
+    // Color-coded gradient: teal (high) → blue (mid) → amber (low)
+    const barGradient = percent >= 65
+        ? 'linear-gradient(90deg,rgba(16,185,129,.55),rgba(52,211,153,.9))'
+        : percent >= 30
+            ? 'linear-gradient(90deg,rgba(59,130,246,.55),rgba(99,179,237,.9))'
+            : 'linear-gradient(90deg,rgba(245,158,11,.55),rgba(251,191,36,.9))';
     return `
         <div class="storage-detail-modal__stat-row">
             <div class="storage-detail-modal__stat-head">
                 <span class="storage-detail-modal__stat-label">${escapeHtml(humanize(label))}</span>
                 <span class="storage-detail-modal__stat-value">${escapeHtml(formatValue(numeric))}</span>
             </div>
-            <div class="storage-detail-modal__stat-track"><span style="width:${percent}%"></span></div>
+            <div class="storage-detail-modal__stat-track"><span style="width:${percent}%;background:${barGradient}"></span></div>
         </div>
     `;
 }

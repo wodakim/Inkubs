@@ -8,7 +8,7 @@ export function createHudController({ refs, store }) {
         refs.modalPlayerLevelLabel.textContent = player.levelText;
         refs.modalPlayerXp.textContent = player.xpText;
         refs.modalPlayerXpBar.style.width = player.xpProgress;
-        refs.currencyValues.hexagon.textContent = String(player.currencies.hexagon);
+        refs.currencyValues.hexagon.textContent = Math.floor(player.currencies.hexagon).toLocaleString('fr-FR');
         refs.currencyValues.sketch.textContent = String(player.currencies.sketch);
     }
 
@@ -26,6 +26,18 @@ export function createHudController({ refs, store }) {
                 type: 'HYDRATE_PLAYER',
                 payload: player,
             });
+        },
+        /** Affiche ou masque le taux de revenu passif total sous la balance. */
+        updateIncomeRate(ratePerMin) {
+            if (!refs.hudIncomeRate) {
+                return;
+            }
+            if (!ratePerMin || ratePerMin <= 0) {
+                refs.hudIncomeRate.hidden = true;
+                return;
+            }
+            refs.hudIncomeRate.textContent = `+${ratePerMin.toFixed(1)}/min`;
+            refs.hudIncomeRate.hidden = false;
         },
         destroy() {
             unsubscribe();

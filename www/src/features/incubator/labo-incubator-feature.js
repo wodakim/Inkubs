@@ -5,8 +5,10 @@ import { createIncubatorCycleOrchestrator } from './incubator-cycle-orchestrator
 import { getStorageRuntimeContext } from '../storage/storage-runtime-context.js';
 import { createStoragePanelController } from '../storage/storage-panel-controller.js';
 import { INCUBATOR_EVENTS } from '../../vendor/inku-incubator/core/IncubatorEvents.js';
+import { computeIncomeRate, computeAcquisitionCost } from '../economy/economy-calculator.js';
+import { notifyRareCandidate } from '../economy/rarity-notification-service.js';
 
-export function createLaboIncubatorFeature() {
+export function createLaboIncubatorFeature({ store } = {}) {
     let root = null;
     let stage = null;
     let frame = null;
@@ -19,6 +21,13 @@ export function createLaboIncubatorFeature() {
     let storageContext = null;
     let storagePanel = null;
     let controllerStateUnsubscribe = null;
+
+    // Economy panel (prix + revenu/min + bouton acquérir)
+    let economyPanel = null;
+    let economyRefs = null;
+    let storeUnsubscribe = null;
+    let currentCandidatePrice = null;
+    let currentCandidateIncomeRate = null;
 
     function buildShell() {
         const wrapper = document.createElement('section');
@@ -35,14 +44,93 @@ export function createLaboIncubatorFeature() {
         targetNode.className = 'labo-incubator-mount';
         targetNode.dataset.laboIncubatorMount = 'true';
 
+        // Economy overlay panel (prix + revenu/min + bouton)
+        const panelNode = document.createElement('div');
+        panelNode.className = 'labo-economy-panel';
+        panelNode.setAttribute('aria-live', 'polite');
+        panelNode.hidden = true;
+        panelNode.innerHTML = `
+            <div class="labo-economy-panel__info">
+                <span class="labo-economy-panel__price-wrap">
+                    <i class="ph-fill ph-hexagon labo-economy-panel__icon" aria-hidden="true"></i>
+                    <span class="labo-economy-panel__price" data-labo-price>—</span>
+                </span>
+                <span class="labo-economy-panel__income-wrap">
+                    <i class="ph-fill ph-lightning labo-economy-panel__icon labo-economy-panel__icon--income" aria-hidden="true"></i>
+                    <span class="labo-economy-panel__income" data-labo-income>—</span>
+                </span>
+            </div>
+            <button type="button" class="labo-economy-panel__btn" data-labo-acquire-btn disabled>
+                Acquérir
+            </button>
+        `;
+
+        economyPanel = panelNode;
+        economyRefs = {
+            price:      panelNode.querySelector('[data-labo-price]'),
+            income:     panelNode.querySelector('[data-labo-income]'),
+            acquireBtn: panelNode.querySelector('[data-labo-acquire-btn]'),
+        };
+
         frameNode.appendChild(targetNode);
         stageNode.appendChild(frameNode);
+        stageNode.appendChild(panelNode);
         wrapper.appendChild(stageNode);
 
         root = wrapper;
         stage = stageNode;
         frame = frameNode;
         mountTarget = targetNode;
+    }
+
+    /** Met à jour l'overlay économique quand un candidat est staged. */
+    function updateEconomyPanel(candidate) {
+        if (!economyPanel || !economyRefs) {
+            return;
+        }
+
+        if (!candidate) {
+            economyPanel.hidden = true;
+            currentCandidatePrice = null;
+            currentCandidateIncomeRate = null;
+            return;
+        }
+
+        // Calcul du prix (depuis complexityMetrics + attributes)
+        const price = computeAcquisitionCost(candidate);
+        currentCandidatePrice = price;
+
+        // Calcul du revenu potentiel (depuis blueprint genome + stats)
+        const blueprint = candidate.metadata?.previewBlueprint;
+        const incomeRate = blueprint
+            ? computeIncomeRate({ genome: blueprint.genome, stats: blueprint.stats })
+            : 0;
+        currentCandidateIncomeRate = incomeRate;
+
+        economyRefs.price.textContent  = price.toLocaleString('fr-FR');
+        economyRefs.income.textContent = `${incomeRate.toFixed(1)}/min`;
+        economyPanel.hidden = false;
+
+        refreshAffordability();
+    }
+
+    /** Met à jour l'état du bouton (vert/rouge) selon la balance courante. */
+    function refreshAffordability() {
+        if (!economyRefs?.acquireBtn || currentCandidatePrice === null) {
+            return;
+        }
+
+        const balance = Number(store?.getState?.()?.player?.currencies?.hexagon) || 0;
+        const canAfford = balance >= currentCandidatePrice;
+
+        economyRefs.acquireBtn.disabled = false;
+        economyRefs.acquireBtn.dataset.affordable = canAfford ? 'true' : 'false';
+        economyRefs.acquireBtn.setAttribute(
+            'aria-label',
+            canAfford
+                ? `Acquérir pour ${currentCandidatePrice} inkübits`
+                : `Solde insuffisant — ${currentCandidatePrice} inkübits requis`,
+        );
     }
 
     function ensureShell(mount) {
@@ -116,13 +204,42 @@ export function createLaboIncubatorFeature() {
                         onStateChange: ({ state }) => {
                             if (state === 'purging') {
                                 preview.beginAspiration();
+                                // Hide economy panel as soon as purge starts
+                                updateEconomyPanel(null);
                             }
                         },
                         resolvePurchase: async (candidatePayload) => {
-                            await ensureStorageContext().acquisitionPipeline.acquireCurrentCandidate({
-                                candidate: candidatePayload,
-                                preview,
-                            });
+                            // Safety check (the buy button already blocks this, but belt & suspenders)
+                            const price = currentCandidatePrice ?? computeAcquisitionCost(candidatePayload);
+                            const balance = Number(store?.getState?.()?.player?.currencies?.hexagon) || 0;
+
+                            if (price > balance) {
+                                const { showToast } = await import('../../utils/toast.js');
+                                showToast(`Solde insuffisant — il te faut ${price.toLocaleString('fr-FR')} ⬡`, { type: 'error' });
+                                // Return without throwing to avoid putting the controller in error state
+                                return;
+                            }
+
+                            try {
+                                await ensureStorageContext().acquisitionPipeline.acquireCurrentCandidate({
+                                    candidate: candidatePayload,
+                                    preview,
+                                });
+                                // Deduct the cost from the player's balance
+                                store?.dispatch?.({
+                                    type: 'ADD_CURRENCY',
+                                    payload: { currency: 'hexagon', amount: -price },
+                                });
+                                // Hide economy panel after acquisition
+                                updateEconomyPanel(null);
+                            } catch (error) {
+                                if (error?.message?.includes('No storage slot')) {
+                                    const { showToast } = await import('../../utils/toast.js');
+                                    showToast('Toutes les boîtes sont pleines !', { type: 'warning' });
+                                } else {
+                                    throw error;
+                                }
+                            }
                         },
                         onOpenStorage: () => {
                             ensureStoragePanel()?.toggle();
@@ -137,7 +254,37 @@ export function createLaboIncubatorFeature() {
                 preview,
             });
         }
+
+        // Bind the custom acquire button to trigger purchase
+        if (economyRefs?.acquireBtn && !economyRefs.acquireBtn._bound) {
+            economyRefs.acquireBtn._bound = true;
+            economyRefs.acquireBtn.addEventListener('click', () => {
+                if (!controller || economyRefs.acquireBtn.dataset.affordable !== 'true') {
+                    return;
+                }
+                void controller.purchaseCurrentCandidate();
+            });
+        }
+
+        // Subscribe to balance changes to keep button color in sync
+        if (!storeUnsubscribe && store) {
+            storeUnsubscribe = store.subscribe((state, previousState) => {
+                if (state.player?.currencies?.hexagon !== previousState.player?.currencies?.hexagon) {
+                    refreshAffordability();
+                }
+            });
+        }
+
+        // Listen to candidate events + state changes (one guard for both)
         if (!controllerStateUnsubscribe && controller) {
+            controller.on(INCUBATOR_EVENTS.CANDIDATE_ATTACHED, ({ candidate }) => {
+                updateEconomyPanel(candidate);
+
+                // Trigger rare slime notification if player is on another section
+                const rarityTier = candidate?.metadata?.previewBlueprint?.genome?.rarityTier || 'common';
+                const activeSectionId = store?.getState?.()?.activeSectionId ?? 'labo';
+                void notifyRareCandidate(rarityTier, store, activeSectionId);
+            });
             controllerStateUnsubscribe = controller.on(INCUBATOR_EVENTS.STATE_CHANGED, ({ state, previousState }) => {
                 if (state !== 'idle') {
                     return;
@@ -201,6 +348,8 @@ export function createLaboIncubatorFeature() {
     }
 
     function destroyRuntime() {
+        storeUnsubscribe?.();
+        storeUnsubscribe = null;
         controllerStateUnsubscribe?.();
         controllerStateUnsubscribe = null;
         orchestrator?.stop();
@@ -209,6 +358,7 @@ export function createLaboIncubatorFeature() {
         preview = null;
         controller?.destroy();
         controller = null;
+        updateEconomyPanel(null);
     }
 
     function suspendRuntime() {
