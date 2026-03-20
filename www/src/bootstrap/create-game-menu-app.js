@@ -26,7 +26,7 @@ export function createGameMenuApp(root = document) {
 
     NAV_ITEMS.forEach((item) => {
         if (item.id === 'labo') {
-            contentMountController.registerFeature(item.id, () => createLaboIncubatorFeature());
+            contentMountController.registerFeature(item.id, () => createLaboIncubatorFeature({ store }));
             return;
         }
 
