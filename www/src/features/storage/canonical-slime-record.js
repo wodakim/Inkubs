@@ -1,5 +1,6 @@
 import { deepClone, stableStringify } from '../../vendor/inku-slime-v3/shared/object.js';
 import { hashString } from '../../vendor/inku-slime-v3/shared/random.js';
+import { computeIncomeRate } from '../economy/economy-calculator.js';
 
 export const CANONICAL_STORAGE_SCHEMA_VERSION = 1;
 
@@ -64,6 +65,8 @@ export function createCanonicalStorageRecord({
             rarityTier: proceduralCore?.genome?.rarityTier || 'common',
             rarityScore: proceduralCore?.genome?.rarityScore ?? 0,
             statusLabel: 'ACQUIRED',
+            // Revenu passif en inkübits/min (uniquement si dans l'équipe de 4)
+            incomeRate: computeIncomeRate(proceduralCore),
         },
     };
 }

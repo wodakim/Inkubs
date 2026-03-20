@@ -9,6 +9,7 @@ import { createBlankSectionFeature } from '../features/content/blank-section-fea
 import { createPrairieFeature } from '../features/prairie/prairie-feature.js';
 import { createLaboIncubatorFeature } from '../features/incubator/labo-incubator-feature.js';
 import { createHudController } from '../features/hud/hud-controller.js';
+import { loadPlayerState, savePlayerState } from '../features/economy/player-persistence.js';
 
 export function createGameMenuApp(root = document) {
     const refs = getDomRefs(root);
@@ -40,7 +41,17 @@ export function createGameMenuApp(root = document) {
     let hasInitialized = false;
     let layoutSyncRaf = 0;
 
-    hudController.hydratePlayer({});
+    // Restore persisted player state (currencies, preferences) from localStorage
+    const savedPlayer = loadPlayerState();
+    hudController.hydratePlayer(savedPlayer ?? {});
+
+    // Auto-save whenever the player state changes
+    store.subscribe((state, previousState) => {
+        if (state.player !== previousState.player) {
+            savePlayerState(state.player);
+        }
+    });
+
     contentMountController.renderCurrent();
 
     function requestLayoutSync() {

@@ -109,6 +109,43 @@ function reduceState(state, action) {
             };
         }
 
+        // Ajoute (ou retire si négatif) de la monnaie — solde plancher à 0
+        case 'ADD_CURRENCY': {
+            const { currency, amount } = action.payload || {};
+            if (!currency || !Number.isFinite(amount)) {
+                return state;
+            }
+            const current = Number(state.player.currencies[currency]) || 0;
+            return {
+                ...state,
+                player: {
+                    ...state.player,
+                    currencies: {
+                        ...state.player.currencies,
+                        [currency]: Math.max(0, current + amount),
+                    },
+                },
+            };
+        }
+
+        // Force une valeur absolue pour une monnaie
+        case 'SET_CURRENCY': {
+            const { currency, amount } = action.payload || {};
+            if (!currency || !Number.isFinite(amount)) {
+                return state;
+            }
+            return {
+                ...state,
+                player: {
+                    ...state.player,
+                    currencies: {
+                        ...state.player.currencies,
+                        [currency]: Math.max(0, amount),
+                    },
+                },
+            };
+        }
+
         default:
             return state;
     }
