@@ -15,7 +15,8 @@ class DustParticle {
         this.y = Math.random() * height;
         this.size = Math.random() * 1.2;
         this.velocityY = -Math.random() * 0.4;
-        this.alpha = Math.random() * 0.4;
+        const a = Math.random() * 0.4;
+        this.fillStyle = `rgba(16,185,129,${a.toFixed(3)})`;
     }
 
     update(width, height) {
@@ -27,7 +28,7 @@ class DustParticle {
     }
 
     draw(ctx) {
-        ctx.fillStyle = `rgba(16,185,129,${this.alpha})`;
+        ctx.fillStyle = this.fillStyle;
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
         ctx.fill();

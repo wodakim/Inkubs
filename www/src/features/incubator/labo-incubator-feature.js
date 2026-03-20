@@ -216,6 +216,17 @@ export function createLaboIncubatorFeature() {
         preview?.suspendForExternalRuntime?.();
     }
 
+    function handleVisibilityChange() {
+        if (isSuspended) return;
+        if (document.hidden) {
+            orchestrator?.pause?.();
+            preview?.suspendForExternalRuntime?.();
+        } else {
+            preview?.resumeAfterExternalRuntime?.();
+            orchestrator?.resume?.();
+        }
+    }
+
     function reviveCandidatePreviewIfNeeded() {
         const existingCandidate = controller?.getCandidate?.();
         if (!existingCandidate || !preview) {
@@ -266,6 +277,7 @@ export function createLaboIncubatorFeature() {
             ensureRuntime();
             ensureStoragePanel();
             isSuspended = false;
+            document.addEventListener('visibilitychange', handleVisibilityChange);
             currentMount?.classList.add('content-mount--allow-overlap', 'content-mount--labo-incubator');
             showFeature();
             applyLayout();
@@ -276,6 +288,7 @@ export function createLaboIncubatorFeature() {
             ensureRuntime();
             ensureStoragePanel();
             isSuspended = false;
+            document.addEventListener('visibilitychange', handleVisibilityChange);
             currentMount?.classList.add('content-mount--allow-overlap', 'content-mount--labo-incubator');
             showFeature();
             applyLayout();
@@ -286,6 +299,7 @@ export function createLaboIncubatorFeature() {
                 return;
             }
             isSuspended = true;
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
             currentMount?.classList.remove('content-mount--allow-overlap', 'content-mount--labo-incubator');
             storagePanel?.close();
             suspendRuntime();
@@ -298,6 +312,7 @@ export function createLaboIncubatorFeature() {
             applyLayout();
         },
         unmount() {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
             destroyRuntime();
 
             if (currentMount) {

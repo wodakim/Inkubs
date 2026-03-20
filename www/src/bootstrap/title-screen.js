@@ -23,9 +23,6 @@ export function createTitleScreen({ onPlay } = {}) {
 
     /* ── Template ── */
     function getTplHTML() { return `
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.tailwindcss.com"><\/script>
 <style>
 #ts-root{color:white;}
 #ts-body{margin:0;overflow:hidden;font-family:'Nunito',sans-serif;background-color:#0f172a;touch-action:none;height:100dvh;position:relative;}
@@ -63,7 +60,7 @@ export function createTitleScreen({ onPlay } = {}) {
 .cap-vents{display:flex;justify-content:space-evenly;width:70%;margin:6px auto 4px auto;}
 .vent-slot{width:5px;height:14px;background:#020617;border-radius:1px;box-shadow:inset 0 2px 5px rgba(0,0,0,1),0 1px 0 rgba(255,255,255,0.15);}
 .holo-hud{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;align-items:flex-end;z-index:6;pointer-events:none;}
-.holo-text{font-family:'Courier New',monospace;font-size:7px;color:#34d399;text-shadow:0 0 4px #10b981;margin-bottom:2px;opacity:0.85;font-weight:900;letter-spacing:0.5px;}
+.holo-text{font-family:'JetBrains Mono','Fira Code',monospace;font-size:7px;color:#34d399;text-shadow:0 0 4px #10b981;margin-bottom:2px;opacity:0.85;font-weight:900;letter-spacing:0.5px;}
 .holo-bar{width:30px;height:3px;background:rgba(16,185,129,0.2);border:1px solid rgba(16,185,129,0.4);margin-bottom:5px;position:relative;}
 .holo-bar-fill{position:absolute;top:0;left:0;height:100%;width:98%;background:#10b981;box-shadow:0 0 6px #10b981;}
 .cable-bundle{position:absolute;left:50%;transform:translateX(-50%);width:60px;z-index:1;display:flex;align-items:stretch;justify-content:space-evenly;padding:0 3px;background:linear-gradient(90deg,#020617 0%,#1e293b 30%,#0f172a 50%,#1e293b 70%,#020617 100%);box-shadow:inset 0 0 15px #000,0 0 20px rgba(0,0,0,0.8);border-left:2px solid #334155;border-right:2px solid #334155;}
@@ -102,7 +99,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
 .sm-back{width:2.25rem;height:2.25rem;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);color:rgba(255,255,255,0.6);cursor:pointer;transition:all 0.2s;flex-shrink:0;appearance:none;}
 .sm-back:hover{background:rgba(255,255,255,0.09);color:white;}.sm-back:active{transform:scale(0.9);}
 .sm-title{font-size:1.1rem;font-weight:900;color:white;}
-.sm-subtitle{font-size:0.6rem;color:rgba(16,185,129,0.55);font-family:'Courier New',monospace;letter-spacing:0.15em;text-transform:uppercase;}
+.sm-subtitle{font-size:0.6rem;color:rgba(16,185,129,0.55);font-family:'JetBrains Mono','Fira Code',monospace;letter-spacing:0.15em;text-transform:uppercase;}
 .sm-tabs{display:flex;gap:0;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.06);overflow-x:auto;scrollbar-width:none;}
 .sm-tabs::-webkit-scrollbar{display:none;}
 .sm-tab{flex:1;min-width:max-content;padding:0.75rem 1rem;border:none;background:transparent;font-family:'Nunito',sans-serif;font-size:0.72rem;font-weight:800;color:rgba(255,255,255,0.35);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:0.4rem;}
@@ -110,7 +107,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
 .sm-body{flex:1;overflow-y:auto;padding:0.5rem 1.1rem max(1.5rem,env(safe-area-inset-bottom,1rem));scrollbar-width:thin;scrollbar-color:rgba(16,185,129,0.2) transparent;}
 .sm-body::-webkit-scrollbar{width:3px;}.sm-body::-webkit-scrollbar-thumb{background:rgba(16,185,129,0.2);border-radius:2px;}
 .sm-panel{display:none;}.sm-panel.active{display:block;}
-.sm-label{font-size:0.6rem;font-weight:900;letter-spacing:0.2em;text-transform:uppercase;color:rgba(16,185,129,0.5);font-family:'Courier New',monospace;padding:1rem 0.2rem 0.4rem;}
+.sm-label{font-size:0.6rem;font-weight:900;letter-spacing:0.2em;text-transform:uppercase;color:rgba(16,185,129,0.5);font-family:'JetBrains Mono','Fira Code',monospace;padding:1rem 0.2rem 0.4rem;}
 .sm-row{display:flex;align-items:center;gap:0.9rem;padding:0.9rem 0.85rem;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.055);border-radius:14px;margin-bottom:0.4rem;min-height:64px;}
 .sm-ico{width:2.4rem;height:2.4rem;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .ico-em{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.22);color:#10b981;}
@@ -123,7 +120,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
 .sm-desc{font-size:0.66rem;color:rgba(255,255,255,0.35);margin-top:2px;}
 .sm-ctrl{display:flex;align-items:center;gap:0.5rem;flex-shrink:0;}
 .sm-sw{display:flex;align-items:center;gap:0.5rem;width:min(36vw,130px);}
-.sm-sv{font-family:'Courier New',monospace;font-size:0.75rem;font-weight:700;color:#34d399;min-width:2rem;text-align:right;}
+.sm-sv{font-family:'JetBrains Mono','Fira Code',monospace;font-size:0.75rem;font-weight:700;color:#34d399;min-width:2rem;text-align:right;}
 input.sm-slid{-webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.1);outline:none;cursor:pointer;}
 input.sm-slid::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#34d399;box-shadow:0 0 10px rgba(52,211,153,0.6);cursor:pointer;}
 input.sm-slid::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#34d399;border:none;box-shadow:0 0 10px rgba(52,211,153,0.6);}
@@ -143,6 +140,14 @@ input.sm-slid::-moz-range-thumb{width:20px;height:20px;border-radius:50%;backgro
 .sm-danger:active{transform:scale(0.98);}
 .sm-danger-name{font-size:0.9rem;font-weight:800;color:#f87171;}
 .sm-danger-desc{font-size:0.65rem;color:rgba(239,68,68,0.5);margin-top:2px;}
+/* Confirmation reset overlay */
+#ts-confirm-reset{position:absolute;inset:0;z-index:10;background:rgba(4,6,12,0.96);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;opacity:0;pointer-events:none;transition:opacity 0.2s ease;}
+#ts-confirm-reset.show{opacity:1;pointer-events:auto;}
+.ts-cr-icon{width:3.5rem;height:3.5rem;border-radius:50%;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;}
+.ts-cr-title{font-size:1.05rem;font-weight:900;color:white;text-align:center;margin-bottom:0.5rem;}
+.ts-cr-body{font-size:0.72rem;color:rgba(255,255,255,0.42);text-align:center;line-height:1.65;margin-bottom:2rem;max-width:260px;}
+.ts-cr-yes{width:100%;max-width:260px;padding:0.9rem;border-radius:14px;background:rgba(220,38,38,0.72);border:1px solid rgba(239,68,68,0.5);color:white;font-weight:900;font-family:'Outfit','Nunito',sans-serif;font-size:0.8rem;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.5rem;cursor:pointer;}
+.ts-cr-no{width:100%;max-width:260px;padding:0.8rem;border-radius:14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);font-weight:900;font-family:'Outfit','Nunito',sans-serif;font-size:0.8rem;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;}
 </style>
 
 <div id="ts-body">
@@ -173,7 +178,7 @@ input.sm-slid::-moz-range-thumb{width:20px;height:20px;border-radius:50%;backgro
     <div class="p-2 sm:p-4 flex justify-between items-center flex-shrink-0">
         <div></div>
         <button id="ts-open-settings" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-gray-300 hover:text-white transition active:scale-95" style="background:rgba(15,23,42,0.75);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.1);">
-            <i class="fas fa-cog text-sm sm:text-base"></i>
+            <i class="ph ph-gear" style="font-size:1rem;"></i>
         </button>
     </div>
     <!-- Title -->
@@ -231,7 +236,7 @@ input.sm-slid::-moz-range-thumb{width:20px;height:20px;border-radius:50%;backgro
                 <div class="relative w-12 h-12 mb-3">
                     <div class="absolute inset-0 rounded-full" style="border:3px solid rgba(16,185,129,0.2)"></div>
                     <div class="absolute inset-0 rounded-full animate-spin" style="border:3px solid transparent;border-top-color:#34d399;border-left-color:#34d399"></div>
-                    <i class="fas fa-fingerprint absolute inset-0 flex items-center justify-center text-lg animate-pulse" style="color:rgba(16,185,129,0.5)"></i>
+                    <i class="ph ph-fingerprint absolute inset-0 flex items-center justify-center text-lg animate-pulse" style="color:rgba(16,185,129,0.5)"></i>
                 </div>
                 <p id="ts-loading-text" class="font-bold tracking-wide text-center px-4 text-xs" style="color:#34d399">Synchronisation ADN...</p>
             </div>
@@ -241,9 +246,9 @@ input.sm-slid::-moz-range-thumb{width:20px;height:20px;border-radius:50%;backgro
                 <p class="font-mono mt-0.5 uppercase tracking-widest" style="font-size:9px;color:rgba(52,211,153,0.7)">Mode hors-ligne actif</p>
             </div>
             <!-- PLAY -->
-            <button id="ts-btn-play" class="btn-aaa"><i class="fas fa-play text-xs"></i>RÉVEILLER LE SLIME</button>
+            <button id="ts-btn-play" class="btn-aaa"><i class="ph ph-play text-xs"></i>RÉVEILLER LE SLIME</button>
             <!-- Version -->
-            <p class="text-center font-mono" style="font-size:8px;color:rgba(16,185,129,0.3);letter-spacing:0.15em">INKÜ · v0.1.0-OFFLINE · BUILD-DEV</p>
+            <p class="text-center font-mono" style="font-size:8px;color:rgba(16,185,129,0.3);letter-spacing:0.15em">INKÜ · v0.1.0</p>
         </div>
     </div>
 </div>
@@ -252,45 +257,53 @@ input.sm-slid::-moz-range-thumb{width:20px;height:20px;border-radius:50%;backgro
 <!-- ═══ MODAL PARAMÈTRES ═══ -->
 <div id="ts-settings-modal">
     <div class="sm-hdr">
-        <button class="sm-back" id="ts-close-settings"><i class="fas fa-arrow-left text-sm"></i></button>
-        <div><div class="sm-title">Paramètres</div><div class="sm-subtitle">INKÜ · LABO v0.1-DEV</div></div>
+        <button class="sm-back" id="ts-close-settings"><i class="ph ph-arrow-left" style="font-size:0.875rem;"></i></button>
+        <div><div class="sm-title">Paramètres</div><div class="sm-subtitle">INKÜ · LABO v0.1</div></div>
     </div>
     <div class="sm-tabs">
-        <button class="sm-tab active" data-tab="audio"><i class="fas fa-volume-up"></i> Audio</button>
-        <button class="sm-tab" data-tab="video"><i class="fas fa-desktop"></i> Affichage</button>
-        <button class="sm-tab" data-tab="gameplay"><i class="fas fa-gamepad"></i> Gameplay</button>
-        <button class="sm-tab" data-tab="data"><i class="fas fa-database"></i> Données</button>
+        <button class="sm-tab active" data-tab="audio"><i class="ph ph-speaker-high"></i> Audio</button>
+        <button class="sm-tab" data-tab="video"><i class="ph ph-monitor"></i> Affichage</button>
+        <button class="sm-tab" data-tab="gameplay"><i class="ph ph-game-controller"></i> Gameplay</button>
+        <button class="sm-tab" data-tab="data"><i class="ph ph-database"></i> Données</button>
     </div>
     <div class="sm-body">
         <!-- AUDIO -->
         <div class="sm-panel active" data-panel="audio">
             <div class="sm-label">Volumes</div>
-            <div class="sm-row"><div class="sm-ico ico-em"><i class="fas fa-volume-up"></i></div><div class="sm-text"><div class="sm-name">Volume général</div><div class="sm-desc">Niveau sonore global du jeu</div></div><div class="sm-ctrl"><div class="sm-sw"><input type="range" class="sm-slid" id="sm-master" min="0" max="100"><span class="sm-sv" id="sm-master-v"></span></div></div></div>
-            <div class="sm-row"><div class="sm-ico ico-bl"><i class="fas fa-music"></i></div><div class="sm-text"><div class="sm-name">Musique</div><div class="sm-desc">Ambiance sonore du labo</div></div><div class="sm-ctrl"><div class="sm-sw"><input type="range" class="sm-slid" id="sm-music" min="0" max="100"><span class="sm-sv" id="sm-music-v"></span></div></div></div>
-            <div class="sm-row"><div class="sm-ico ico-vi"><i class="fas fa-bell"></i></div><div class="sm-text"><div class="sm-name">Effets sonores</div><div class="sm-desc">Sons des actions & interactions</div></div><div class="sm-ctrl"><div class="sm-sw"><input type="range" class="sm-slid" id="sm-sfx" min="0" max="100"><span class="sm-sv" id="sm-sfx-v"></span></div></div></div>
+            <div class="sm-row"><div class="sm-ico ico-em"><i class="ph ph-speaker-high"></i></div><div class="sm-text"><div class="sm-name">Volume général</div><div class="sm-desc">Niveau sonore global du jeu</div></div><div class="sm-ctrl"><div class="sm-sw"><input type="range" class="sm-slid" id="sm-master" min="0" max="100"><span class="sm-sv" id="sm-master-v"></span></div></div></div>
+            <div class="sm-row"><div class="sm-ico ico-bl"><i class="ph ph-music-note"></i></div><div class="sm-text"><div class="sm-name">Musique</div><div class="sm-desc">Ambiance sonore du labo</div></div><div class="sm-ctrl"><div class="sm-sw"><input type="range" class="sm-slid" id="sm-music" min="0" max="100"><span class="sm-sv" id="sm-music-v"></span></div></div></div>
+            <div class="sm-row"><div class="sm-ico ico-vi"><i class="ph ph-bell"></i></div><div class="sm-text"><div class="sm-name">Effets sonores</div><div class="sm-desc">Sons des actions & interactions</div></div><div class="sm-ctrl"><div class="sm-sw"><input type="range" class="sm-slid" id="sm-sfx" min="0" max="100"><span class="sm-sv" id="sm-sfx-v"></span></div></div></div>
         </div>
         <!-- AFFICHAGE -->
         <div class="sm-panel" data-panel="video">
             <div class="sm-label">Qualité visuelle</div>
-            <div class="sm-row"><div class="sm-ico ico-am"><i class="fas fa-tv"></i></div><div class="sm-text"><div class="sm-name">Qualité graphique</div><div class="sm-desc">Impact direct sur la batterie</div></div><div class="sm-ctrl"><div class="sm-seg" id="sm-quality"><button class="sm-seg-btn" data-v="low">Basse</button><button class="sm-seg-btn" data-v="medium">Médium</button><button class="sm-seg-btn" data-v="high">Haute</button></div></div></div>
-            <div class="sm-row"><div class="sm-ico ico-em"><i class="fas fa-tachometer-alt"></i></div><div class="sm-text"><div class="sm-name">Compteur FPS</div><div class="sm-desc">Affiche les images par seconde</div></div><div class="sm-ctrl"><label class="sm-tog"><input type="checkbox" id="sm-fps"><div class="sm-tog-track"></div><div class="sm-tog-knob"></div></label></div></div>
-            <div class="sm-row"><div class="sm-ico ico-bl"><i class="fas fa-leaf"></i></div><div class="sm-text"><div class="sm-name">Réduire animations</div><div class="sm-desc">Accessibilité & économie batterie</div></div><div class="sm-ctrl"><label class="sm-tog"><input type="checkbox" id="sm-motion"><div class="sm-tog-track"></div><div class="sm-tog-knob"></div></label></div></div>
+            <div class="sm-row"><div class="sm-ico ico-am"><i class="ph ph-monitor"></i></div><div class="sm-text"><div class="sm-name">Qualité graphique</div><div class="sm-desc">Impact direct sur la batterie</div></div><div class="sm-ctrl"><div class="sm-seg" id="sm-quality"><button class="sm-seg-btn" data-v="low">Basse</button><button class="sm-seg-btn" data-v="medium">Médium</button><button class="sm-seg-btn" data-v="high">Haute</button></div></div></div>
+            <div class="sm-row"><div class="sm-ico ico-em"><i class="ph ph-gauge"></i></div><div class="sm-text"><div class="sm-name">Compteur FPS</div><div class="sm-desc">Affiche les images par seconde</div></div><div class="sm-ctrl"><label class="sm-tog"><input type="checkbox" id="sm-fps"><div class="sm-tog-track"></div><div class="sm-tog-knob"></div></label></div></div>
+            <div class="sm-row"><div class="sm-ico ico-bl"><i class="ph ph-leaf"></i></div><div class="sm-text"><div class="sm-name">Réduire animations</div><div class="sm-desc">Accessibilité & économie batterie</div></div><div class="sm-ctrl"><label class="sm-tog"><input type="checkbox" id="sm-motion"><div class="sm-tog-track"></div><div class="sm-tog-knob"></div></label></div></div>
         </div>
         <!-- GAMEPLAY -->
         <div class="sm-panel" data-panel="gameplay">
             <div class="sm-label">Retours haptiques</div>
-            <div class="sm-row"><div class="sm-ico ico-vi"><i class="fas fa-mobile-alt"></i></div><div class="sm-text"><div class="sm-name">Vibrations</div><div class="sm-desc">Retour tactile lors des actions</div></div><div class="sm-ctrl"><label class="sm-tog"><input type="checkbox" id="sm-vibr"><div class="sm-tog-track"></div><div class="sm-tog-knob"></div></label></div></div>
-            <div class="sm-row"><div class="sm-ico ico-am"><i class="fas fa-bell"></i></div><div class="sm-text"><div class="sm-name">Notifications</div><div class="sm-desc">Alertes de progression du slime</div></div><div class="sm-ctrl"><label class="sm-tog"><input type="checkbox" id="sm-notif"><div class="sm-tog-track"></div><div class="sm-tog-knob"></div></label></div></div>
+            <div class="sm-row"><div class="sm-ico ico-vi"><i class="ph ph-device-mobile"></i></div><div class="sm-text"><div class="sm-name">Vibrations</div><div class="sm-desc">Retour tactile lors des actions</div></div><div class="sm-ctrl"><label class="sm-tog"><input type="checkbox" id="sm-vibr"><div class="sm-tog-track"></div><div class="sm-tog-knob"></div></label></div></div>
+            <div class="sm-row"><div class="sm-ico ico-am"><i class="ph ph-bell"></i></div><div class="sm-text"><div class="sm-name">Notifications</div><div class="sm-desc">Alertes de progression du slime</div></div><div class="sm-ctrl"><label class="sm-tog"><input type="checkbox" id="sm-notif"><div class="sm-tog-track"></div><div class="sm-tog-knob"></div></label></div></div>
             <div class="sm-label">Langue</div>
-            <div class="sm-row"><div class="sm-ico ico-em"><i class="fas fa-globe"></i></div><div class="sm-text"><div class="sm-name">Langue de l'interface</div><div class="sm-desc">Localisation du jeu</div></div><div class="sm-ctrl"><div class="sm-seg" id="sm-lang"><button class="sm-seg-btn" data-v="fr">🇫🇷 FR</button><button class="sm-seg-btn" data-v="en">🇬🇧 EN</button></div></div></div>
+            <div class="sm-row"><div class="sm-ico ico-em"><i class="ph ph-globe"></i></div><div class="sm-text"><div class="sm-name">Langue de l'interface</div><div class="sm-desc">Localisation du jeu</div></div><div class="sm-ctrl"><div class="sm-seg" id="sm-lang"><button class="sm-seg-btn" data-v="fr">🇫🇷 FR</button><button class="sm-seg-btn" data-v="en">🇬🇧 EN</button></div></div></div>
         </div>
         <!-- DONNÉES -->
         <div class="sm-panel" data-panel="data">
             <div class="sm-label">À propos</div>
-            <div class="sm-info">Version <b>v0.1.0-offline</b> · Build <b>DEV</b><br>Mode <b>OFFLINE</b> — données stockées localement.<br>Connexion en ligne disponible dans une prochaine version.</div>
+            <div class="sm-info">Version <b>v0.1.0</b> · Mode <b>OFFLINE</b> — données stockées localement.<br>Connexion en ligne disponible dans une prochaine version.</div>
             <div class="sm-label">Danger zone</div>
-            <div class="sm-danger" id="sm-reset"><div class="sm-ico ico-re"><i class="fas fa-trash"></i></div><div class="sm-text"><div class="sm-danger-name">Effacer toutes les données</div><div class="sm-danger-desc">Slimes, progression, collection — irréversible</div></div><i class="fas fa-chevron-right" style="color:rgba(239,68,68,0.4);font-size:0.75rem"></i></div>
+            <div class="sm-danger" id="sm-reset"><div class="sm-ico ico-re"><i class="ph ph-trash"></i></div><div class="sm-text"><div class="sm-danger-name">Effacer toutes les données</div><div class="sm-danger-desc">Slimes, progression, collection — irréversible</div></div><i class="ph ph-caret-right" style="color:rgba(239,68,68,0.4);font-size:0.75rem"></i></div>
         </div>
+    </div>
+    <!-- Confirmation effacement (overlay sur toute la modale settings) -->
+    <div id="ts-confirm-reset">
+        <div class="ts-cr-icon"><i class="ph ph-warning" style="color:#f87171;font-size:1.5rem;"></i></div>
+        <div class="ts-cr-title">Remise à zéro</div>
+        <p class="ts-cr-body">Toutes les données seront <span style="color:#f87171;font-weight:800;">définitivement supprimées</span> — slimes, progression, collection. Cette action est irréversible.</p>
+        <button id="ts-confirm-yes" class="ts-cr-yes">Tout effacer</button>
+        <button id="ts-confirm-no" class="ts-cr-no">Annuler</button>
     </div>
 </div>
 `; }
@@ -404,10 +417,14 @@ input.sm-slid::-moz-range-thumb{width:20px;height:20px;border-radius:50%;backgro
             if(!el)return; el.checked=S[k];
             el.addEventListener('change',()=>{S[k]=el.checked;saveS(S);});
         });
-        root.querySelector('#sm-reset')?.addEventListener('click',()=>{
-            if(!confirm('Effacer toutes les données ? Slimes, progression, collection. Irréversible.'))return;
+        const confirmOverlay=root.querySelector('#ts-confirm-reset');
+        const showConfirm=()=>confirmOverlay.classList.add('show');
+        const hideConfirm=()=>confirmOverlay.classList.remove('show');
+        root.querySelector('#sm-reset')?.addEventListener('click',showConfirm);
+        root.querySelector('#ts-confirm-no')?.addEventListener('click',hideConfirm);
+        root.querySelector('#ts-confirm-yes')?.addEventListener('click',()=>{
             Object.keys(localStorage).filter(k=>k.startsWith('inku.')).forEach(k=>localStorage.removeItem(k));
-            close();
+            hideConfirm();close();
             document.body.style.transition='opacity 0.35s';document.body.style.opacity='0';
             setTimeout(()=>location.reload(),370);
         });

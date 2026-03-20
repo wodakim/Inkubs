@@ -2048,10 +2048,19 @@ export function createPrairieFeature() {
         renderMinimap();
     }
 
+    function handleVisibilityChange() {
+        if (document.hidden) {
+            stopLoop();
+        } else if (!isSuspended) {
+            startLoop();
+        }
+    }
+
     function startLoop() {
         if (rafId) {
             window.cancelAnimationFrame(rafId);
         }
+        document.addEventListener('visibilitychange', handleVisibilityChange);
         rafId = window.requestAnimationFrame(step);
     }
 
@@ -2060,6 +2069,7 @@ export function createPrairieFeature() {
             window.cancelAnimationFrame(rafId);
             rafId = 0;
         }
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
     }
 
     function resize() {
@@ -2202,6 +2212,7 @@ export function createPrairieFeature() {
             stopLoop();
             clearTimeout(saveTimeout);
             window.clearTimeout(dronePanelCloseTimeout);
+            clearInterval(obsUpdateInterval);
             clearParticles();
             hideFeature();
         },
@@ -2217,6 +2228,7 @@ export function createPrairieFeature() {
             stopLoop();
             clearTimeout(saveTimeout);
             window.clearTimeout(dronePanelCloseTimeout);
+            clearInterval(obsUpdateInterval);
             clearParticles();
             resizeObserver?.disconnect?.();
             resizeObserver = null;
