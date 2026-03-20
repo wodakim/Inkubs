@@ -239,8 +239,10 @@
 }
 
 .nav-btn.is-active .nav-text {
-    opacity: 0;
-    transform: translateY(8px) scale(0.6);
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    color: var(--color-slime-300);
+    font-weight: 700;
 }
 
 /* ── Notification Dot ────────────────────────────────────────────────── */
