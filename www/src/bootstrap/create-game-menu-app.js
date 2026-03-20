@@ -10,6 +10,8 @@ import { createPrairieFeature } from '../features/prairie/prairie-feature.js';
 import { createLaboIncubatorFeature } from '../features/incubator/labo-incubator-feature.js';
 import { createHudController } from '../features/hud/hud-controller.js';
 import { loadPlayerState, savePlayerState } from '../features/economy/player-persistence.js';
+import { createPassiveIncomeEngine } from '../features/economy/passive-income-engine.js';
+import { getStorageRuntimeContext } from '../features/storage/storage-runtime-context.js';
 
 export function createGameMenuApp(root = document) {
     const refs = getDomRefs(root);
@@ -52,6 +54,18 @@ export function createGameMenuApp(root = document) {
         }
     });
 
+    // Passive income engine — only team slots generate income
+    const storageRepository = getStorageRuntimeContext().repository;
+    const passiveIncome = createPassiveIncomeEngine({
+        store,
+        repository: storageRepository,
+    });
+
+    // Refresh HUD income rate display whenever storage changes (team composition)
+    storageRepository.subscribe(() => {
+        hudController.updateIncomeRate(passiveIncome.getTotalIncomeRate());
+    });
+
     contentMountController.renderCurrent();
 
     function requestLayoutSync() {
@@ -76,6 +90,7 @@ export function createGameMenuApp(root = document) {
         refs.shell.dataset.menuActive = 'true';
         store.dispatch({ type: 'SET_BOOTSTRAPPED', payload: { value: true } });
         dustBackgroundController.start();
+        passiveIncome.start();
         window.requestAnimationFrame(() => {
             navigationController.primeInitialLayout();
             requestLayoutSync();
@@ -86,6 +101,7 @@ export function createGameMenuApp(root = document) {
         refs.shell.dataset.menuActive = 'true';
         store.dispatch({ type: 'SET_SHELL_ACTIVE', payload: { value: true } });
         dustBackgroundController.start();
+        passiveIncome.start();
         requestLayoutSync();
     }
 
@@ -94,9 +110,11 @@ export function createGameMenuApp(root = document) {
         store.dispatch({ type: 'SET_SHELL_ACTIVE', payload: { value: false } });
         profileModalController.closeProfileModal();
         dustBackgroundController.stop();
+        passiveIncome.stop();
     }
 
     function destroy() {
+        passiveIncome.stop();
         dustBackgroundController.destroy();
         navigationController.destroy();
         profileModalController.destroy();

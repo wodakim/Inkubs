@@ -33,5 +33,6 @@ export function getDomRefs(root = document) {
             hexagon: root.querySelector('[data-currency-value="hexagon"]'),
             sketch: root.querySelector('[data-currency-value="sketch"]'),
         },
+        hudIncomeRate: root.querySelector('[data-hud-income-rate]'),
     };
 }

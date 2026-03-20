@@ -47,7 +47,10 @@
             <div class="flex flex-col items-end gap-2 hud-currency-stack" data-hud-currency>
                 <button type="button" class="glass-pill rounded-full flex items-center pl-2 pr-3 py-1.5 gap-2 btn-active-scale cursor-pointer border-cyan/20 hud-currency-pill" data-currency="hexagon">
                     <i class="ph-fill ph-hexagon text-cyan"></i>
-                    <span class="font-mono text-sm font-bold text-white leading-none mt-0.5" data-currency-value="hexagon">0</span>
+                    <span class="flex flex-col items-end">
+                        <span class="font-mono text-sm font-bold text-white leading-none" data-currency-value="hexagon">0</span>
+                        <span class="hud-income-rate" data-hud-income-rate hidden></span>
+                    </span>
                 </button>
                 <button type="button" class="glass-pill rounded-full flex items-center pl-2 pr-3 py-1.5 gap-2 btn-active-scale cursor-pointer border-emerald/20 hud-currency-pill" data-currency="sketch">
                     <i class="ph-fill ph-sketch-logo text-emerald"></i>

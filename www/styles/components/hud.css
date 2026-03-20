@@ -163,6 +163,19 @@
     font-variant-numeric: tabular-nums;
 }
 
+/* ── Income rate sub-label on hexagon pill ───────────────────────────── */
+.hud-income-rate {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.42rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: rgba(52, 211, 153, 0.75);
+    line-height: 1.2;
+    margin-top: 1px;
+    font-variant-numeric: tabular-nums;
+}
+
 /* ── Ensure profile avatar icon color ────────────────────────────────── */
 #profile-card .ph-user {
     color: var(--color-slime-300) !important;
