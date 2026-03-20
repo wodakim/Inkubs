@@ -1,0 +1,68 @@
+# =========================
+# Node
+# =========================
+node_modules/
+npm-debug.log*
+package-lock.json
+
+# =========================
+# Environment
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Capacitor (IMPORTANT)
+# =========================
+# Build natif Android
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/captures/
+
+# Fichiers générés
+android/app/src/main/assets/public/
+
+# iOS (si jamais ajouté)
+ios/App/build/
+ios/App/Pods/
+ios/App/public/
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDE
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# =========================
+# Temp / Cache
+# =========================
+.tmp/
+.temp/
+.cache/
+
+# =========================
+# Tests
+# =========================
+coverage/
+
+# =========================
+# Misc
+# =========================
+*.local

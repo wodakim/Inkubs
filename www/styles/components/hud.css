@@ -1,0 +1,189 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   INKÜ — HUD v2.0
+   Top bar: profile badge + currency pills
+   Premium mobile-game proportions, min 44px touch targets
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Shell ────────────────────────────────────────────────────────────── */
+.hud-shell {
+    z-index: 20;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-3);
+    width: 100%;
+    padding-top: max(0.75rem, var(--safe-top));
+    padding-inline: max(var(--space-3), var(--safe-left)) max(var(--space-3), var(--safe-right));
+}
+
+/* ── Profile trigger (left) ──────────────────────────────────────────── */
+.hud-profile-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 5px 12px 5px 5px;
+    min-height: 44px;
+    border-radius: var(--radius-pill);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+    border-color: rgba(16, 185, 129, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Slime drip accent on profile pill */
+.hud-profile-trigger::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 12px;
+    right: 12px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(16, 185, 129, 0.35), transparent);
+    opacity: 0.7;
+}
+
+/* ── Avatar circle ───────────────────────────────────────────────────── */
+.hud-profile-trigger .relative {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+}
+
+.hud-profile-trigger .relative i,
+.hud-profile-trigger .ph-user {
+    color: var(--color-slime-300) !important;
+    font-size: 1.1rem;
+}
+
+/* ── Name / Role stack ───────────────────────────────────────────────── */
+[data-player-role] {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    line-height: 1;
+}
+
+[data-player-name] {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    text-transform: uppercase;
+}
+
+/* ── Level badge ─────────────────────────────────────────────────────── */
+[data-player-level],
+.hud-profile-level {
+    font-family: var(--font-mono) !important;
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.06em !important;
+    color: var(--color-slime-300) !important;
+    background: rgba(16, 185, 129, 0.12) !important;
+    border: 1px solid rgba(16, 185, 129, 0.22) !important;
+    padding: 2px 8px !important;
+    border-radius: var(--radius-pill) !important;
+    line-height: 1.4 !important;
+}
+
+/* ── Currency stack (right) ──────────────────────────────────────────── */
+.hud-currency-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.hud-currency-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 52px;
+    min-height: 36px;
+    padding: 4px 10px 4px 7px;
+    border-radius: var(--radius-pill);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle inner glow per currency */
+.hud-currency-pill::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity var(--motion-fast) ease;
+}
+
+.hud-currency-pill:active::before {
+    opacity: 1;
+}
+
+.hud-currency-pill i {
+    font-size: 0.95rem;
+    line-height: 1;
+}
+
+/* Currency-specific colors */
+.hud-currency-pill[data-currency="hexagon"] {
+    border-color: rgba(59, 130, 246, 0.15) !important;
+}
+.hud-currency-pill[data-currency="hexagon"]::before {
+    background: radial-gradient(circle at center, rgba(59, 130, 246, 0.12), transparent 70%);
+}
+.hud-currency-pill[data-currency="hexagon"] i {
+    color: var(--color-plasma-400) !important;
+}
+
+.hud-currency-pill[data-currency="sketch"] {
+    border-color: rgba(16, 185, 129, 0.15) !important;
+}
+.hud-currency-pill[data-currency="sketch"]::before {
+    background: radial-gradient(circle at center, rgba(16, 185, 129, 0.12), transparent 70%);
+}
+.hud-currency-pill[data-currency="sketch"] i {
+    color: var(--color-slime-400) !important;
+}
+
+/* ── Currency value text ─────────────────────────────────────────────── */
+.hud-currency-pill span,
+.hud-currency-value {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Ensure profile avatar icon color ────────────────────────────────── */
+#profile-card .ph-user {
+    color: var(--color-slime-300) !important;
+}
+
+/* ── Small screen adjustments ────────────────────────────────────────── */
+@media (max-width: 380px) {
+    .hud-shell {
+        padding-inline: 0.625rem;
+    }
+
+    [data-player-name] {
+        font-size: 0.78rem;
+    }
+
+    .hud-currency-pill {
+        min-height: 32px;
+        padding: 3px 8px 3px 6px;
+    }
+
+    .hud-currency-pill span {
+        font-size: 0.72rem;
+    }
+}

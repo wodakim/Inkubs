@@ -1,0 +1,124 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   INKÜ — DESIGN TOKENS v2.0
+   Premium mobile-game design system · Slime Lab Aesthetic
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+    /* ── Layout ──────────────────────────────────────────────────────── */
+    --app-max-width: 28rem;
+    --safe-top: env(safe-area-inset-top, 20px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 20px);
+    --safe-left: env(safe-area-inset-left, 0px);
+
+    /* ── Spacing scale (4px base) ────────────────────────────────────── */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-8: 2rem;
+    --space-10: 2.5rem;
+    --space-12: 3rem;
+
+    /* ── Radii ────────────────────────────────────────────────────────── */
+    --radius-xs: 8px;
+    --radius-sm: 12px;
+    --radius-md: 16px;
+    --radius-lg: 20px;
+    --radius-xl: 24px;
+    --radius-pill: 999px;
+    --radius-panel: 2rem;
+
+    /* ── Navigation ───────────────────────────────────────────────────── */
+    --nav-h: 72px;
+    --diamond-s: 64px;
+    --diamond-top: -20px;
+    --nav-radius: 24px;
+
+    /* ── Typography ───────────────────────────────────────────────────── */
+    --font-display: 'Fredoka', 'Nunito', sans-serif;
+    --font-body: 'Outfit', 'Nunito', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+    /* ── Motion ───────────────────────────────────────────────────────── */
+    --motion-instant: 80ms;
+    --motion-fast: 150ms;
+    --motion-medium: 280ms;
+    --motion-slow: 480ms;
+    --motion-dramatic: 680ms;
+    --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-slime: cubic-bezier(0.22, 1.18, 0.28, 1);
+    --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    --nav-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --nav-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --nav-viscosity-ease: cubic-bezier(0.2, 0.95, 0.22, 1);
+    --nav-viscosity-bounce: cubic-bezier(0.22, 1.18, 0.28, 1);
+
+    /* ── Core palette ────────────────────────────────────────────────── */
+    --color-abyssal: #04060c;
+    --color-abyssal-soft: #0a0f1c;
+    --color-void: #020408;
+    --color-deep: #0c1220;
+    --color-surface: #111827;
+    --color-white: #ffffff;
+
+    /* ── Slime primary ───────────────────────────────────────────────── */
+    --color-slime-200: #a7f3d0;
+    --color-slime-300: #6ee7b7;
+    --color-slime-400: #34d399;
+    --color-slime: #10b981;
+    --color-slime-600: #059669;
+    --color-emerald: #10b981;
+
+    /* ── Plasma secondary ────────────────────────────────────────────── */
+    --color-plasma-300: #93c5fd;
+    --color-plasma-400: #60a5fa;
+    --color-plasma: #3b82f6;
+    --color-cyan: #3b82f6;
+
+    /* ── Toxic tertiary ──────────────────────────────────────────────── */
+    --color-toxic: #a3e635;
+
+    /* ── Neon accent ─────────────────────────────────────────────────── */
+    --color-neon: #f472b6;
+
+    /* ── Status ───────────────────────────────────────────────────────── */
+    --color-alert: #ef4444;
+    --color-warning: #f59e0b;
+    --color-success: #10b981;
+
+    /* ── Text ─────────────────────────────────────────────────────────── */
+    --color-text-primary: rgba(255, 255, 255, 0.95);
+    --color-text-secondary: rgba(255, 255, 255, 0.7);
+    --color-text-muted: #9ca3af;
+    --color-text-dim: rgba(255, 255, 255, 0.22);
+
+    /* ── Glass surfaces ──────────────────────────────────────────────── */
+    --glass-panel: rgba(6, 12, 28, 0.78);
+    --glass-panel-dense: rgba(4, 8, 20, 0.88);
+    --glass-pill-start: rgba(255, 255, 255, 0.07);
+    --glass-pill-end: rgba(255, 255, 255, 0.02);
+
+    /* ── Borders ──────────────────────────────────────────────────────── */
+    --surface-border: rgba(255, 255, 255, 0.08);
+    --surface-border-soft: rgba(255, 255, 255, 0.05);
+    --surface-border-accent: rgba(16, 185, 129, 0.18);
+
+    /* ── Shadows ──────────────────────────────────────────────────────── */
+    --surface-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+    --shadow-glow-sm: 0 0 12px rgba(16, 185, 129, 0.15);
+    --shadow-glow-md: 0 0 24px rgba(16, 185, 129, 0.2);
+    --shadow-elevated: 0 12px 40px rgba(0, 0, 0, 0.55), 0 0 1px rgba(255, 255, 255, 0.06);
+    --shadow-float: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+@media (max-width: 380px) {
+    :root {
+        --nav-h: 66px;
+        --diamond-s: 58px;
+        --diamond-top: -18px;
+    }
+}

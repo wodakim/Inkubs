@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Inkü - Le Laboratoire</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Nunito:wght@400;700;900&family=Press+Start+2P&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="./src/bootstrap/tailwind-bridge.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link rel="stylesheet" href="./styles/tokens.css">
+    <link rel="stylesheet" href="./styles/base.css">
+    <link rel="stylesheet" href="./styles/layout.css">
+    <link rel="stylesheet" href="./styles/components/hud.css">
+    <link rel="stylesheet" href="./styles/components/nav.css">
+    <link rel="stylesheet" href="./styles/components/modal.css">
+    <link rel="stylesheet" href="./styles/effects/background.css">
+    <link rel="stylesheet" href="./styles/features/incubator-shell.css">
+    <link rel="stylesheet" href="./styles/features/storage.css">
+    <link rel="stylesheet" href="./styles/features/prairie.css">
+</head>
+<body class="relative flex flex-col items-center justify-between max-w-md mx-auto w-full shadow-2xl overflow-hidden">
+    <!-- data-menu-active="false" masque le shell pendant l'écran titre.
+         Il passe à "true" via app.initialize() au clic sur PLAY. -->
+    <div id="app-shell" class="app-shell relative flex flex-col items-center justify-between max-w-md mx-auto w-full h-full overflow-hidden" data-app-shell data-menu-active="false">
+        <div class="bg-industrial w-full h-full max-w-md mx-auto" aria-hidden="true"></div>
+        <canvas id="dust-canvas" class="absolute inset-0 pointer-events-none z-1" aria-hidden="true"></canvas>
+
+        <header class="hud-shell w-full z-20 flex justify-between items-start px-4" data-hud style="padding-top: max(1rem, var(--safe-top));">
+            <button type="button" class="glass-pill rounded-full flex items-center pr-4 p-1 gap-3 btn-active-scale cursor-pointer shadow-lg hud-profile-trigger" data-action="toggle-profile-modal" aria-controls="profile-modal" aria-expanded="false">
+                <div class="relative w-10 h-10 rounded-full border border-emerald/50 bg-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                    <i class="ph-fill ph-user text-emerald text-xl"></i>
+                </div>
+                <div class="flex flex-col items-start">
+                    <span class="text-[10px] text-gray-400 font-bold tracking-wider uppercase leading-none" data-player-role>Docteur</span>
+                    <span class="text-sm font-black text-white leading-tight uppercase" data-player-name>N3O_VNDL</span>
+                </div>
+                <div class="ml-1 bg-emerald/20 border border-emerald/40 text-emerald font-mono text-[10px] px-2 py-0.5 rounded-full uppercase" data-player-level>LVL.0</div>
+            </button>
+
+            <div class="flex flex-col items-end gap-2 hud-currency-stack" data-hud-currency>
+                <button type="button" class="glass-pill rounded-full flex items-center pl-2 pr-3 py-1.5 gap-2 btn-active-scale cursor-pointer border-cyan/20 hud-currency-pill" data-currency="hexagon">
+                    <i class="ph-fill ph-hexagon text-cyan"></i>
+                    <span class="font-mono text-sm font-bold text-white leading-none mt-0.5" data-currency-value="hexagon">0</span>
+                </button>
+                <button type="button" class="glass-pill rounded-full flex items-center pl-2 pr-3 py-1.5 gap-2 btn-active-scale cursor-pointer border-emerald/20 hud-currency-pill" data-currency="sketch">
+                    <i class="ph-fill ph-sketch-logo text-emerald"></i>
+                    <span class="font-mono text-sm font-bold text-white leading-none mt-0.5" data-currency-value="sketch">0</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="content-shell flex-1 w-full flex flex-col items-center justify-center relative z-10" data-content-shell>
+            <div id="custom-incubator-slot" class="content-mount w-full h-full" data-content-mount data-active-section="labo"></div>
+        </main>
+
+        <nav class="w-full z-30 px-4 relative" data-nav-shell style="padding-bottom: max(1.5rem, var(--safe-bottom));">
+            <div id="nav-container" class="glass-panel nav-shell relative rounded-[32px] w-full h-20 flex items-center px-1" data-nav-container>
+                <div id="nav-track-glow" class="nav-track-glow"></div>
+                <div id="nav-energy-line" class="nav-energy-line"></div>
+
+                <div id="slime-cursor" class="slime-cursor" aria-hidden="true">
+                    <div id="slime-stretch" class="w-full h-full slime-stretch-transition flex items-center justify-center relative">
+                        <div class="slime-ring"></div>
+                        <div class="slime-pulse"></div>
+                        <div class="slime-core"></div>
+                    </div>
+                    <div class="slime-indicator"></div>
+                </div>
+
+                <button class="nav-btn group relative z-20 flex-1 h-full flex items-center justify-center" type="button" data-nav-index="0" data-section-id="prairie" aria-label="Prairie">
+                    <span class="nav-hit-sheen"></span>
+                    <div class="nav-icon-container text-gray-400 group-hover:text-white">
+                        <i class="ph-duotone ph-leaf text-[28px] leading-none"></i>
+                    </div>
+                    <span class="nav-text">Prairie</span>
+                </button>
+
+                <button class="nav-btn group relative z-20 flex-1 h-full flex items-center justify-center" type="button" data-nav-index="1" data-section-id="musee" aria-label="Musée">
+                    <span class="nav-hit-sheen"></span>
+                    <div class="nav-icon-container text-gray-400 group-hover:text-white">
+                        <i class="ph-duotone ph-dna text-[28px] leading-none"></i>
+                    </div>
+                    <span class="nav-text">Musée</span>
+                </button>
+
+                <button class="nav-btn group relative z-20 flex-1 h-full flex items-center justify-center" type="button" data-nav-index="2" data-section-id="labo" aria-label="Labo">
+                    <span class="nav-hit-sheen"></span>
+                    <div class="nav-icon-container text-gray-400 group-hover:text-white">
+                        <i class="ph-duotone ph-flask text-[28px] leading-none"></i>
+                    </div>
+                    <span class="nav-text">Labo</span>
+                </button>
+
+                <button class="nav-btn group relative z-20 flex-1 h-full flex items-center justify-center" type="button" data-nav-index="3" data-section-id="bar" aria-label="Bar">
+                    <span class="nav-hit-sheen"></span>
+                    <div class="nav-icon-container text-gray-400 group-hover:text-white">
+                        <i class="ph-duotone ph-martini text-[28px] leading-none"></i>
+                    </div>
+                    <span class="nav-text">Bar</span>
+                </button>
+
+                <button class="nav-btn group relative z-20 flex-1 h-full flex items-center justify-center" type="button" data-nav-index="4" data-section-id="shop" aria-label="Shop">
+                    <span class="nav-hit-sheen"></span>
+                    <div class="nav-icon-container text-gray-400 group-hover:text-white">
+                        <i class="ph-duotone ph-package text-[28px] leading-none"></i>
+                        <div class="nav-notification-dot" aria-hidden="true"></div>
+                    </div>
+                    <span class="nav-text">Shop</span>
+                </button>
+            </div>
+        </nav>
+
+        <div id="profile-modal" class="profile-modal fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300" data-modal="profile" aria-hidden="true">
+            <div class="absolute inset-0 bg-abyssal/90 backdrop-blur-xl" data-action="close-profile-modal"></div>
+            <div id="profile-card" class="glass-panel profile-card relative w-[85%] max-w-sm rounded-[40px] p-8 flex flex-col items-center transform scale-90 border-emerald/20 shadow-2xl">
+                <button type="button" class="absolute top-6 right-6 w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-gray-400 btn-active-scale" data-action="close-profile-modal" aria-label="Fermer le profil"><i class="ph-bold ph-x"></i></button>
+                <div class="relative w-28 h-28 rounded-full border-2 border-emerald bg-slate-900 flex items-center justify-center overflow-hidden shadow-[0_0_30px_rgba(16,185,129,0.4)] mb-4">
+                    <i class="ph-fill ph-user text-emerald text-6xl"></i>
+                    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-emerald/10 to-transparent animate-pulse"></div>
+                </div>
+                <h2 class="text-2xl font-black text-white uppercase tracking-tight" data-modal-player-name>N3O_VNDL</h2>
+                <span class="text-[10px] text-emerald font-mono tracking-widest mt-1 opacity-70" data-modal-player-id>ID: INK-774-B</span>
+
+                <div class="w-full mt-8">
+                    <div class="flex justify-between text-[10px] font-bold text-gray-400 uppercase mb-2"><span data-modal-player-level-label>Niveau 0</span><span data-modal-player-xp>0 / 10K XP</span></div>
+                    <div class="w-full h-2.5 bg-black/40 rounded-full overflow-hidden border border-white/5">
+                        <div class="h-full bg-gradient-to-r from-cyan to-emerald w-0 shadow-[0_0_10px_#10b981]" data-modal-player-xp-bar></div>
+                    </div>
+                </div>
+
+                <div class="w-full grid grid-cols-2 gap-4 mt-8">
+                    <div class="glass-pill rounded-3xl h-24 border-white/5 flex items-center justify-center">
+                        <span class="text-[8px] uppercase font-black text-gray-600">Locked</span>
+                    </div>
+                    <div class="glass-pill rounded-3xl h-24 border-white/5 flex items-center justify-center">
+                        <span class="text-[8px] uppercase font-black text-gray-600">Locked</span>
+                    </div>
+                </div>
+                <button type="button" class="w-full mt-8 py-4 rounded-2xl bg-emerald/10 border border-emerald/40 text-emerald font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-emerald/20">Paramètres Profil</button>
+                <button type="button" id="reset-data-btn" class="w-full mt-3 py-3 rounded-2xl bg-red-900/20 border border-red-500/30 text-red-400 font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-red-900/40">⚠ Réinitialiser les données</button>
+            </div>
+        </div>
+
+        <!-- Modal de confirmation reset -->
+        <div id="reset-confirm-modal" class="fixed inset-0 z-[60] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200" aria-hidden="true">
+            <div id="reset-confirm-backdrop" class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+            <div class="glass-panel relative w-[82%] max-w-xs rounded-[32px] p-7 flex flex-col items-center border border-red-500/25 shadow-[0_0_40px_rgba(239,68,68,0.15)] z-10">
+                <div class="w-16 h-16 rounded-full bg-red-900/40 border border-red-500/40 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                    <i class="ph-bold ph-warning text-red-400 text-3xl"></i>
+                </div>
+                <h3 class="text-white font-black text-base uppercase tracking-tight text-center mb-2">Remise à zéro</h3>
+                <p class="text-gray-400 text-[11px] text-center leading-relaxed mb-6">Toutes tes données seront <span class="text-red-400 font-bold">définitivement supprimées</span> — slimes, progression, collection. Cette action est irréversible.</p>
+                <div class="w-full flex flex-col gap-2">
+                    <button type="button" id="reset-confirm-yes" class="w-full py-3.5 rounded-2xl bg-red-600/80 border border-red-500/60 text-white font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-red-600 shadow-[0_0_14px_rgba(239,68,68,0.3)]">Tout effacer</button>
+                    <button type="button" id="reset-confirm-no" class="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-gray-400 font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-white/10">Annuler</button>
+                </div>
+            </div>
+        </div>
+
+    <script type="module" src="./src/bootstrap/main.js"></script>
+    <script>
+    // ── Reset data modal logic ────────────────────────────────────────────────
+    (function() {
+        const resetBtn      = document.getElementById('reset-data-btn');
+        const confirmModal  = document.getElementById('reset-confirm-modal');
+        const confirmYes    = document.getElementById('reset-confirm-yes');
+        const confirmNo     = document.getElementById('reset-confirm-no');
+        const backdrop      = document.getElementById('reset-confirm-backdrop');
+
+        function openResetModal() {
+            confirmModal.classList.remove('opacity-0', 'pointer-events-none');
+            confirmModal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeResetModal() {
+            confirmModal.classList.add('opacity-0', 'pointer-events-none');
+            confirmModal.setAttribute('aria-hidden', 'true');
+        }
+
+        function executeReset() {
+            // Supprimer toutes les clés INKU connues
+            const inkuKeys = [
+                'inku.storage.v1',
+                'inku.storage.panel.session.v1',
+                'inku.prairie.session.v3',
+            ];
+            inkuKeys.forEach(k => localStorage.removeItem(k));
+
+            // Supprimer toutes les clés inku.* restantes (futures)
+            Object.keys(localStorage)
+                .filter(k => k.startsWith('inku.'))
+                .forEach(k => localStorage.removeItem(k));
+
+            closeResetModal();
+
+            // Feedback visuel bref puis reload
+            document.body.style.transition = 'opacity 0.4s';
+            document.body.style.opacity = '0';
+            setTimeout(() => location.reload(), 420);
+        }
+
+        resetBtn.addEventListener('click', openResetModal);
+        confirmYes.addEventListener('click', executeReset);
+        confirmNo.addEventListener('click', closeResetModal);
+        backdrop.addEventListener('click', closeResetModal);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && confirmModal.getAttribute('aria-hidden') === 'false') {
+                closeResetModal();
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
