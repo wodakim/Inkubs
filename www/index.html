@@ -24,6 +24,7 @@
     <link rel="stylesheet" href="./styles/features/incubator-shell.css">
     <link rel="stylesheet" href="./styles/features/storage.css">
     <link rel="stylesheet" href="./styles/features/prairie.css">
+    <link rel="stylesheet" href="./styles/features/rarity-notifications.css">
 </head>
 <body class="relative flex flex-col items-center justify-between max-w-md mx-auto w-full shadow-2xl overflow-hidden">
     <!-- data-menu-active="false" masque le shell pendant l'écran titre.
@@ -146,7 +147,26 @@
                         <span class="text-[8px] uppercase font-black text-gray-600">Locked</span>
                     </div>
                 </div>
-                <button type="button" class="w-full mt-8 py-4 rounded-2xl bg-emerald/10 border border-emerald/40 text-emerald font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-emerald/20">Paramètres Profil</button>
+                <!-- Notifications d'incubateur -->
+                <div class="profile-notif-block w-full mt-6" id="profile-notif-block">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Alertes Incubateur</span>
+                        <label class="profile-notif-toggle" aria-label="Activer les alertes">
+                            <input type="checkbox" id="notif-enabled-toggle" data-notif-enabled>
+                            <span class="profile-notif-toggle__track"></span>
+                        </label>
+                    </div>
+                    <div class="profile-notif-tiers" id="notif-tiers-section" aria-label="Seuil de rareté minimum">
+                        <p class="text-[9px] text-gray-500 uppercase tracking-wide mb-2">Notifier dès :</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button type="button" class="profile-notif-tier-btn" data-notif-tier="uncommon">Peu commun</button>
+                            <button type="button" class="profile-notif-tier-btn" data-notif-tier="rare">Rare</button>
+                            <button type="button" class="profile-notif-tier-btn" data-notif-tier="epic">Épique</button>
+                            <button type="button" class="profile-notif-tier-btn" data-notif-tier="legendary">Légendaire</button>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" class="w-full mt-4 py-4 rounded-2xl bg-emerald/10 border border-emerald/40 text-emerald font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-emerald/20">Paramètres Profil</button>
                 <button type="button" id="reset-data-btn" class="w-full mt-3 py-3 rounded-2xl bg-red-900/20 border border-red-500/30 text-red-400 font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-red-900/40">⚠ Réinitialiser les données</button>
             </div>
         </div>

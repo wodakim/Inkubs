@@ -6,6 +6,7 @@ import { getStorageRuntimeContext } from '../storage/storage-runtime-context.js'
 import { createStoragePanelController } from '../storage/storage-panel-controller.js';
 import { INCUBATOR_EVENTS } from '../../vendor/inku-incubator/core/IncubatorEvents.js';
 import { computeIncomeRate, computeAcquisitionCost } from '../economy/economy-calculator.js';
+import { notifyRareCandidate } from '../economy/rarity-notification-service.js';
 
 export function createLaboIncubatorFeature({ store } = {}) {
     let root = null;
@@ -275,6 +276,11 @@ export function createLaboIncubatorFeature({ store } = {}) {
         if (!controllerStateUnsubscribe && controller) {
             controller.on(INCUBATOR_EVENTS.CANDIDATE_ATTACHED, ({ candidate }) => {
                 updateEconomyPanel(candidate);
+
+                // Trigger rare slime notification if player is on another section
+                const rarityTier = candidate?.metadata?.previewBlueprint?.genome?.rarityTier || 'common';
+                const activeSectionId = store?.getState?.()?.activeSectionId ?? 'labo';
+                void notifyRareCandidate(rarityTier, store, activeSectionId);
             });
             controllerStateUnsubscribe = controller.on(INCUBATOR_EVENTS.STATE_CHANGED, ({ state, previousState }) => {
                 if (state !== 'idle') {

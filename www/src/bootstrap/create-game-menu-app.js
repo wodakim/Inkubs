@@ -12,6 +12,7 @@ import { createHudController } from '../features/hud/hud-controller.js';
 import { loadPlayerState, savePlayerState } from '../features/economy/player-persistence.js';
 import { createPassiveIncomeEngine } from '../features/economy/passive-income-engine.js';
 import { getStorageRuntimeContext } from '../features/storage/storage-runtime-context.js';
+import { createNotificationSettingsController } from '../features/economy/notification-settings-controller.js';
 
 export function createGameMenuApp(root = document) {
     const refs = getDomRefs(root);
@@ -66,6 +67,9 @@ export function createGameMenuApp(root = document) {
         hudController.updateIncomeRate(passiveIncome.getTotalIncomeRate());
     });
 
+    // Notification settings UI in profile modal
+    const notifSettingsController = createNotificationSettingsController({ store });
+
     contentMountController.renderCurrent();
 
     function requestLayoutSync() {
@@ -115,6 +119,7 @@ export function createGameMenuApp(root = document) {
 
     function destroy() {
         passiveIncome.stop();
+        notifSettingsController.destroy();
         dustBackgroundController.destroy();
         navigationController.destroy();
         profileModalController.destroy();
