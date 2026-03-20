@@ -274,8 +274,12 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             <div class="storage-confirm-modal" data-storage-sell-modal hidden aria-hidden="true">
                 <div class="storage-confirm-modal__backdrop" data-storage-sell-cancel></div>
                 <section class="storage-confirm-modal__dialog" aria-label="Confirmer la revente">
-                    <h3 class="storage-confirm-modal__title">Confirmer la revente</h3>
-                    <p class="storage-confirm-modal__copy" data-storage-sell-copy>Ce slime sera retiré du stockage canonique.</p>
+                    <div class="storage-confirm-modal__modal-header">
+                        <span class="storage-confirm-modal__warn-icon" aria-hidden="true">⚠</span>
+                        <h3 class="storage-confirm-modal__title">Revente</h3>
+                    </div>
+                    <div class="storage-confirm-modal__subject" data-storage-sell-subject></div>
+                    <p class="storage-confirm-modal__copy" data-storage-sell-copy>Cette action est irréversible.</p>
                     <div class="storage-confirm-modal__actions">
                         <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--secondary" data-storage-sell-cancel>Annuler</button>
                         <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--danger" data-storage-sell-confirm>Revendre</button>
@@ -316,6 +320,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             sellZone: root.querySelector('[data-storage-sell-zone]'),
             sellModal: root.querySelector('[data-storage-sell-modal]'),
             sellCopy: root.querySelector('[data-storage-sell-copy]'),
+            sellSubject: root.querySelector('[data-storage-sell-subject]'),
             sortChips: [...root.querySelectorAll('[data-storage-sort-key]')],
             dragHandle: root.querySelector('[data-storage-panel-drag-handle]'),
             resizeHandle: root.querySelector('[data-storage-panel-resize]'),
@@ -832,8 +837,15 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         refs.detailTitle.textContent = record.displayName || record.storageDisplay?.label || 'Specimen';
         const display = record.storageDisplay || {};
         const genome = record.proceduralCore?.genome || {};
+        const rarityTier = display.rarityTier || 'common';
 
-        // Tags: rarity + level only (mood already shown below)
+        // Apply rarity theming to the dialog itself
+        const dialog = refs.detailModal?.querySelector?.('.storage-detail-modal__dialog');
+        if (dialog) {
+            dialog.dataset.rarityTier = rarityTier;
+        }
+
+        // Tags displayed as overlay badges inside the viewer
         const rarityTag = display.rarity ? `<span class="storage-detail-modal__tag storage-detail-modal__tag--rarity">${escapeHtml(String(display.rarity))}</span>` : '';
         const levelTag = display.level !== undefined ? `<span class="storage-detail-modal__tag storage-detail-modal__tag--level">Nv.${escapeHtml(String(display.level))}</span>` : '';
         const typeTag = (display.typeLabel || record.speciesKey) ? `<span class="storage-detail-modal__tag">${escapeHtml(String(display.typeLabel || record.speciesKey))}</span>` : '';
@@ -842,18 +854,20 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         refs.detailContent.innerHTML = `
             <section class="storage-detail-modal__top">
                 <div class="storage-detail-modal__viewer-frame">
+                    <!-- Rarity accent bar across the top -->
+                    <div class="storage-detail-modal__rarity-bar"></div>
+                    <!-- Live slime sandbox -->
                     <div class="storage-detail-modal__visual-stage storage-detail-modal__visual-stage--live" data-storage-live-stage></div>
-                </div>
-                <div class="storage-detail-modal__identity-strip">
-                    <div class="storage-detail-modal__tag-row">
+                    <!-- Badges overlaid at the bottom of the viewer -->
+                    <div class="storage-detail-modal__viewer-badges">
                         ${rarityTag}${levelTag}${typeTag}
                     </div>
-                    <div class="storage-detail-modal__rename-row">
-                        <input class="storage-detail-modal__name-input" type="text" maxlength="32" placeholder="Nom du spécimen…" value="${escapeHtml(record.displayName || '')}" data-storage-detail-name-input>
-                        <button type="button" class="storage-detail-modal__save" data-storage-detail-save-name aria-label="Sauvegarder le nom">
-                            <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2,7 5.5,10.5 12,3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        </button>
-                    </div>
+                </div>
+                <div class="storage-detail-modal__rename-row">
+                    <input class="storage-detail-modal__name-input" type="text" maxlength="32" placeholder="Nom du spécimen…" value="${escapeHtml(record.displayName || '')}" data-storage-detail-name-input>
+                    <button type="button" class="storage-detail-modal__save" data-storage-detail-save-name aria-label="Sauvegarder le nom">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2,7 5.5,10.5 12,3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
                 </div>
             </section>
 
@@ -909,7 +923,18 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         pendingSell = {
             canonicalId,
         };
-        refs.sellCopy.textContent = `${record.displayName || record.storageDisplay?.label || 'Ce slime'} sera retiré du stockage canonique.`;
+
+        // Populate subject line with name + rarity badge
+        if (refs.sellSubject) {
+            const rarityTier = record.storageDisplay?.rarityTier || 'common';
+            const rarityLabel = record.storageDisplay?.rarity || '';
+            refs.sellSubject.innerHTML = `
+                <span class="storage-confirm-modal__subject-name">${escapeHtml(record.displayName || record.storageDisplay?.label || 'Ce slime')}</span>
+                ${rarityLabel ? `<span class="storage-confirm-modal__subject-rarity" data-rarity-tier="${escapeHtml(rarityTier)}">${escapeHtml(rarityLabel)}</span>` : ''}
+            `;
+        }
+
+        refs.sellCopy.textContent = 'Cette action est irréversible.';
         refs.sellModal.hidden = false;
         refs.sellModal.setAttribute('aria-hidden', 'false');
     }
@@ -1026,13 +1051,19 @@ function renderStatBar(label, value) {
     }
 
     const percent = Math.max(0, Math.min(100, numeric));
+    // Color-coded gradient: teal (high) → blue (mid) → amber (low)
+    const barGradient = percent >= 65
+        ? 'linear-gradient(90deg,rgba(16,185,129,.55),rgba(52,211,153,.9))'
+        : percent >= 30
+            ? 'linear-gradient(90deg,rgba(59,130,246,.55),rgba(99,179,237,.9))'
+            : 'linear-gradient(90deg,rgba(245,158,11,.55),rgba(251,191,36,.9))';
     return `
         <div class="storage-detail-modal__stat-row">
             <div class="storage-detail-modal__stat-head">
                 <span class="storage-detail-modal__stat-label">${escapeHtml(humanize(label))}</span>
                 <span class="storage-detail-modal__stat-value">${escapeHtml(formatValue(numeric))}</span>
             </div>
-            <div class="storage-detail-modal__stat-track"><span style="width:${percent}%"></span></div>
+            <div class="storage-detail-modal__stat-track"><span style="width:${percent}%;background:${barGradient}"></span></div>
         </div>
     `;
 }
