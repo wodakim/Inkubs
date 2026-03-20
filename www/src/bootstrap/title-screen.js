@@ -92,62 +92,81 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
 @media(max-height:750px){.safe-area-pb{padding-bottom:max(1.5rem,calc(env(safe-area-inset-bottom) + 0.8rem))}.login-card-aaa{padding:1rem}.title-glow{font-size:2.7rem;line-height:1}.btn-aaa{padding-top:0.6rem;padding-bottom:0.6rem}}
 @media(max-height:650px){.safe-area-pb{padding-bottom:max(1rem,env(safe-area-inset-bottom))}.login-card-aaa{padding:0.75rem 1rem;border-radius:16px;max-width:290px}.title-glow{font-size:2.2rem}.incubator-container{max-height:280px}}
 
-/* ═══ MODAL PARAMÈTRES PLEIN ÉCRAN ═══ */
-#ts-settings-modal{position:fixed;inset:0;z-index:100000;background:#060810;opacity:0;pointer-events:none;transition:opacity 0.3s ease;display:flex;flex-direction:column;font-family:'Nunito',sans-serif;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);}
-#ts-settings-modal.open{opacity:1;pointer-events:auto;}
-.sm-hdr{display:flex;align-items:center;gap:1rem;padding:1.1rem 1.25rem 0.8rem;border-bottom:1px solid rgba(16,185,129,0.12);flex-shrink:0;}
-.sm-back{width:2.25rem;height:2.25rem;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);color:rgba(255,255,255,0.6);cursor:pointer;transition:all 0.2s;flex-shrink:0;appearance:none;}
-.sm-back:hover{background:rgba(255,255,255,0.09);color:white;}.sm-back:active{transform:scale(0.9);}
-.sm-title{font-size:1.1rem;font-weight:900;color:white;}
-.sm-subtitle{font-size:0.6rem;color:rgba(16,185,129,0.55);font-family:'JetBrains Mono','Fira Code',monospace;letter-spacing:0.15em;text-transform:uppercase;}
-.sm-tabs{display:flex;gap:0;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.06);overflow-x:auto;scrollbar-width:none;}
-.sm-tabs::-webkit-scrollbar{display:none;}
-.sm-tab{flex:1;min-width:max-content;padding:0.75rem 1rem;border:none;background:transparent;font-family:'Nunito',sans-serif;font-size:0.72rem;font-weight:800;color:rgba(255,255,255,0.35);cursor:pointer;border-bottom:2px solid transparent;transition:all 0.2s;white-space:nowrap;display:flex;align-items:center;justify-content:center;gap:0.4rem;}
-.sm-tab.active{color:#34d399;border-bottom-color:#10b981;background:rgba(16,185,129,0.05);}
-.sm-body{flex:1;overflow-y:auto;padding:0.5rem 1.1rem max(1.5rem,env(safe-area-inset-bottom,1rem));scrollbar-width:thin;scrollbar-color:rgba(16,185,129,0.2) transparent;}
-.sm-body::-webkit-scrollbar{width:3px;}.sm-body::-webkit-scrollbar-thumb{background:rgba(16,185,129,0.2);border-radius:2px;}
-.sm-panel{display:none;}.sm-panel.active{display:block;}
-.sm-label{font-size:0.6rem;font-weight:900;letter-spacing:0.2em;text-transform:uppercase;color:rgba(16,185,129,0.5);font-family:'JetBrains Mono','Fira Code',monospace;padding:1rem 0.2rem 0.4rem;}
-.sm-row{display:flex;align-items:center;gap:0.9rem;padding:0.9rem 0.85rem;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.055);border-radius:14px;margin-bottom:0.4rem;min-height:64px;}
-.sm-ico{width:2.4rem;height:2.4rem;border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.ico-em{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.22);color:#10b981;}
-.ico-bl{background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.22);color:#60a5fa;}
-.ico-vi{background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.22);color:#c084fc;}
-.ico-am{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.22);color:#fbbf24;}
-.ico-re{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#f87171;}
-.sm-text{flex:1;min-width:0;}
-.sm-name{font-size:0.9rem;font-weight:800;color:rgba(255,255,255,0.92);}
-.sm-desc{font-size:0.66rem;color:rgba(255,255,255,0.35);margin-top:2px;}
-.sm-ctrl{display:flex;align-items:center;gap:0.5rem;flex-shrink:0;}
-.sm-sw{display:flex;align-items:center;gap:0.5rem;width:min(36vw,130px);}
-.sm-sv{font-family:'JetBrains Mono','Fira Code',monospace;font-size:0.75rem;font-weight:700;color:#34d399;min-width:2rem;text-align:right;}
-input.sm-slid{-webkit-appearance:none;appearance:none;flex:1;height:4px;border-radius:2px;background:rgba(255,255,255,0.1);outline:none;cursor:pointer;}
-input.sm-slid::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#34d399;box-shadow:0 0 10px rgba(52,211,153,0.6);cursor:pointer;}
-input.sm-slid::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#34d399;border:none;box-shadow:0 0 10px rgba(52,211,153,0.6);}
-.sm-tog{position:relative;width:50px;height:28px;cursor:pointer;flex-shrink:0;}
-.sm-tog input{opacity:0;width:0;height:0;position:absolute;}
-.sm-tog-track{position:absolute;inset:0;border-radius:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.1);transition:background 0.25s,border-color 0.25s;}
-.sm-tog input:checked~.sm-tog-track{background:rgba(16,185,129,0.28);border-color:rgba(16,185,129,0.55);}
-.sm-tog-knob{position:absolute;top:4px;left:4px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.35);box-shadow:0 1px 4px rgba(0,0,0,0.5);transition:transform 0.22s cubic-bezier(0.22,1.18,0.28,1),background 0.22s;}
-.sm-tog input:checked~.sm-tog-track~.sm-tog-knob{transform:translateX(22px);background:#34d399;box-shadow:0 0 10px rgba(52,211,153,0.55);}
-.sm-seg{display:flex;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.07);border-radius:11px;padding:3px;gap:2px;}
-.sm-seg-btn{appearance:none;padding:0.38rem 0.65rem;border-radius:8px;border:none;font-family:'Nunito',sans-serif;font-size:0.68rem;font-weight:800;color:rgba(255,255,255,0.38);cursor:pointer;background:transparent;transition:all 0.2s;}
-.sm-seg-btn.on{background:rgba(16,185,129,0.18);color:#34d399;}
-.sm-info{background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.1);border-radius:14px;padding:0.8rem 0.9rem;margin-bottom:0.4rem;font-size:0.72rem;color:rgba(255,255,255,0.4);line-height:1.6;}
-.sm-info b{color:rgba(52,211,153,0.8);font-weight:800;}
-.sm-danger{display:flex;align-items:center;gap:0.9rem;padding:0.9rem 0.85rem;background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.18);border-radius:14px;min-height:64px;cursor:pointer;transition:background 0.2s,border-color 0.2s;}
-.sm-danger:hover{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.35);}
-.sm-danger:active{transform:scale(0.98);}
-.sm-danger-name{font-size:0.9rem;font-weight:800;color:#f87171;}
-.sm-danger-desc{font-size:0.65rem;color:rgba(239,68,68,0.5);margin-top:2px;}
-/* Confirmation reset overlay */
-#ts-confirm-reset{position:absolute;inset:0;z-index:10;background:rgba(4,6,12,0.96);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;opacity:0;pointer-events:none;transition:opacity 0.2s ease;}
+/* ═══ MODAL PARAMÈTRES — STYLE POKÉMON ═══ */
+#ts-settings-modal{position:fixed;inset:0;z-index:100000;background:#070c18;opacity:0;pointer-events:none;transition:opacity 0.28s ease,transform 0.28s ease;display:flex;flex-direction:column;font-family:'Nunito',sans-serif;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(8px);}
+#ts-settings-modal.open{opacity:1;pointer-events:auto;transform:translateY(0);}
+/* Header */
+.pks-header{display:flex;align-items:center;gap:0.875rem;padding:1rem 1.25rem;background:rgba(16,185,129,0.04);border-bottom:2px solid rgba(16,185,129,0.18);flex-shrink:0;}
+.pks-back{width:2.5rem;height:2.5rem;border-radius:10px;background:rgba(16,185,129,0.1);border:1.5px solid rgba(16,185,129,0.25);color:#34d399;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;transition:all 0.15s;flex-shrink:0;appearance:none;}
+.pks-back:active{transform:scale(0.9);background:rgba(16,185,129,0.2);}
+.pks-header-text{flex:1;}
+.pks-title{font-size:1.1rem;font-weight:900;color:white;letter-spacing:0.04em;}
+.pks-version{font-size:0.58rem;font-family:'JetBrains Mono','Fira Code',monospace;color:rgba(52,211,153,0.4);letter-spacing:0.18em;text-transform:uppercase;margin-top:1px;}
+/* Scrollable body */
+.pks-body{flex:1;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:1.5rem;scrollbar-width:none;}
+.pks-body::-webkit-scrollbar{display:none;}
+/* Section */
+.pks-section{padding:0 0.875rem;margin-top:1.25rem;}
+.pks-section-label{display:flex;align-items:center;gap:0.5rem;font-size:0.62rem;font-weight:900;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.38);font-family:'JetBrains Mono','Fira Code',monospace;margin-bottom:0.5rem;padding-left:0.1rem;}
+.pks-section-bar{width:3px;height:12px;border-radius:2px;background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.5);flex-shrink:0;}
+.pks-bar-blue{background:#3b82f6;box-shadow:0 0 8px rgba(59,130,246,0.5);}
+.pks-bar-purple{background:#a855f7;box-shadow:0 0 8px rgba(168,85,247,0.5);}
+.pks-bar-red{background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,0.5);}
+/* Card grouping */
+.pks-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;}
+.pks-divider{height:1px;background:rgba(255,255,255,0.05);margin:0 1rem;}
+/* Row base */
+.pks-row{display:flex;align-items:center;gap:0.75rem;padding:0 0.875rem;min-height:58px;}
+/* Slider row layout (label+value on top, slider full-width below) */
+.pks-row--slider{flex-direction:row;align-items:center;padding-top:0.65rem;padding-bottom:0.75rem;min-height:auto;}
+.pks-row--slider .pks-row-body{display:flex;flex-direction:column;gap:0.38rem;}
+.pks-row-top{display:flex;align-items:center;justify-content:space-between;}
+/* Icon */
+.pks-row-icon{width:2.2rem;height:2.2rem;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:0.95rem;flex-shrink:0;}
+.pks-icon-green{background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.22);color:#10b981;}
+.pks-icon-blue{background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.22);color:#60a5fa;}
+.pks-icon-purple{background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.22);color:#c084fc;}
+.pks-icon-amber{background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.22);color:#fbbf24;}
+.pks-icon-red{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#f87171;}
+/* Row text */
+.pks-row-body{flex:1;min-width:0;}
+.pks-row-name{font-size:0.88rem;font-weight:700;color:rgba(255,255,255,0.9);line-height:1.2;}
+.pks-row-sub{font-size:0.62rem;color:rgba(255,255,255,0.35);margin-top:1px;}
+.pks-row-ctrl{display:flex;align-items:center;gap:0.4rem;flex-shrink:0;}
+/* Toggle switch */
+.pks-toggle{position:relative;display:inline-block;width:50px;height:28px;cursor:pointer;flex-shrink:0;}
+.pks-toggle input{opacity:0;width:0;height:0;position:absolute;}
+.pks-toggle-track{position:absolute;inset:0;border-radius:14px;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.1);transition:background 0.25s,border-color 0.25s;}
+.pks-toggle input:checked~.pks-toggle-track{background:rgba(16,185,129,0.25);border-color:rgba(16,185,129,0.5);}
+.pks-toggle-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.3);box-shadow:0 1px 4px rgba(0,0,0,0.5);transition:transform 0.22s cubic-bezier(0.22,1.18,0.28,1),background 0.22s;}
+.pks-toggle input:checked~.pks-toggle-track .pks-toggle-knob{transform:translateX(22px);background:#34d399;box-shadow:0 0 10px rgba(52,211,153,0.5);}
+/* Slider (full width inside row-body) */
+.pks-slider{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,0.1);outline:none;cursor:pointer;}
+.pks-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#34d399;box-shadow:0 0 10px rgba(52,211,153,0.6);cursor:pointer;}
+.pks-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#34d399;border:none;box-shadow:0 0 10px rgba(52,211,153,0.6);}
+.pks-slider-val{font-family:'JetBrains Mono','Fira Code',monospace;font-size:0.72rem;font-weight:700;color:#34d399;min-width:2rem;text-align:right;flex-shrink:0;}
+/* Segmented control */
+.pks-seg{display:flex;background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:3px;gap:2px;}
+.pks-seg-btn{appearance:none;padding:0.3rem 0.55rem;border-radius:7px;border:none;font-family:'Nunito',sans-serif;font-size:0.68rem;font-weight:800;color:rgba(255,255,255,0.35);cursor:pointer;background:transparent;transition:all 0.18s;}
+.pks-seg-btn.on{background:rgba(16,185,129,0.2);color:#34d399;}
+/* Info box */
+.pks-info-box{display:flex;align-items:flex-start;gap:0.75rem;background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.12);border-radius:14px;padding:0.9rem 1rem;margin-bottom:0.5rem;font-size:0.72rem;color:rgba(255,255,255,0.4);line-height:1.65;}
+/* Danger row */
+.pks-danger-row{display:flex;align-items:center;gap:0.75rem;padding:0 1rem;min-height:62px;background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.15);border-radius:16px;cursor:pointer;width:100%;text-align:left;transition:background 0.18s,border-color 0.18s;appearance:none;}
+.pks-danger-row:active{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);transform:scale(0.99);}
+.pks-danger-name{font-size:0.88rem;font-weight:800;color:#f87171;}
+.pks-danger-sub{font-size:0.62rem;color:rgba(239,68,68,0.45);margin-top:2px;}
+/* Confirm reset overlay */
+#ts-confirm-reset{position:absolute;inset:0;z-index:10;background:rgba(4,6,12,0.96);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;opacity:0;pointer-events:none;transition:opacity 0.2s ease;}
 #ts-confirm-reset.show{opacity:1;pointer-events:auto;}
-.ts-cr-icon{width:3.5rem;height:3.5rem;border-radius:50%;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;}
-.ts-cr-title{font-size:1.05rem;font-weight:900;color:white;text-align:center;margin-bottom:0.5rem;}
-.ts-cr-body{font-size:0.72rem;color:rgba(255,255,255,0.42);text-align:center;line-height:1.65;margin-bottom:2rem;max-width:260px;}
-.ts-cr-yes{width:100%;max-width:260px;padding:0.9rem;border-radius:14px;background:rgba(220,38,38,0.72);border:1px solid rgba(239,68,68,0.5);color:white;font-weight:900;font-family:'Outfit','Nunito',sans-serif;font-size:0.8rem;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:0.5rem;cursor:pointer;}
-.ts-cr-no{width:100%;max-width:260px;padding:0.8rem;border-radius:14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);font-weight:900;font-family:'Outfit','Nunito',sans-serif;font-size:0.8rem;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;}
+.pks-confirm-icon{width:3.5rem;height:3.5rem;border-radius:50%;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;color:#f87171;font-size:1.5rem;}
+.pks-confirm-title{font-size:1.1rem;font-weight:900;color:white;text-align:center;margin-bottom:0.5rem;}
+.pks-confirm-body{font-size:0.75rem;color:rgba(255,255,255,0.45);text-align:center;line-height:1.65;margin-bottom:2rem;max-width:270px;}
+.pks-confirm-body strong{color:#f87171;font-weight:800;}
+.pks-confirm-yes{width:100%;max-width:280px;padding:0.9rem;border-radius:14px;background:rgba(220,38,38,0.75);border:1.5px solid rgba(239,68,68,0.5);color:white;font-weight:900;font-family:'Nunito',sans-serif;font-size:0.85rem;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:0.5rem;cursor:pointer;transition:all 0.15s;appearance:none;}
+.pks-confirm-yes:active{transform:scale(0.97);}
+.pks-confirm-no{width:100%;max-width:280px;padding:0.8rem;border-radius:14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);font-weight:900;font-family:'Nunito',sans-serif;font-size:0.85rem;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;appearance:none;}
+.pks-confirm-no:active{transform:scale(0.97);}
 </style>
 
 <div id="ts-body">
@@ -254,56 +273,119 @@ input.sm-slid::-moz-range-thumb{width:20px;height:20px;border-radius:50%;backgro
 </div>
 </div>
 
-<!-- ═══ MODAL PARAMÈTRES ═══ -->
+<!-- ═══ MODAL PARAMÈTRES — STYLE POKÉMON ═══ -->
 <div id="ts-settings-modal">
-    <div class="sm-hdr">
-        <button class="sm-back" id="ts-close-settings"><i class="ph ph-arrow-left" style="font-size:0.875rem;"></i></button>
-        <div><div class="sm-title">Paramètres</div><div class="sm-subtitle">INKÜ · LABO v0.1</div></div>
-    </div>
-    <div class="sm-tabs">
-        <button class="sm-tab active" data-tab="audio"><i class="ph ph-speaker-high"></i> Audio</button>
-        <button class="sm-tab" data-tab="video"><i class="ph ph-monitor"></i> Affichage</button>
-        <button class="sm-tab" data-tab="gameplay"><i class="ph ph-game-controller"></i> Gameplay</button>
-        <button class="sm-tab" data-tab="data"><i class="ph ph-database"></i> Données</button>
-    </div>
-    <div class="sm-body">
-        <!-- AUDIO -->
-        <div class="sm-panel active" data-panel="audio">
-            <div class="sm-label">Volumes</div>
-            <div class="sm-row"><div class="sm-ico ico-em"><i class="ph ph-speaker-high"></i></div><div class="sm-text"><div class="sm-name">Volume général</div><div class="sm-desc">Niveau sonore global du jeu</div></div><div class="sm-ctrl"><div class="sm-sw"><input type="range" class="sm-slid" id="sm-master" min="0" max="100"><span class="sm-sv" id="sm-master-v"></span></div></div></div>
-            <div class="sm-row"><div class="sm-ico ico-bl"><i class="ph ph-music-note"></i></div><div class="sm-text"><div class="sm-name">Musique</div><div class="sm-desc">Ambiance sonore du labo</div></div><div class="sm-ctrl"><div class="sm-sw"><input type="range" class="sm-slid" id="sm-music" min="0" max="100"><span class="sm-sv" id="sm-music-v"></span></div></div></div>
-            <div class="sm-row"><div class="sm-ico ico-vi"><i class="ph ph-bell"></i></div><div class="sm-text"><div class="sm-name">Effets sonores</div><div class="sm-desc">Sons des actions & interactions</div></div><div class="sm-ctrl"><div class="sm-sw"><input type="range" class="sm-slid" id="sm-sfx" min="0" max="100"><span class="sm-sv" id="sm-sfx-v"></span></div></div></div>
+    <div class="pks-header">
+        <button class="pks-back" id="ts-close-settings"><i class="ph ph-arrow-left" style="font-size:0.9rem;"></i></button>
+        <div class="pks-header-text">
+            <div class="pks-title">Paramètres</div>
+            <div class="pks-version">INKÜ · v0.1.0</div>
         </div>
+    </div>
+
+    <div class="pks-body">
+
+        <!-- SON -->
+        <div class="pks-section">
+            <div class="pks-section-label"><div class="pks-section-bar"></div>Son</div>
+            <div class="pks-card">
+                <div class="pks-row pks-row--slider">
+                    <div class="pks-row-icon pks-icon-green"><i class="ph ph-speaker-high"></i></div>
+                    <div class="pks-row-body">
+                        <div class="pks-row-top"><span class="pks-row-name">Volume général</span><span class="pks-slider-val" id="sm-master-v">80</span></div>
+                        <input type="range" class="pks-slider" id="sm-master" min="0" max="100">
+                    </div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row pks-row--slider">
+                    <div class="pks-row-icon pks-icon-blue"><i class="ph ph-music-note"></i></div>
+                    <div class="pks-row-body">
+                        <div class="pks-row-top"><span class="pks-row-name">Musique</span><span class="pks-slider-val" id="sm-music-v">60</span></div>
+                        <input type="range" class="pks-slider" id="sm-music" min="0" max="100">
+                    </div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row pks-row--slider">
+                    <div class="pks-row-icon pks-icon-purple"><i class="ph ph-bell"></i></div>
+                    <div class="pks-row-body">
+                        <div class="pks-row-top"><span class="pks-row-name">Effets sonores</span><span class="pks-slider-val" id="sm-sfx-v">90</span></div>
+                        <input type="range" class="pks-slider" id="sm-sfx" min="0" max="100">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- AFFICHAGE -->
-        <div class="sm-panel" data-panel="video">
-            <div class="sm-label">Qualité visuelle</div>
-            <div class="sm-row"><div class="sm-ico ico-am"><i class="ph ph-monitor"></i></div><div class="sm-text"><div class="sm-name">Qualité graphique</div><div class="sm-desc">Impact direct sur la batterie</div></div><div class="sm-ctrl"><div class="sm-seg" id="sm-quality"><button class="sm-seg-btn" data-v="low">Basse</button><button class="sm-seg-btn" data-v="medium">Médium</button><button class="sm-seg-btn" data-v="high">Haute</button></div></div></div>
-            <div class="sm-row"><div class="sm-ico ico-em"><i class="ph ph-gauge"></i></div><div class="sm-text"><div class="sm-name">Compteur FPS</div><div class="sm-desc">Affiche les images par seconde</div></div><div class="sm-ctrl"><label class="sm-tog"><input type="checkbox" id="sm-fps"><div class="sm-tog-track"></div><div class="sm-tog-knob"></div></label></div></div>
-            <div class="sm-row"><div class="sm-ico ico-bl"><i class="ph ph-leaf"></i></div><div class="sm-text"><div class="sm-name">Réduire animations</div><div class="sm-desc">Accessibilité & économie batterie</div></div><div class="sm-ctrl"><label class="sm-tog"><input type="checkbox" id="sm-motion"><div class="sm-tog-track"></div><div class="sm-tog-knob"></div></label></div></div>
+        <div class="pks-section">
+            <div class="pks-section-label"><div class="pks-section-bar pks-bar-blue"></div>Affichage</div>
+            <div class="pks-card">
+                <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-amber"><i class="ph ph-monitor"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">Qualité graphique</div><div class="pks-row-sub">Impact sur la batterie</div></div>
+                    <div class="pks-row-ctrl"><div class="pks-seg" id="sm-quality"><button class="pks-seg-btn" data-v="low">Bas</button><button class="pks-seg-btn" data-v="medium">Moy</button><button class="pks-seg-btn" data-v="high">Haut</button></div></div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-green"><i class="ph ph-gauge"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">Compteur FPS</div><div class="pks-row-sub">Affiche les images par seconde</div></div>
+                    <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-fps"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-blue"><i class="ph ph-leaf"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">Réduire les animations</div><div class="pks-row-sub">Accessibilité &amp; économie batterie</div></div>
+                    <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-motion"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
+                </div>
+            </div>
         </div>
+
         <!-- GAMEPLAY -->
-        <div class="sm-panel" data-panel="gameplay">
-            <div class="sm-label">Retours haptiques</div>
-            <div class="sm-row"><div class="sm-ico ico-vi"><i class="ph ph-device-mobile"></i></div><div class="sm-text"><div class="sm-name">Vibrations</div><div class="sm-desc">Retour tactile lors des actions</div></div><div class="sm-ctrl"><label class="sm-tog"><input type="checkbox" id="sm-vibr"><div class="sm-tog-track"></div><div class="sm-tog-knob"></div></label></div></div>
-            <div class="sm-row"><div class="sm-ico ico-am"><i class="ph ph-bell"></i></div><div class="sm-text"><div class="sm-name">Notifications</div><div class="sm-desc">Alertes de progression du slime</div></div><div class="sm-ctrl"><label class="sm-tog"><input type="checkbox" id="sm-notif"><div class="sm-tog-track"></div><div class="sm-tog-knob"></div></label></div></div>
-            <div class="sm-label">Langue</div>
-            <div class="sm-row"><div class="sm-ico ico-em"><i class="ph ph-globe"></i></div><div class="sm-text"><div class="sm-name">Langue de l'interface</div><div class="sm-desc">Localisation du jeu</div></div><div class="sm-ctrl"><div class="sm-seg" id="sm-lang"><button class="sm-seg-btn" data-v="fr">🇫🇷 FR</button><button class="sm-seg-btn" data-v="en">🇬🇧 EN</button></div></div></div>
+        <div class="pks-section">
+            <div class="pks-section-label"><div class="pks-section-bar pks-bar-purple"></div>Gameplay</div>
+            <div class="pks-card">
+                <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-purple"><i class="ph ph-device-mobile"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">Vibrations</div><div class="pks-row-sub">Retour tactile lors des actions</div></div>
+                    <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-vibr"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-amber"><i class="ph ph-bell"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">Notifications</div><div class="pks-row-sub">Alertes de progression du slime</div></div>
+                    <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-notif"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-green"><i class="ph ph-globe"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">Langue</div><div class="pks-row-sub">Localisation de l'interface</div></div>
+                    <div class="pks-row-ctrl"><div class="pks-seg" id="sm-lang"><button class="pks-seg-btn" data-v="fr">🇫🇷 FR</button><button class="pks-seg-btn" data-v="en">🇬🇧 EN</button></div></div>
+                </div>
+            </div>
         </div>
+
         <!-- DONNÉES -->
-        <div class="sm-panel" data-panel="data">
-            <div class="sm-label">À propos</div>
-            <div class="sm-info">Version <b>v0.1.0</b> · Mode <b>OFFLINE</b> — données stockées localement.<br>Connexion en ligne disponible dans une prochaine version.</div>
-            <div class="sm-label">Danger zone</div>
-            <div class="sm-danger" id="sm-reset"><div class="sm-ico ico-re"><i class="ph ph-trash"></i></div><div class="sm-text"><div class="sm-danger-name">Effacer toutes les données</div><div class="sm-danger-desc">Slimes, progression, collection — irréversible</div></div><i class="ph ph-caret-right" style="color:rgba(239,68,68,0.4);font-size:0.75rem"></i></div>
+        <div class="pks-section">
+            <div class="pks-section-label"><div class="pks-section-bar pks-bar-red"></div>Données</div>
+            <div class="pks-info-box">
+                <i class="ph ph-info" style="color:#34d399;font-size:1rem;flex-shrink:0;margin-top:1px;"></i>
+                <div>Version <span style="color:#34d399;font-weight:800;">v0.1.0</span> · Mode <span style="color:#34d399;font-weight:800;">OFFLINE</span><br>Données stockées localement sur l'appareil.</div>
+            </div>
+            <button class="pks-danger-row" id="sm-reset">
+                <div class="pks-row-icon pks-icon-red"><i class="ph ph-trash"></i></div>
+                <div class="pks-row-body"><div class="pks-danger-name">Effacer toutes les données</div><div class="pks-danger-sub">Slimes, progression, collection — irréversible</div></div>
+                <i class="ph ph-caret-right" style="color:rgba(239,68,68,0.4);font-size:0.8rem;flex-shrink:0;"></i>
+            </button>
         </div>
+
     </div>
+
     <!-- Confirmation effacement (overlay sur toute la modale settings) -->
     <div id="ts-confirm-reset">
-        <div class="ts-cr-icon"><i class="ph ph-warning" style="color:#f87171;font-size:1.5rem;"></i></div>
-        <div class="ts-cr-title">Remise à zéro</div>
-        <p class="ts-cr-body">Toutes les données seront <span style="color:#f87171;font-weight:800;">définitivement supprimées</span> — slimes, progression, collection. Cette action est irréversible.</p>
-        <button id="ts-confirm-yes" class="ts-cr-yes">Tout effacer</button>
-        <button id="ts-confirm-no" class="ts-cr-no">Annuler</button>
+        <div class="pks-confirm-icon"><i class="ph ph-warning"></i></div>
+        <div class="pks-confirm-title">Remise à zéro</div>
+        <p class="pks-confirm-body">Toutes les données seront <strong>définitivement supprimées</strong> — slimes, progression, collection. Cette action est irréversible.</p>
+        <button id="ts-confirm-yes" class="pks-confirm-yes">Tout effacer</button>
+        <button id="ts-confirm-no" class="pks-confirm-no">Annuler</button>
     </div>
 </div>
 `; }
@@ -392,14 +474,6 @@ input.sm-slid::-moz-range-thumb{width:20px;height:20px;border-radius:50%;backgro
         const close=()=>modal.classList.remove('open');
         root.querySelector('#ts-open-settings').addEventListener('click',open);
         root.querySelector('#ts-close-settings').addEventListener('click',close);
-        root.querySelectorAll('.sm-tab').forEach(tab=>{
-            tab.addEventListener('click',()=>{
-                root.querySelectorAll('.sm-tab').forEach(t=>t.classList.remove('active'));
-                root.querySelectorAll('.sm-panel').forEach(p=>p.classList.remove('active'));
-                tab.classList.add('active');
-                root.querySelector(`[data-panel="${tab.dataset.tab}"]`)?.classList.add('active');
-            });
-        });
         [['sm-master','master'],['sm-music','music'],['sm-sfx','sfx']].forEach(([id,k])=>{
             const el=root.querySelector('#'+id),v=root.querySelector('#'+id+'-v');
             if(!el)return; el.value=S[k]; if(v)v.textContent=S[k];
@@ -407,9 +481,9 @@ input.sm-slid::-moz-range-thumb{width:20px;height:20px;border-radius:50%;backgro
         });
         [['sm-quality','quality'],['sm-lang','lang']].forEach(([id,k])=>{
             const seg=root.querySelector('#'+id);
-            seg?.querySelectorAll('.sm-seg-btn').forEach(b=>{
+            seg?.querySelectorAll('.pks-seg-btn').forEach(b=>{
                 b.classList.toggle('on',b.dataset.v===S[k]);
-                b.addEventListener('click',()=>{S[k]=b.dataset.v;saveS(S);seg.querySelectorAll('.sm-seg-btn').forEach(x=>x.classList.toggle('on',x===b));});
+                b.addEventListener('click',()=>{S[k]=b.dataset.v;saveS(S);seg.querySelectorAll('.pks-seg-btn').forEach(x=>x.classList.toggle('on',x===b));});
             });
         });
         [['sm-fps','fps'],['sm-motion','motion'],['sm-notif','notif'],['sm-vibr','vibr']].forEach(([id,k])=>{
