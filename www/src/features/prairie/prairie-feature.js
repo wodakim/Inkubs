@@ -2212,6 +2212,7 @@ export function createPrairieFeature() {
             stopLoop();
             clearTimeout(saveTimeout);
             window.clearTimeout(dronePanelCloseTimeout);
+            clearInterval(obsUpdateInterval);
             clearParticles();
             hideFeature();
         },
@@ -2227,6 +2228,7 @@ export function createPrairieFeature() {
             stopLoop();
             clearTimeout(saveTimeout);
             window.clearTimeout(dronePanelCloseTimeout);
+            clearInterval(obsUpdateInterval);
             clearParticles();
             resizeObserver?.disconnect?.();
             resizeObserver = null;
