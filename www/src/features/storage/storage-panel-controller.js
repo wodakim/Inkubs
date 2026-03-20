@@ -198,7 +198,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         root.hidden = true;
         root.setAttribute('aria-hidden', 'true');
         root.innerHTML = `
-            <div class="storage-panel__surface"> 
+            <div class="storage-panel__surface">
                 <header class="storage-panel__header" data-storage-panel-drag-handle>
                     <div>
                         <p class="storage-panel__eyebrow">Collection</p>
@@ -208,42 +208,51 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
                 </header>
 
                 <div class="storage-panel__body" data-storage-scroll-body>
-                    <div class="storage-panel__toolbar" role="toolbar" aria-label="Tri de l'archive">
-                        <button type="button" class="storage-panel__chip is-active" data-storage-sort-key="rarity">Rareté</button>
-                        <button type="button" class="storage-panel__chip" data-storage-sort-key="level">Niveau</button>
-                        <button type="button" class="storage-panel__chip" data-storage-sort-key="type">Type</button>
+
+                    <!-- ── ÉQUIPE ACTIVE ────────────────────────────── -->
+                    <div class="storage-team-showcase">
+                        <div class="storage-team-showcase__label">
+                            <span class="storage-team-showcase__dot"></span>
+                            Équipe active
+                        </div>
+                        <div class="storage-team-showcase__slots storage-team-grid" data-storage-team-grid></div>
                     </div>
 
-                    <section class="storage-panel__section storage-panel__section--team">
-                        <div class="storage-panel__section-header">
-                            <h3>ÉQUIPE PRINCIPALE</h3>
-                            
-                        </div>
-                        <div class="storage-panel__meadow storage-panel__meadow--team">
-                            
-                            <div class="storage-team-grid" data-storage-team-grid></div>
-                        </div>
-                    </section>
+                    <!-- ── PC BOX ─────────────────────────────────── -->
+                    <div class="storage-pc-box">
 
-                    <section class="storage-panel__section storage-panel__section--archive">
-                        <div class="storage-panel__section-header">
-                            <h3>ARCHIVE</h3>
-                            <span data-storage-page-label>Page 1</span>
+                        <!-- Nav row : prev · box name · next · sort -->
+                        <div class="storage-pc-box__nav-row" role="toolbar" aria-label="Navigation et tri">
+                            <button type="button" class="storage-pc-box__nav-btn" data-storage-prev aria-label="Boîte précédente">&#8249;</button>
+                            <div class="storage-pc-box__box-title">
+                                <span class="storage-pc-box__box-word">Boîte</span>
+                                <span class="storage-pc-box__box-num" data-storage-page-number>1</span>
+                                <span class="storage-pc-box__box-label" data-storage-page-label style="display:none"></span>
+                            </div>
+                            <button type="button" class="storage-pc-box__nav-btn" data-storage-next aria-label="Boîte suivante">&#8250;</button>
+                            <div class="storage-pc-box__sort-chips">
+                                <button type="button" class="storage-pc-box__sort-btn is-active" data-storage-sort-key="rarity">Rareté</button>
+                                <button type="button" class="storage-pc-box__sort-btn" data-storage-sort-key="level">Niv.</button>
+                                <button type="button" class="storage-pc-box__sort-btn" data-storage-sort-key="type">Type</button>
+                            </div>
                         </div>
-                        <div class="storage-panel__meadow storage-panel__meadow--archive">
-                            <div class="storage-archive-grid" data-storage-archive-grid></div>
+
+                        <!-- Box frame : biome background + slot grid -->
+                        <div class="storage-pc-box__frame">
+                            <div class="storage-pc-box__biome"></div>
+                            <div class="storage-archive-grid storage-pc-box__grid" data-storage-archive-grid></div>
+                            <div class="storage-pc-box__frame-shine"></div>
                         </div>
-                    </section>
+
+                        <!-- Box footer info -->
+                        <div class="storage-pc-box__info-bar">
+                            <span class="storage-pc-box__info-count" data-storage-page-access>1 / 99</span>
+                        </div>
+
+                    </div>
+
                 </div>
 
-                <footer class="storage-panel__footer">
-                    <button type="button" class="storage-panel__pager" data-storage-prev>&lsaquo;</button>
-                    <div class="storage-panel__page-readout">
-                        <span data-storage-page-number>1</span>
-                        <small data-storage-page-access>Pages 1 / 99</small>
-                    </div>
-                    <button type="button" class="storage-panel__pager" data-storage-next>&rsaquo;</button>
-                </footer>
                 ${floatingPanel ? '<button type="button" class="storage-panel__resize-handle" data-storage-panel-resize aria-label="Redimensionner le storage"></button>' : ''}
             </div>
 
@@ -255,10 +264,8 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             <div class="storage-confirm-modal" data-storage-sell-modal hidden aria-hidden="true">
                 <div class="storage-confirm-modal__backdrop" data-storage-sell-cancel></div>
                 <section class="storage-confirm-modal__dialog" aria-label="Confirmer la revente">
-                    
                     <h3 class="storage-confirm-modal__title">Confirmer la revente</h3>
                     <p class="storage-confirm-modal__copy" data-storage-sell-copy>Ce slime sera retiré du stockage canonique.</p>
-                    
                     <div class="storage-confirm-modal__actions">
                         <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--secondary" data-storage-sell-cancel>Annuler</button>
                         <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--danger" data-storage-sell-confirm>Revendre</button>
