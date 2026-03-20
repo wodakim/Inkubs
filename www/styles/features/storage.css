@@ -271,10 +271,18 @@
     -webkit-tap-highlight-color: transparent;
 }
 
+.storage-pc-box__nav-btn:not(:disabled):hover {
+    background: rgba(16, 185, 129, 0.14);
+    border-color: rgba(16, 185, 129, 0.38);
+    color: rgba(52, 211, 153, 1);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
+}
+
 .storage-pc-box__nav-btn:active {
     background: rgba(16, 185, 129, 0.2);
     border-color: rgba(16, 185, 129, 0.5);
     transform: scale(0.88);
+    box-shadow: 0 0 14px rgba(16, 185, 129, 0.25);
 }
 
 .storage-pc-box__nav-btn:disabled {
@@ -307,6 +315,51 @@
     min-width: 1.5ch;
     text-align: center;
     text-shadow: 0 0 12px rgba(52, 211, 153, 0.3);
+}
+
+/* ── Fill indicator ────────────────────────────────────────────────── */
+.storage-pc-box__fill {
+    display: flex;
+    align-items: center;
+    gap: 0.28rem;
+    width: 100%;
+    margin-top: 0.22rem;
+}
+
+.storage-pc-box__fill-track {
+    flex: 1;
+    height: 3px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
+}
+
+.storage-pc-box__fill-bar {
+    height: 100%;
+    width: 0%;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(90deg, rgba(16, 185, 129, 0.55), rgba(52, 211, 153, 0.85));
+    transition: width 300ms var(--ease-out-expo, cubic-bezier(0.16,1,0.3,1));
+}
+
+.storage-pc-box__fill-bar.is-full {
+    background: linear-gradient(90deg, rgba(239, 68, 68, 0.55), rgba(252, 165, 165, 0.85));
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.35);
+}
+
+.storage-pc-box__fill-count {
+    font-family: var(--font-mono);
+    font-size: 0.42rem;
+    letter-spacing: 0.06em;
+    color: rgba(148, 163, 184, 0.4);
+    min-width: 2.6ch;
+    text-align: right;
+    flex-shrink: 0;
+    transition: color 0.2s ease;
+}
+
+.storage-pc-box__fill-count.is-full {
+    color: rgba(252, 165, 165, 0.7);
 }
 
 /* Chips de tri — compactes dans la nav */
@@ -346,6 +399,27 @@
     background: rgba(16, 185, 129, 0.16);
     border-color: rgba(16, 185, 129, 0.3);
     color: rgba(52, 211, 153, 0.95);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.12);
+}
+
+/* Indicateur de direction de tri */
+.storage-pc-box__sort-btn.is-active::after {
+    content: "↓";
+    margin-left: 0.2rem;
+    font-size: 0.55rem;
+    opacity: 0.65;
+    line-height: 1;
+}
+
+/* Flash animation au déclenchement du tri */
+.storage-pc-box__sort-btn.is-sorting {
+    animation: sort-chip-flash 0.35s ease forwards;
+}
+
+@keyframes sort-chip-flash {
+    0%   { background: rgba(16, 185, 129, 0.16); box-shadow: none; }
+    40%  { background: rgba(16, 185, 129, 0.38); box-shadow: 0 0 18px rgba(16, 185, 129, 0.35); color: rgba(52, 211, 153, 1); }
+    100% { background: rgba(16, 185, 129, 0.16); box-shadow: 0 0 8px rgba(16, 185, 129, 0.12); }
 }
 
 /* ── Frame de la boîte — l'élément central ─────────────────────────── */

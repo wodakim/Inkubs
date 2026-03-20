@@ -119,10 +119,19 @@ export function createLaboIncubatorFeature() {
                             }
                         },
                         resolvePurchase: async (candidatePayload) => {
-                            await ensureStorageContext().acquisitionPipeline.acquireCurrentCandidate({
-                                candidate: candidatePayload,
-                                preview,
-                            });
+                            try {
+                                await ensureStorageContext().acquisitionPipeline.acquireCurrentCandidate({
+                                    candidate: candidatePayload,
+                                    preview,
+                                });
+                            } catch (error) {
+                                if (error?.message?.includes('No storage slot')) {
+                                    const { showToast } = await import('../../utils/toast.js');
+                                    showToast('Toutes les boîtes sont pleines !', { type: 'warning' });
+                                } else {
+                                    throw error;
+                                }
+                            }
                         },
                         onOpenStorage: () => {
                             ensureStoragePanel()?.toggle();

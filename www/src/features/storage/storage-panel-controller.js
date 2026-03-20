@@ -223,13 +223,23 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
 
                         <!-- Nav row : prev · box name · next · sort -->
                         <div class="storage-pc-box__nav-row" role="toolbar" aria-label="Navigation et tri">
-                            <button type="button" class="storage-pc-box__nav-btn" data-storage-prev aria-label="Boîte précédente">&#8249;</button>
+                            <button type="button" class="storage-pc-box__nav-btn" data-storage-prev aria-label="Boîte précédente">
+                                <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true"><path d="M6.5 1.5L1.5 7L6.5 12.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
                             <div class="storage-pc-box__box-title">
                                 <span class="storage-pc-box__box-word">Boîte</span>
                                 <span class="storage-pc-box__box-num" data-storage-page-number>1</span>
                                 <span class="storage-pc-box__box-label" data-storage-page-label style="display:none"></span>
+                                <div class="storage-pc-box__fill">
+                                    <div class="storage-pc-box__fill-track">
+                                        <div class="storage-pc-box__fill-bar" data-storage-fill-bar></div>
+                                    </div>
+                                    <span class="storage-pc-box__fill-count" data-storage-fill-count>0/16</span>
+                                </div>
                             </div>
-                            <button type="button" class="storage-pc-box__nav-btn" data-storage-next aria-label="Boîte suivante">&#8250;</button>
+                            <button type="button" class="storage-pc-box__nav-btn" data-storage-next aria-label="Boîte suivante">
+                                <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true"><path d="M1.5 1.5L6.5 7L1.5 12.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </button>
                             <div class="storage-pc-box__sort-chips">
                                 <button type="button" class="storage-pc-box__sort-btn is-active" data-storage-sort-key="rarity">Rareté</button>
                                 <button type="button" class="storage-pc-box__sort-btn" data-storage-sort-key="level">Niv.</button>
@@ -297,6 +307,8 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             pageLabel: root.querySelector('[data-storage-page-label]'),
             pageNumber: root.querySelector('[data-storage-page-number]'),
             pageAccess: root.querySelector('[data-storage-page-access]'),
+            fillBar: root.querySelector('[data-storage-fill-bar]'),
+            fillCount: root.querySelector('[data-storage-fill-count]'),
             detailModal: root.querySelector('[data-storage-detail-modal]'),
             detailContent: root.querySelector('[data-storage-detail-content]'),
             detailTitle: root.querySelector('[data-storage-detail-title]'),
@@ -363,6 +375,21 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         refs.pageAccess.textContent = `${snapshot.meta.devUnlockAllPages ? snapshot.meta.maxPages : snapshot.meta.unlockedPages} / ${snapshot.meta.maxPages}`;
         refs.prevButton.disabled = currentPage <= 1;
         refs.nextButton.disabled = currentPage >= snapshot.meta.maxPages;
+
+        // Fill indicator for current page
+        const totalSlots = snapshot.meta.archiveSlotsPerPage || 16;
+        const pageSlots = snapshot.pages[String(currentPage)] || [];
+        const fillCount = pageSlots.filter(Boolean).length;
+        const fillPct = Math.round((fillCount / totalSlots) * 100);
+        const isFull = fillCount >= totalSlots;
+        if (refs.fillBar) {
+            refs.fillBar.style.width = `${fillPct}%`;
+            refs.fillBar.classList.toggle('is-full', isFull);
+        }
+        if (refs.fillCount) {
+            refs.fillCount.textContent = `${fillCount}/${totalSlots}`;
+            refs.fillCount.classList.toggle('is-full', isFull);
+        }
         refs.sortChips?.forEach((chip) => {
             chip.classList.toggle('is-active', chip.dataset.storageSortKey === activeArchiveSortKey);
         });
@@ -746,6 +773,14 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
 
     function applyArchiveSort(sortKey = 'rarity') {
         activeArchiveSortKey = sortKey;
+        // Flash animation on the active chip
+        const chip = refs.sortChips?.find((c) => c.dataset.storageSortKey === sortKey);
+        if (chip) {
+            chip.classList.remove('is-sorting');
+            void chip.offsetWidth; // force reflow
+            chip.classList.add('is-sorting');
+            chip.addEventListener('animationend', () => chip.classList.remove('is-sorting'), { once: true });
+        }
         repository.transact((draft) => {
             sortArchiveInSnapshot(draft, { sortKey });
             return draft;
