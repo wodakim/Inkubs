@@ -92,6 +92,10 @@ export class IncubatorController {
     return this.stateMachine.getState();
   }
 
+  setAcquireState(state = 'blocked') {
+    this.view?.setEnergyMeterState(state);
+  }
+
   getCandidate() {
     return this.currentCandidate;
   }

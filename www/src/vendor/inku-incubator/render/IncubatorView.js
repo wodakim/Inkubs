@@ -22,14 +22,21 @@ export class IncubatorView {
     this.shadowRoot.appendChild(template.content.cloneNode(true));
 
     this.refs.root = this.shadowRoot.querySelector('.inku-incubator');
-    this.refs.title = this.shadowRoot.querySelector('.js-title');
+    this.refs.title = this.shadowRoot.querySelector('.display-panel__label');
     this.refs.status = this.shadowRoot.querySelector('.js-status');
-    this.refs.price = this.shadowRoot.querySelector('.js-price');
-    this.refs.candidateName = this.shadowRoot.querySelector('.js-candidate-name');
-    this.refs.diagnosticLabel = this.shadowRoot.querySelector('.js-diagnostic-label');
+    this.refs.dpCandidateRow = this.shadowRoot.querySelector('.js-dp-candidate-row');
+    this.refs.dpName = this.shadowRoot.querySelector('.js-dp-name');
+    this.refs.dpRarity = this.shadowRoot.querySelector('.js-dp-rarity');
+    this.refs.dpPattern = this.shadowRoot.querySelector('.js-dp-pattern');
+    this.refs.dpPrice = this.shadowRoot.querySelector('.js-dp-price');
+    this.refs.dpIdleHint = this.shadowRoot.querySelector('.js-dp-idle-hint');
+    this.refs.blinker = this.shadowRoot.querySelector('.js-blinker');
+    this.refs.price = null; // moved to display panel only
+    this.refs.candidateName = null; // moved to display panel only
+    this.refs.diagnosticLabel = null; // removed
     this.refs.candidateBay = this.shadowRoot.querySelector('.js-candidate-bay');
     this.refs.placeholder = this.shadowRoot.querySelector('.js-candidate-placeholder');
-    this.refs.buyButtons = Array.from(this.shadowRoot.querySelectorAll('.js-buy-button, .js-buy-button-secondary'));
+    this.refs.buyButtons = Array.from(this.shadowRoot.querySelectorAll('.js-buy-button'));
     this.refs.purgeButton = this.shadowRoot.querySelector('.js-purge-button');
     this.refs.sideMeterFill = this.shadowRoot.querySelector('.js-side-meter-fill');
     this.refs.tubeFrontGlass = this.shadowRoot.querySelector('.tube-front-glass');
@@ -46,16 +53,20 @@ export class IncubatorView {
     }
 
     this.refs.title.textContent = this.config.ui.title;
-    this.refs.diagnosticLabel.textContent = this.config.ui.diagnosticLabel;
-    const [sideBuyButton, ...secondaryBuyButtons] = this.refs.buyButtons;
+    const [sideBuyButton] = this.refs.buyButtons;
     if (sideBuyButton) {
-      sideBuyButton.textContent = this.config.ui.integrationEmbedMode ? '' : this.config.ui.buyButtonLabel;
+      // Side buy button: NO text, only color state (green/red)
+      sideBuyButton.textContent = '';
       sideBuyButton.setAttribute('aria-label', this.config.ui.buyButtonLabel);
     }
-    secondaryBuyButtons.forEach((button) => {
-      button.textContent = this.config.ui.buyButtonLabel;
-    });
     this.refs.purgeButton.textContent = this.config.ui.purgeButtonLabel;
+
+    // Start blinker animation
+    if (this.refs.blinker) {
+      setInterval(() => {
+        this.refs.blinker.style.opacity = this.refs.blinker.style.opacity === '0' ? '1' : '0';
+      }, 600);
+    }
 
     setAccentHue(this.refs.root, this.config.theme.accentHue);
     setLiquidLevel(this.refs.root, this.config.theme.liquidLevel);
@@ -93,8 +104,7 @@ export class IncubatorView {
   }
 
   updateCandidate(candidate) {
-    this.refs.candidateName.textContent = candidate ? candidate.displayName : 'No candidate loaded';
-    this.refs.placeholder.hidden = Boolean(candidate);
+    if (this.refs.placeholder) this.refs.placeholder.hidden = Boolean(candidate);
     this.refs.root.classList.toggle('has-candidate', Boolean(candidate));
 
     // ── Rarity badge ─────────────────────────────────────────────────────
@@ -102,7 +112,7 @@ export class IncubatorView {
     const score      = candidate?.metadata?.previewBlueprint?.genome?.rarityScore ?? 0;
     const pattern    = candidate?.metadata?.previewBlueprint?.genome?.colorPattern || 'solid';
     const tierLabels = { common:'Commun', uncommon:'Peu commun', rare:'Rare', epic:'Épique', legendary:'Légendaire' };
-    const tierColors = { common:'', uncommon:'#4caf50', rare:'#42a5f5', epic:'#ba68c8', legendary:'#ffb300' };
+    const tierColors = { common:'#94a3b8', uncommon:'#4caf50', rare:'#42a5f5', epic:'#ba68c8', legendary:'#ffb300' };
     const tierHues   = { common:190, uncommon:140, rare:210, epic:280, legendary:38 };
 
     if (this.refs.rarityBadge) {
@@ -124,13 +134,38 @@ export class IncubatorView {
       this.refs.patternBadge.dataset.pattern = pattern;
     }
 
+    // ── Display panel screen update ──────────────────────────────────────
+    if (this.refs.dpCandidateRow) {
+      if (candidate) {
+        const patternNames = {
+          solid:'UNI', radial_glow:'LUEUR', gradient_v:'DÉGRADÉ ↕', gradient_h:'DÉGRADÉ ↔',
+          gradient_diag:'DÉGRADÉ ↗', duo_tone:'DUO', soft_spots:'TACHES', stripe_v:'RAYURES',
+          galaxy_swirl:'GALAXIE', aurora:'AURORE', crystal_facets:'CRISTAL',
+          prismatic:'PRISMATIQUE', void_rift:'RIFT'
+        };
+        const rarityIcons = { common:'◆', uncommon:'◆◆', rare:'◆◆◆', epic:'★', legendary:'★★' };
+        this.refs.dpName.textContent = (candidate.displayName || 'ENTITÉ').toUpperCase();
+        this.refs.dpRarity.textContent = `${rarityIcons[tier] || '◆'} ${(tierLabels[tier] || 'Commun').toUpperCase()}`;
+        this.refs.dpRarity.style.color = tierColors[tier] || '#94a3b8';
+        this.refs.dpPattern.textContent = patternNames[pattern] || pattern.toUpperCase();
+        this.refs.dpCandidateRow.hidden = false;
+        if (this.refs.dpIdleHint) this.refs.dpIdleHint.hidden = true;
+      } else {
+        this.refs.dpCandidateRow.hidden = true;
+        if (this.refs.dpIdleHint) this.refs.dpIdleHint.hidden = false;
+        if (this.refs.dpPrice) this.refs.dpPrice.textContent = '—';
+      }
+    }
+
     // ── Shift accent hue based on rarity tier ───────────────────────────
     const hue = tierHues[tier] ?? 190;
     setAccentHue(this.refs.root, hue);
   }
 
   updatePrice(price) {
-    this.refs.price.textContent = Number.isFinite(price) ? `${price.toLocaleString('fr-FR')} C` : '—';
+    if (this.refs.price) this.refs.price.textContent = Number.isFinite(price) ? `${price.toLocaleString('fr-FR')} C` : '—';
+    // Also update display panel price
+    if (this.refs.dpPrice) this.refs.dpPrice.textContent = Number.isFinite(price) ? `${price.toLocaleString('fr-FR')} C` : '—';
   }
 
   setEnergyMeter(ratio) {
@@ -151,7 +186,7 @@ export class IncubatorView {
   }
 
   setButtonsEnabled(isEnabled) {
-    const buttons = [...this.refs.buyButtons, this.refs.purgeButton];
+    const buttons = [...this.refs.buyButtons, this.refs.purgeButton].filter(Boolean);
     buttons.forEach((button) => {
       button.disabled = !isEnabled;
     });

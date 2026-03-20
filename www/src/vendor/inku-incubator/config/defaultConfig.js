@@ -30,15 +30,15 @@ export const DEFAULT_INCUBATOR_CONFIG = Object.freeze({
     buyButtonLabel: 'Acquire',
     purgeButtonLabel: 'Purge',
     statusLabels: {
-      idle: 'Awaiting candidate',
-      staging: 'Candidate staged',
-      intake: 'Injecting candidate',
-      suspended: 'Candidate suspended',
-      purchasePending: 'Validating acquisition',
-      purchased: 'Candidate acquired',
-      purging: 'Aspirating candidate',
-      purged: 'Candidate purged',
-      error: 'Runtime fault'
+      idle: 'EN ATTENTE...',
+      staging: 'SIGNAL DÉTECTÉ',
+      intake: 'ANALYSE EN COURS',
+      suspended: 'ENTITÉ STABILISÉE',
+      purchasePending: 'TRANSFERT...',
+      purchased: 'ADOPTÉ !',
+      purging: 'LIBÉRATION...',
+      purged: 'CHAMBRE VIDE',
+      error: 'ANOMALIE CRITIQUE'
     }
   },
   hooks: {

@@ -23,8 +23,6 @@ export function createLaboIncubatorFeature({ store } = {}) {
     let controllerStateUnsubscribe = null;
 
     // Economy panel (prix + revenu/min + bouton acquérir)
-    let economyPanel = null;
-    let economyRefs = null;
     let storeUnsubscribe = null;
     let currentCandidatePrice = null;
     let currentCandidateIncomeRate = null;
@@ -44,37 +42,8 @@ export function createLaboIncubatorFeature({ store } = {}) {
         targetNode.className = 'labo-incubator-mount';
         targetNode.dataset.laboIncubatorMount = 'true';
 
-        // Economy overlay panel (prix + revenu/min + bouton)
-        const panelNode = document.createElement('div');
-        panelNode.className = 'labo-economy-panel';
-        panelNode.setAttribute('aria-live', 'polite');
-        panelNode.hidden = true;
-        panelNode.innerHTML = `
-            <div class="labo-economy-panel__info">
-                <span class="labo-economy-panel__price-wrap">
-                    <i class="ph-fill ph-hexagon labo-economy-panel__icon" aria-hidden="true"></i>
-                    <span class="labo-economy-panel__price" data-labo-price>—</span>
-                </span>
-                <span class="labo-economy-panel__income-wrap">
-                    <i class="ph-fill ph-lightning labo-economy-panel__icon labo-economy-panel__icon--income" aria-hidden="true"></i>
-                    <span class="labo-economy-panel__income" data-labo-income>—</span>
-                </span>
-            </div>
-            <button type="button" class="labo-economy-panel__btn" data-labo-acquire-btn disabled>
-                Acquérir
-            </button>
-        `;
-
-        economyPanel = panelNode;
-        economyRefs = {
-            price:      panelNode.querySelector('[data-labo-price]'),
-            income:     panelNode.querySelector('[data-labo-income]'),
-            acquireBtn: panelNode.querySelector('[data-labo-acquire-btn]'),
-        };
-
         frameNode.appendChild(targetNode);
         stageNode.appendChild(frameNode);
-        stageNode.appendChild(panelNode);
         wrapper.appendChild(stageNode);
 
         root = wrapper;
@@ -83,54 +52,35 @@ export function createLaboIncubatorFeature({ store } = {}) {
         mountTarget = targetNode;
     }
 
-    /** Met à jour l'overlay économique quand un candidat est staged. */
-    function updateEconomyPanel(candidate) {
-        if (!economyPanel || !economyRefs) {
-            return;
-        }
-
-        if (!candidate) {
-            economyPanel.hidden = true;
-            currentCandidatePrice = null;
-            currentCandidateIncomeRate = null;
-            return;
-        }
-
-        // Calcul du prix (depuis complexityMetrics + attributes)
-        const price = computeAcquisitionCost(candidate);
-        currentCandidatePrice = price;
-
-        // Calcul du revenu potentiel (depuis blueprint genome + stats)
-        const blueprint = candidate.metadata?.previewBlueprint;
-        const incomeRate = blueprint
-            ? computeIncomeRate({ genome: blueprint.genome, stats: blueprint.stats })
-            : 0;
-        currentCandidateIncomeRate = incomeRate;
-
-        economyRefs.price.textContent  = price.toLocaleString('fr-FR');
-        economyRefs.income.textContent = `${incomeRate.toFixed(1)}/min`;
-        economyPanel.hidden = false;
-
-        refreshAffordability();
-    }
-
-    /** Met à jour l'état du bouton (vert/rouge) selon la balance courante. */
+    /** Met à jour l'état du bouton LED (vert/rouge) selon la balance courante. */
     function refreshAffordability() {
-        if (!economyRefs?.acquireBtn || currentCandidatePrice === null) {
+        if (currentCandidatePrice === null || !controller) {
             return;
         }
 
         const balance = Number(store?.getState?.()?.player?.currencies?.hexagon) || 0;
         const canAfford = balance >= currentCandidatePrice;
+        controller.setAcquireState?.(canAfford ? 'allowed' : 'blocked');
+    }
 
-        economyRefs.acquireBtn.disabled = false;
-        economyRefs.acquireBtn.dataset.affordable = canAfford ? 'true' : 'false';
-        economyRefs.acquireBtn.setAttribute(
-            'aria-label',
-            canAfford
-                ? `Acquérir pour ${currentCandidatePrice} inkübits`
-                : `Solde insuffisant — ${currentCandidatePrice} inkübits requis`,
-        );
+    /** Met à jour prix + revenu quand un candidat est staged. */
+    function updateEconomyPanel(candidate) {
+        if (!candidate) {
+            currentCandidatePrice = null;
+            currentCandidateIncomeRate = null;
+            controller?.setAcquireState?.('blocked');
+            return;
+        }
+
+        const price = computeAcquisitionCost(candidate);
+        currentCandidatePrice = price;
+
+        const blueprint = candidate.metadata?.previewBlueprint;
+        currentCandidateIncomeRate = blueprint
+            ? computeIncomeRate({ genome: blueprint.genome, stats: blueprint.stats })
+            : 0;
+
+        refreshAffordability();
     }
 
     function ensureShell(mount) {
@@ -255,18 +205,7 @@ export function createLaboIncubatorFeature({ store } = {}) {
             });
         }
 
-        // Bind the custom acquire button to trigger purchase
-        if (economyRefs?.acquireBtn && !economyRefs.acquireBtn._bound) {
-            economyRefs.acquireBtn._bound = true;
-            economyRefs.acquireBtn.addEventListener('click', () => {
-                if (!controller || economyRefs.acquireBtn.dataset.affordable !== 'true') {
-                    return;
-                }
-                void controller.purchaseCurrentCandidate();
-            });
-        }
-
-        // Subscribe to balance changes to keep button color in sync
+        // Subscribe to balance changes to keep LED button color in sync
         if (!storeUnsubscribe && store) {
             storeUnsubscribe = store.subscribe((state, previousState) => {
                 if (state.player?.currencies?.hexagon !== previousState.player?.currencies?.hexagon) {

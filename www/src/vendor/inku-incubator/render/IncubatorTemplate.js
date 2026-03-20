@@ -6,10 +6,29 @@ export function createIncubatorTemplate(documentRef) {
 
       <div class="frame">
         <header class="display-panel" part="display-panel">
+          <div class="display-panel__crt-overlay" aria-hidden="true"></div>
           <div class="display-panel__glass"></div>
           <div class="display-panel__scanline"></div>
-          <div class="display-panel__title js-title"></div>
-          <div class="display-panel__status js-status"></div>
+          <div class="display-panel__screen">
+            <div class="display-panel__header-row">
+              <span class="display-panel__label">INKU-LAB</span>
+              <span class="display-panel__blinker js-blinker">▮</span>
+            </div>
+            <div class="display-panel__status js-status"></div>
+            <div class="display-panel__divider"></div>
+            <div class="display-panel__candidate-row js-dp-candidate-row" hidden>
+              <div class="display-panel__candidate-name js-dp-name"></div>
+              <div class="display-panel__candidate-meta">
+                <span class="display-panel__candidate-rarity js-dp-rarity"></span>
+                <span class="display-panel__candidate-pattern js-dp-pattern"></span>
+              </div>
+              <div class="display-panel__candidate-price">
+                <span class="display-panel__price-label">PRIX</span>
+                <span class="display-panel__price-value js-dp-price">—</span>
+              </div>
+            </div>
+            <div class="display-panel__idle-hint js-dp-idle-hint">AUCUNE ENTITÉ</div>
+          </div>
         </header>
 
         <div class="chassis">
@@ -78,18 +97,12 @@ export function createIncubatorTemplate(documentRef) {
               <div class="console-divider"></div>
             </div>
             <div class="console-body console-body--actions">
-              <div class="purchase-panel">
-                <div class="purchase-panel__label js-diagnostic-label"></div>
-                <div class="purchase-panel__price js-price">—</div>
-                <div class="purchase-panel__candidate js-candidate-name">No candidate loaded</div>
-                <div class="purchase-panel__meta">
-                  <span class="purchase-panel__rarity-badge js-rarity-badge" aria-live="polite"></span>
-                  <span class="purchase-panel__pattern-badge js-pattern-badge"></span>
-                </div>
-                <div class="purchase-panel__actions">
-                  <button class="action-button action-button--primary js-buy-button-secondary" type="button"></button>
-                  <button class="action-button action-button--secondary js-purge-button" type="button"></button>
-                </div>
+              <div class="purchase-panel__meta purchase-panel__meta--slim">
+                <span class="purchase-panel__rarity-badge js-rarity-badge" aria-live="polite"></span>
+                <span class="purchase-panel__pattern-badge js-pattern-badge"></span>
+              </div>
+              <div class="purchase-panel__actions">
+                <button class="action-button action-button--secondary js-purge-button" type="button"></button>
               </div>
             </div>
           </aside>
