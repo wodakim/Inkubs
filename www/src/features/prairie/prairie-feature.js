@@ -253,11 +253,11 @@ export function createPrairieFeature() {
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="1.8"/><line x1="11.5" y1="11.5" x2="16" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                 </button>
                 <div class="prairie-obs" data-prairie-obs hidden>
+                    <div class="prairie-obs__corner" data-corner="tl"></div>
+                    <div class="prairie-obs__corner" data-corner="tr"></div>
+                    <div class="prairie-obs__corner" data-corner="bl"></div>
+                    <div class="prairie-obs__corner" data-corner="br"></div>
                     <div class="prairie-obs__surface">
-                        <div class="prairie-obs__corner" data-corner="tl"></div>
-                        <div class="prairie-obs__corner" data-corner="tr"></div>
-                        <div class="prairie-obs__corner" data-corner="bl"></div>
-                        <div class="prairie-obs__corner" data-corner="br"></div>
                         <header class="prairie-obs__header" data-prairie-obs-drag>
                             <h3 class="prairie-obs__title" data-prairie-obs-title>Observation</h3>
                             <div class="prairie-obs__tabs">
