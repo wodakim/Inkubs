@@ -10,6 +10,7 @@
     position: fixed;
     inset: 0;
     z-index: 50;
+    overflow: hidden; /* masque le panneau settings quand il est hors-écran à droite */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -342,25 +343,44 @@
     border-color: rgba(16, 185, 129, 0.35);
 }
 
-/* ── Settings panel (slide-in overlay inside the profile card) ───────── */
+/* ── Settings panel ─────────────────────────────────────────────────────
+   Le panneau est un sibling du profile-card dans le profile-modal (fixed inset-0).
+   Il est centré exactement comme la card (same dimensions) et slide depuis la droite.
+   Cette architecture évite tout conflit avec overflow:hidden de la card.
+─────────────────────────────────────────────────────────────────────── */
 .profile-settings-panel {
     position: absolute;
-    inset: 0;
-    background: rgba(5, 12, 24, 0.98);
-    border-radius: inherit;
+    /* Mêmes dimensions que la card (w-[85%] max-w-sm de Tailwind) */
+    width: 85%;
+    max-width: 24rem;
+    /* Centré verticalement et horizontalement dans le modal */
+    top: 50%;
+    left: 50%;
+    /* État initial : déplacé hors écran à droite */
+    transform: translate(calc(-50% + 100vw), -50%);
+    transition: transform var(--motion-medium) var(--ease-spring);
+
+    background: var(--glass-bg, rgba(6, 12, 28, 0.97));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom-color: rgba(16, 185, 129, 0.12);
+    border-radius: 28px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+
     display: flex;
     flex-direction: column;
-    /* padding horizontal = border-radius de la card (28px) pour ne jamais clipper */
-    padding: 1.5rem 1.75rem 2rem;
-    transform: translateX(100%);
-    transition: transform var(--motion-medium) var(--ease-spring);
-    /* PAS overflow-y:auto — cela crée un overflow-x:hidden implicite qui coupe les colonnes */
-    overflow: hidden;
-    z-index: 10;
+    padding: 1.5rem;
+
+    /* Scroll interne OK ici : pas de parent overflow:hidden qui interfère */
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 90vh;
+
+    z-index: 60; /* au-dessus du modal z-50 */
 }
 
 .profile-settings-panel.is-open {
-    transform: translateX(0);
+    /* Centré exactement comme la card */
+    transform: translate(-50%, -50%);
 }
 
 .profile-settings-panel__header {

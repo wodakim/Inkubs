@@ -170,63 +170,64 @@
                 </div>
                 <button type="button" id="reset-data-btn" class="w-full mt-4 py-3 rounded-2xl bg-red-900/20 border border-red-500/30 text-red-400 font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-red-900/40">⚠ Réinitialiser les données</button>
 
-                <!-- Panneau de paramètres (slide-in par-dessus le contenu de la card) -->
-                <div id="profile-settings-panel" class="profile-settings-panel" aria-hidden="true">
-                    <div class="profile-settings-panel__header">
-                        <button type="button" class="profile-settings-back" data-action="close-profile-settings" aria-label="Retour">
-                            <i class="ph-bold ph-arrow-left"></i>
+            </div>
+
+            <!-- Panneau de paramètres : HORS du profile-card pour éviter tout clip overflow:hidden -->
+            <div id="profile-settings-panel" class="profile-settings-panel" aria-hidden="true">
+                <div class="profile-settings-panel__header">
+                    <button type="button" class="profile-settings-back" data-action="close-profile-settings" aria-label="Retour">
+                        <i class="ph-bold ph-arrow-left"></i>
+                    </button>
+                    <span class="profile-settings-panel__title" id="profile-settings-title"></span>
+                </div>
+
+                <!-- Section : Mon Profil -->
+                <div id="settings-profile-section" class="profile-settings-section" hidden>
+                    <p class="settings-section-label">Avatar</p>
+                    <div class="profile-avatar-grid">
+                        <button type="button" class="avatar-option" data-avatar="user"><i class="ph-fill ph-user"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="robot"><i class="ph-fill ph-robot"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="alien"><i class="ph-fill ph-alien"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="skull"><i class="ph-fill ph-skull"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="ghost"><i class="ph-fill ph-ghost"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="flame"><i class="ph-fill ph-flame"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="crown"><i class="ph-fill ph-crown"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="cat"><i class="ph-fill ph-cat"></i></button>
+                    </div>
+                    <p class="settings-section-label">Nom d'affichage</p>
+                    <input type="text" id="profile-name-input" class="profile-name-input" maxlength="16" placeholder="Ton pseudo...">
+                    <button type="button" class="profile-save-btn" data-action="save-profile">Sauvegarder</button>
+                </div>
+
+                <!-- Section : Performances -->
+                <div id="settings-perf-section" class="profile-settings-section" hidden>
+                    <p class="settings-section-label">Qualité visuelle</p>
+                    <div class="perf-tier-list">
+                        <button type="button" class="perf-tier-btn" data-perf-btn="low">
+                            <i class="ph-bold ph-leaf perf-tier-ph-icon"></i>
+                            <div class="perf-tier-info">
+                                <span class="perf-tier-name">Économie</span>
+                                <span class="perf-tier-desc">Fluidité maximale</span>
+                            </div>
                         </button>
-                        <span class="profile-settings-panel__title" id="profile-settings-title"></span>
-                    </div>
-
-                    <!-- Section : Mon Profil -->
-                    <div id="settings-profile-section" class="profile-settings-section" hidden>
-                        <p class="settings-section-label">Avatar</p>
-                        <div class="profile-avatar-grid">
-                            <button type="button" class="avatar-option" data-avatar="user"><i class="ph-fill ph-user"></i></button>
-                            <button type="button" class="avatar-option" data-avatar="robot"><i class="ph-fill ph-robot"></i></button>
-                            <button type="button" class="avatar-option" data-avatar="alien"><i class="ph-fill ph-alien"></i></button>
-                            <button type="button" class="avatar-option" data-avatar="skull"><i class="ph-fill ph-skull"></i></button>
-                            <button type="button" class="avatar-option" data-avatar="ghost"><i class="ph-fill ph-ghost"></i></button>
-                            <button type="button" class="avatar-option" data-avatar="flame"><i class="ph-fill ph-flame"></i></button>
-                            <button type="button" class="avatar-option" data-avatar="crown"><i class="ph-fill ph-crown"></i></button>
-                            <button type="button" class="avatar-option" data-avatar="cat"><i class="ph-fill ph-cat"></i></button>
-                        </div>
-                        <p class="settings-section-label">Nom d'affichage</p>
-                        <input type="text" id="profile-name-input" class="profile-name-input" maxlength="16" placeholder="Ton pseudo...">
-                        <button type="button" class="profile-save-btn" data-action="save-profile">Sauvegarder</button>
-                    </div>
-
-                    <!-- Section : Performances -->
-                    <div id="settings-perf-section" class="profile-settings-section" hidden>
-                        <p class="settings-section-label">Qualité visuelle</p>
-                        <div class="perf-tier-list">
-                            <button type="button" class="perf-tier-btn" data-perf-btn="low">
-                                <i class="ph-bold ph-leaf perf-tier-ph-icon"></i>
-                                <div class="perf-tier-info">
-                                    <span class="perf-tier-name">Économie</span>
-                                    <span class="perf-tier-desc">Fluidité maximale</span>
-                                </div>
-                            </button>
-                            <button type="button" class="perf-tier-btn" data-perf-btn="medium">
-                                <i class="ph-bold ph-lightning perf-tier-ph-icon"></i>
-                                <div class="perf-tier-info">
-                                    <span class="perf-tier-name">Équilibré</span>
-                                    <span class="perf-tier-desc">Recommandé</span>
-                                </div>
-                            </button>
-                            <button type="button" class="perf-tier-btn" data-perf-btn="high">
-                                <i class="ph-bold ph-sparkle perf-tier-ph-icon"></i>
-                                <div class="perf-tier-info">
-                                    <span class="perf-tier-name">Qualité</span>
-                                    <span class="perf-tier-desc">Haut de gamme</span>
-                                </div>
-                            </button>
-                        </div>
-                        <button type="button" class="perf-auto-btn" data-action="auto-detect-perf">
-                            <i class="ph-bold ph-magic-wand"></i> Détection automatique
+                        <button type="button" class="perf-tier-btn" data-perf-btn="medium">
+                            <i class="ph-bold ph-lightning perf-tier-ph-icon"></i>
+                            <div class="perf-tier-info">
+                                <span class="perf-tier-name">Équilibré</span>
+                                <span class="perf-tier-desc">Recommandé</span>
+                            </div>
+                        </button>
+                        <button type="button" class="perf-tier-btn" data-perf-btn="high">
+                            <i class="ph-bold ph-sparkle perf-tier-ph-icon"></i>
+                            <div class="perf-tier-info">
+                                <span class="perf-tier-name">Qualité</span>
+                                <span class="perf-tier-desc">Haut de gamme</span>
+                            </div>
                         </button>
                     </div>
+                    <button type="button" class="perf-auto-btn" data-action="auto-detect-perf">
+                        <i class="ph-bold ph-magic-wand"></i> Détection automatique
+                    </button>
                 </div>
             </div>
         </div>
