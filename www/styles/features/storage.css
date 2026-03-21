@@ -770,9 +770,11 @@
 
 .storage-drag-actions {
     position: fixed;
+    /* Maintenant dans document.body : position:fixed est vraiment relatif
+       au viewport sur tous les appareils (plus de containing-block transform). */
     left: 50%; transform: translateX(-50%);
-    bottom: 89dvh;
-    z-index: 30;
+    top: 10px;
+    z-index: 600;
     display: flex; flex-direction: row; gap: 0.5rem;
     pointer-events: auto;
 }
@@ -1252,8 +1254,8 @@
 /* Action zones — desktop */
 @media (min-width: 600px) {
     .storage-drag-actions {
-        left: auto; right: 14px; bottom: auto; transform: none;
-        top: clamp(240px, 38vh, 330px);
+        left: auto; right: 14px; top: clamp(200px, 35vh, 300px);
+        transform: none;
         flex-direction: column;
     }
     .storage-action-zone {

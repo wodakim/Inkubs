@@ -278,21 +278,6 @@ export function createStoragePanelController({ mountTarget, repository, store = 
                 ${floatingPanel ? `<button type="button" class="storage-panel__resize-handle" data-storage-panel-resize aria-label="${t('storage.resize_aria')}"></button>` : ''}
             </div>
 
-            <div class="storage-drag-actions" data-storage-drag-actions hidden>
-                <button type="button" class="storage-action-zone storage-action-zone--move"
-                        data-storage-action-zone="move" aria-label="${t('storage.action_store_aria')}">
-                    <span class="storage-action-zone__icon" aria-hidden="true" data-storage-move-icon>📦</span>
-                    <span class="storage-action-zone__label" data-storage-move-label>${t('storage.action_store_label')}</span>
-                    <span class="storage-action-zone__hint" data-storage-move-hint></span>
-                </button>
-                <button type="button" class="storage-action-zone storage-action-zone--sell"
-                        data-storage-action-zone="sell" aria-label="${t('storage.sell_zone_aria')}">
-                    <span class="storage-action-zone__icon" aria-hidden="true">🛒</span>
-                    <span class="storage-action-zone__label">${t('storage.sell_label')}</span>
-                    <span class="storage-action-zone__price" data-storage-sell-price></span>
-                </button>
-            </div>
-
             <div class="storage-confirm-modal" data-storage-sell-modal hidden aria-hidden="true">
                 <div class="storage-confirm-modal__backdrop" data-storage-sell-cancel></div>
                 <section class="storage-confirm-modal__dialog" aria-label="${t('storage.confirm_sell_aria')}">
@@ -324,6 +309,29 @@ export function createStoragePanelController({ mountTarget, repository, store = 
             </div>
         `;
 
+        // Drag-actions vit dans document.body pour éviter le containing-block
+        // créé par transform sur le panneau flottant (sinon position:fixed se
+        // calcule par rapport au panel et non au viewport → hors-écran sur mobile).
+        const dragActionsEl = document.createElement('div');
+        dragActionsEl.className = 'storage-drag-actions';
+        dragActionsEl.dataset.storageDragActions = '';
+        dragActionsEl.hidden = true;
+        dragActionsEl.innerHTML = `
+            <button type="button" class="storage-action-zone storage-action-zone--move"
+                    data-storage-action-zone="move" aria-label="${t('storage.action_store_aria')}">
+                <span class="storage-action-zone__icon" aria-hidden="true" data-storage-move-icon>📦</span>
+                <span class="storage-action-zone__label" data-storage-move-label>${t('storage.action_store_label')}</span>
+                <span class="storage-action-zone__hint" data-storage-move-hint></span>
+            </button>
+            <button type="button" class="storage-action-zone storage-action-zone--sell"
+                    data-storage-action-zone="sell" aria-label="${t('storage.sell_zone_aria')}">
+                <span class="storage-action-zone__icon" aria-hidden="true">🛒</span>
+                <span class="storage-action-zone__label">${t('storage.sell_label')}</span>
+                <span class="storage-action-zone__price" data-storage-sell-price></span>
+            </button>
+        `;
+        document.body.appendChild(dragActionsEl);
+
         refs = {
             closeButton: root.querySelector('[data-storage-close]'),
             prevButton: root.querySelector('[data-storage-prev]'),
@@ -339,12 +347,12 @@ export function createStoragePanelController({ mountTarget, repository, store = 
             detailContent: root.querySelector('[data-storage-detail-content]'),
             detailTitle: root.querySelector('[data-storage-detail-title]'),
             scrollBody: root.querySelector('[data-storage-scroll-body]'),
-            dragActions: root.querySelector('[data-storage-drag-actions]'),
-            moveZone: root.querySelector('[data-storage-action-zone="move"]'),
-            moveLabel: root.querySelector('[data-storage-move-label]'),
-            moveHint: root.querySelector('[data-storage-move-hint]'),
-            sellZone: root.querySelector('[data-storage-action-zone="sell"]'),
-            sellPrice: root.querySelector('[data-storage-sell-price]'),
+            dragActions: dragActionsEl,
+            moveZone: dragActionsEl.querySelector('[data-storage-action-zone="move"]'),
+            moveLabel: dragActionsEl.querySelector('[data-storage-move-label]'),
+            moveHint: dragActionsEl.querySelector('[data-storage-move-hint]'),
+            sellZone: dragActionsEl.querySelector('[data-storage-action-zone="sell"]'),
+            sellPrice: dragActionsEl.querySelector('[data-storage-sell-price]'),
             sellModal: root.querySelector('[data-storage-sell-modal]'),
             sellCopy: root.querySelector('[data-storage-sell-copy]'),
             sellSubject: root.querySelector('[data-storage-sell-subject]'),
@@ -512,6 +520,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         panelDrag = null;
         panelResize = null;
         detailSandbox.destroy();
+        refs.dragActions?.remove();
         root?.remove();
         refs = {};
         root = null;
