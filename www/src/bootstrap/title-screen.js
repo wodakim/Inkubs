@@ -511,7 +511,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
     function _play(){
         if(_done)return;_done=true;
         const ov=root.querySelector('#ts-loading-overlay'),txt=root.querySelector('#ts-loading-text'),btn=root.querySelector('#ts-btn-play');
-        txt.textContent=MSGS[0];ov.classList.add('show');btn.style.display='none';
+        txt.textContent=MSGS[0];ov.classList.add('show');btn.style.visibility='hidden';
         let i=1;const iv=setInterval(()=>{if(txt&&i<MSGS.length)txt.textContent=MSGS[i++];},850);
         if(typeof onPlay==='function')onPlay();
         setTimeout(()=>{clearInterval(iv);root.querySelector('#ts-screen').classList.add('ts-out');setTimeout(()=>_destroy(),550);},800);
