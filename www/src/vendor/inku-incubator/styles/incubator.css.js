@@ -403,7 +403,10 @@ const stylesheetText = `
 .glass-column {
   position: relative;
   width: min(100%, 280px);
-  height: min(58vh, 420px);
+  /* Hauteur fixe : l'incubateur est un canvas 560×720px mis à l'échelle
+     par CSS transform — vh est inapproprié car il change dynamiquement
+     (barre d'adresse mobile) et provoque un reflow qui décale tout l'incubateur. */
+  height: 420px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
