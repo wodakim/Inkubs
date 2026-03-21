@@ -163,8 +163,6 @@ export function createPrairieFeature() {
     let loupeBtn = null;
     let obsPanel = null;
     let obsClose = null;
-    let obsDragHandle = null;
-    let obsResizeHandle = null;
     let obsTitle = null;
     let obsHint = null;
     let obsBody = null;
@@ -175,9 +173,6 @@ export function createPrairieFeature() {
     let obsActiveTab = 'log';
     let obsOpen = false;
     let obsLoupeMode = false;  // true when loupe is active and user should tap a slime
-    let obsDrag = null;
-    let obsResize = null;
-    let obsLayout = { width: 280, height: 320, offsetX: 0, offsetY: 0 };
     let obsUpdateInterval = 0;
 
     function applyPanelLayout() {
@@ -255,7 +250,7 @@ export function createPrairieFeature() {
                 </button>
                 <div class="prairie-obs" data-prairie-obs hidden>
                     <div class="prairie-obs__surface">
-                        <header class="prairie-obs__header" data-prairie-obs-drag>
+                        <header class="prairie-obs__header">
                             <h3 class="prairie-obs__title" data-prairie-obs-title>Observation</h3>
                             <div class="prairie-obs__tabs">
                                 <button type="button" class="prairie-obs__tab is-active" data-prairie-obs-tab="log">Activité</button>
@@ -268,7 +263,6 @@ export function createPrairieFeature() {
                             <div class="prairie-obs__page prairie-obs__page--log is-active" data-prairie-obs-page="log"></div>
                             <div class="prairie-obs__page prairie-obs__page--stats" data-prairie-obs-page="stats"></div>
                         </div>
-                        <div class="prairie-obs__resize" data-prairie-obs-resize></div>
                     </div>
                 </div>
             </div>`;
@@ -290,8 +284,6 @@ export function createPrairieFeature() {
         loupeBtn = root.querySelector('[data-prairie-loupe]');
         obsPanel = root.querySelector('[data-prairie-obs]');
         obsClose = root.querySelector('[data-prairie-obs-close]');
-        obsDragHandle = root.querySelector('[data-prairie-obs-drag]');
-        obsResizeHandle = root.querySelector('[data-prairie-obs-resize]');
         obsTitle = root.querySelector('[data-prairie-obs-title]');
         obsHint = root.querySelector('[data-prairie-obs-hint]');
         obsBody = root.querySelector('[data-prairie-obs-body]');
@@ -1058,16 +1050,7 @@ export function createPrairieFeature() {
         updateObsContent();
     }
 
-    function applyObsLayout() {
-        if (!obsPanel) return;
-        const vp = getViewportSize();
-        obsLayout.width = clamp(obsLayout.width, 220, vp.width - 20);
-        obsLayout.height = clamp(obsLayout.height, 200, vp.height - 80);
-        obsPanel.style.setProperty('--obs-w', `${obsLayout.width}px`);
-        obsPanel.style.setProperty('--obs-h', `${obsLayout.height}px`);
-        obsPanel.style.setProperty('--obs-ox', `${obsLayout.offsetX}px`);
-        obsPanel.style.setProperty('--obs-oy', `${obsLayout.offsetY}px`);
-    }
+    function applyObsLayout() { /* positioning now handled by CSS */ }
 
     function updateObsContent() {
         if (!obsOpen || !obsSelectedSlimeId) return;
@@ -1112,35 +1095,44 @@ export function createPrairieFeature() {
         if (!obsPageStats) return;
         const stats = entry.slime.stats;
         const changes = brain.statChangeLog;
+        const now = Date.now();
 
-        let html = '<div class="prairie-obs__stats-grid">';
+        let html = '';
+
+        // ── Temporary stat-change toasts (last 5s) ──
+        const fresh = changes.filter(c => now - c.time < 5000);
+        if (fresh.length) {
+            html += '<div class="prairie-obs__toasts">';
+            for (const c of fresh.slice(-5).reverse()) {
+                const diff = c.newVal - c.oldVal;
+                const age  = now - c.time;
+                const opacity = age < 2000 ? 1 : Math.max(0, 1 - (age - 2000) / 3000);
+                const sign = diff > 0 ? '+' : '';
+                const cls  = diff > 0 ? 'prairie-obs__toast--up' : 'prairie-obs__toast--down';
+                const statLabel = (STAT_LABELS[c.stat] || c.stat).replace(/^\S+\s/, ''); // strip leading emoji
+                html += `<div class="prairie-obs__toast ${cls}" style="opacity:${opacity.toFixed(2)}">${sign}${diff.toFixed(1)} ${statLabel}</div>`;
+            }
+            html += '</div>';
+        }
+
+        // ── Stats bars (no inline change lists) ──
+        html += '<div class="prairie-obs__stats-grid">';
         for (const [key, label] of Object.entries(STAT_LABELS)) {
             const val = stats?.[key];
             if (val === undefined) continue;
             const pct = clamp(val, 0, 100);
-            // Find recent changes for this stat
-            const recent = changes.filter(c => c.stat === key).slice(-3).reverse();
-            let changeHtml = '';
-            for (const ch of recent) {
-                const diff = ch.newVal - ch.oldVal;
-                const sign = diff > 0 ? '+' : '';
-                const cls = diff > 0 ? 'prairie-obs__stat-up' : 'prairie-obs__stat-down';
-                const cause = BEHAVIOR_LABELS[ch.cause] || ch.cause;
-                changeHtml += `<div class="prairie-obs__stat-change ${cls}"><span>${sign}${diff.toFixed(1)}</span><span class="prairie-obs__stat-cause">${cause}</span></div>`;
-            }
             html += `<div class="prairie-obs__stat-row">
                 <div class="prairie-obs__stat-head"><span class="prairie-obs__stat-label">${label}</span><span class="prairie-obs__stat-val">${Math.round(pct)}</span></div>
                 <div class="prairie-obs__stat-bar"><div class="prairie-obs__stat-fill" style="width:${pct}%"></div></div>
-                ${changeHtml ? '<div class="prairie-obs__stat-changes">' + changeHtml + '</div>' : ''}
             </div>`;
         }
         html += '</div>';
 
-        // Current behavior
+        // ── Current behavior ──
         const bLabel = BEHAVIOR_LABELS[brain.behavior] || brain.behavior;
         html += `<div class="prairie-obs__current">Comportement : <strong>${bLabel}</strong></div>`;
 
-        // Temperament archetype (computed from stats + combat history)
+        // ── Temperament archetype ──
         const prog = entry.slime.livingState?.progressionLedger;
         const temperament = prog?.temperament;
         if (temperament && temperament !== 'neutral') {
@@ -1148,36 +1140,31 @@ export function createPrairieFeature() {
             const TEMP_FR    = { combatant: 'Combattant', fearful: 'Craintif', resilient: 'Résilient', pacifist: 'Pacifiste' };
             const wins   = prog?.combatWins   || 0;
             const losses = prog?.combatLosses || 0;
-            const combatStr = (wins > 0 || losses > 0) ? ` · ${wins}V / ${losses}D` : '';
-            html += `<div class="prairie-obs__current" style="opacity:0.85;font-size:0.88em">${TEMP_ICONS[temperament] || '•'} Tempérament : <strong>${TEMP_FR[temperament] || temperament}</strong>${combatStr}</div>`;
+            const combatStr = (wins > 0 || losses > 0) ? ` · ${wins}V/${losses}D` : '';
+            html += `<div class="prairie-obs__current" style="opacity:0.82;font-size:0.88em">${TEMP_ICONS[temperament] || '•'} Tempérament : <strong>${TEMP_FR[temperament] || temperament}</strong>${combatStr}</div>`;
         }
 
-        // Bias summary
-        if (brain.biasByTarget.size > 0) {
-            html += '<div class="prairie-obs__bias-title">Relations</div>';
-            for (const [tid, bias] of brain.biasByTarget) {
-                const tRecord = findRecordById(tid);
-                const tName = tRecord?.identity?.name || tRecord?.canonicalSnapshot?.identity?.name || '?';
-                const biasLabel = bias > 0.3 ? '💚' : bias > 0 ? '🙂' : bias > -0.3 ? '😐' : '😠';
-                const biasColor = bias > 0 ? 'rgba(80,220,120,0.8)' : 'rgba(220,80,80,0.8)';
-                html += `<div class="prairie-obs__bias-row"><span>${biasLabel} ${tName}</span><span style="color:${biasColor}">${bias > 0 ? '+' : ''}${(bias * 100).toFixed(0)}%</span></div>`;
-            }
-        }
-
-        // Canonical relationship memories from living state (persisted across sessions)
+        // ── Canonical relationships (persisted across sessions) ──
         const relLedger = entry.slime.livingState?.relationshipLedger;
         if (relLedger && Object.keys(relLedger.affinities || {}).length > 0) {
             const REL_TYPE_ICONS = { lover: '💕', friend: '💚', friendly: '🙂', neutral: '😐', hostile: '😠', rival: '⚔️', combat_partner: '🥊' };
-            const REL_TYPE_FR = { lover: 'amoureux', friend: 'ami', friendly: 'sympathique', neutral: 'neutre', hostile: 'hostile', rival: 'rival', combat_partner: 'partenaire de combat' };
-            html += '<div class="prairie-obs__bias-title">Mémoire des relations</div>';
-            for (const [, rel] of Object.entries(relLedger.affinities)) {
-                const icon = REL_TYPE_ICONS[rel.type] || '😐';
-                const typeFr = REL_TYPE_FR[rel.type] || rel.type || 'neutre';
+            const REL_TYPE_FR    = { lover: 'amoureux', friend: 'ami', friendly: 'sympathique', neutral: 'neutre', hostile: 'hostile', rival: 'rival', combat_partner: 'partenaire de combat' };
+            html += '<div class="prairie-obs__bias-title">Relations</div>';
+            for (const [tid, rel] of Object.entries(relLedger.affinities)) {
+                // Resolve display name — fall back to live record lookup if missing
+                let name = rel.displayName;
+                if (!name) {
+                    const rec = findRecordById(tid);
+                    name = rec?.identity?.name || rec?.canonicalSnapshot?.identity?.name || '';
+                }
+                if (!name) continue; // skip genuinely unknown entries
+                const icon     = REL_TYPE_ICONS[rel.type] || '😐';
+                const typeFr   = REL_TYPE_FR[rel.type] || rel.type || 'neutre';
                 const biasColor = rel.bias > 0 ? 'rgba(80,220,120,0.8)' : rel.bias < 0 ? 'rgba(220,80,80,0.8)' : 'rgba(180,180,180,0.7)';
-                html += `<div class="prairie-obs__bias-row"><span>${icon} ${rel.displayName || '?'}</span><span style="color:${biasColor}">${typeFr}</span></div>`;
+                html += `<div class="prairie-obs__bias-row"><span>${icon} ${name}</span><span style="color:${biasColor}">${typeFr}</span></div>`;
                 const lastEv = rel.significantEvents?.[rel.significantEvents.length - 1];
                 if (lastEv) {
-                    html += `<div class="prairie-obs__stat-change" style="font-style:italic;opacity:0.75;padding-left:8px"><span>${lastEv.note}</span></div>`;
+                    html += `<div class="prairie-obs__stat-change" style="font-style:italic;opacity:0.7;padding-left:8px"><span>${lastEv.note}</span></div>`;
                 }
             }
         }
@@ -1228,46 +1215,6 @@ export function createPrairieFeature() {
             });
         }
 
-        // Drag
-        obsDragHandle?.addEventListener('pointerdown', (e) => {
-            if (e.target.closest('[data-prairie-obs-close]') || e.target.closest('[data-prairie-obs-tab]')) return;
-            obsDrag = { pid: e.pointerId, sx: e.clientX, sy: e.clientY, ox: obsLayout.offsetX, oy: obsLayout.offsetY };
-            obsDragHandle.setPointerCapture?.(e.pointerId);
-            e.preventDefault();
-        }, { passive: false });
-        obsDragHandle?.addEventListener('pointermove', (e) => {
-            if (!obsDrag || obsDrag.pid !== e.pointerId) return;
-            obsLayout.offsetX = obsDrag.ox + (e.clientX - obsDrag.sx);
-            obsLayout.offsetY = obsDrag.oy + (e.clientY - obsDrag.sy);
-            applyObsLayout();
-        }, { passive: true });
-        const releaseObsDrag = (e) => {
-            if (!obsDrag || obsDrag.pid !== e.pointerId) return;
-            obsDragHandle?.releasePointerCapture?.(e.pointerId);
-            obsDrag = null;
-        };
-        obsDragHandle?.addEventListener('pointerup', releaseObsDrag, { passive: true });
-        obsDragHandle?.addEventListener('pointercancel', releaseObsDrag, { passive: true });
-
-        // Resize
-        obsResizeHandle?.addEventListener('pointerdown', (e) => {
-            obsResize = { pid: e.pointerId, sx: e.clientX, sy: e.clientY, w: obsLayout.width, h: obsLayout.height };
-            obsResizeHandle.setPointerCapture?.(e.pointerId);
-            e.preventDefault();
-        }, { passive: false });
-        obsResizeHandle?.addEventListener('pointermove', (e) => {
-            if (!obsResize || obsResize.pid !== e.pointerId) return;
-            obsLayout.width = Math.max(220, obsResize.w + (e.clientX - obsResize.sx));
-            obsLayout.height = Math.max(200, obsResize.h + (e.clientY - obsResize.sy));
-            applyObsLayout();
-        }, { passive: true });
-        const releaseObsResize = (e) => {
-            if (!obsResize || obsResize.pid !== e.pointerId) return;
-            obsResizeHandle?.releasePointerCapture?.(e.pointerId);
-            obsResize = null;
-        };
-        obsResizeHandle?.addEventListener('pointerup', releaseObsResize, { passive: true });
-        obsResizeHandle?.addEventListener('pointercancel', releaseObsResize, { passive: true });
     }
 
     function bindInteractions() {
