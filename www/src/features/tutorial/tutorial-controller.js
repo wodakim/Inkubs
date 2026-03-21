@@ -1,13 +1,11 @@
 /**
- * tutorial-controller.js
+ * tutorial-controller.js — v4 bulletproof
  *
- * Architecture nette :
- * - Étapes "read"     → carte flottante (4 coins arrondis) en bas d'écran,
- *                       pas d'overlay bloquant, beacon décoratif sur la cible.
- * - Étapes "navigate" → spotlight isolé (box-shadow = dim + trou) sur le bouton
- *                       de nav, carte flottante au-dessus de la nav.
- * - Aucun backdrop-filter blur (perf + DA).
- * - Respect strict des safe-zones iOS/Android.
+ * Règles absolues :
+ *  - Une seule carte à l'écran à tout moment (guard + cleanup avant création)
+ *  - Un seul beacon/spotlight actif à la fois (ref unique _activeOverlay)
+ *  - animateCardOut : un seul chemin de sortie, pas de double-fire
+ *  - Aucun appel re-entrant : le flag _busy bloque les clics pendant la transition
  */
 
 import { getLang, setLang, applyTranslations } from '../../i18n/i18n.js';
@@ -22,17 +20,16 @@ import {
 } from './tutorial-state.js';
 
 /* ─── Constantes ─────────────────────────────────────────────────────── */
-const CONTENT_STEPS = 5;
-const TOTAL_STEPS   = CONTENT_STEPS;
+const TOTAL_STEPS = 5;
 
-/* ─── i18n helper ────────────────────────────────────────────────────── */
+/* ─── i18n ───────────────────────────────────────────────────────────── */
 function tr(key) {
     const lang = getLang();
     const dict = TRANSLATIONS[lang] ?? TRANSLATIONS.fr;
     return dict[key] ?? TRANSLATIONS.fr[key] ?? key;
 }
 
-/* ─── Données des étapes ─────────────────────────────────────────────── */
+/* ─── Étapes ─────────────────────────────────────────────────────────── */
 function getStepData(index) {
     const steps = [
         null,
@@ -78,55 +75,54 @@ function getStepData(index) {
     return steps[index] ?? null;
 }
 
-/* ─── Lecture solde ──────────────────────────────────────────────────── */
+/* ─── Solde ──────────────────────────────────────────────────────────── */
 function readBalance() {
     const el = document.querySelector('[data-currency-value="hexagon"]');
     return parseInt((el?.textContent || '0').replace(/[^0-9]/g, ''), 10) || 0;
 }
 
-/* ─── Beacon décoratif (anneau pulsant, pas de pointer-events) ────────── */
-function spawnBeacon(selector) {
+/* ─── État global unique ─────────────────────────────────────────────── */
+let _activeCard    = null;
+let _activeOverlay = null;
+let _busy          = false;
+
+function _destroyActive() {
+    _activeCard?.remove();
+    _activeCard = null;
+    _activeOverlay?.remove();
+    _activeOverlay = null;
+    _busy = false;
+}
+
+/* ─── Beacon décoratif ───────────────────────────────────────────────── */
+function _spawnBeacon(selector) {
     const target = document.querySelector(selector);
     if (!target) return null;
-    const r = target.getBoundingClientRect();
+    const r    = target.getBoundingClientRect();
     const size = Math.max(r.width, r.height, 28) + 20;
-    const el = document.createElement('div');
+    const el   = document.createElement('div');
     el.className = 'tuto-beacon';
-    el.style.cssText = `
-        left:${r.left + r.width * 0.5}px;
-        top:${r.top + r.height * 0.5}px;
-        width:${size}px;height:${size}px;
-    `;
+    el.style.cssText = `left:${r.left + r.width * 0.5}px;top:${r.top + r.height * 0.5}px;width:${size}px;height:${size}px;`;
     document.body.appendChild(el);
     return { remove: () => el.remove() };
 }
 
-/* ─── Spotlight interactif (box-shadow = dim + trou cliquable) ────────── */
-function spawnSpotlight(selector, onTap) {
+/* ─── Spotlight interactif ───────────────────────────────────────────── */
+function _spawnSpotlight(selector, onTap) {
     const target = document.querySelector(selector);
     if (!target) return null;
-    const r = target.getBoundingClientRect();
+    const r   = target.getBoundingClientRect();
     const pad = 10;
-    const el = document.createElement('div');
+    const el  = document.createElement('div');
     el.className = 'tuto-spotlight';
-    el.style.cssText = `
-        left:${r.left - pad}px;
-        top:${r.top - pad}px;
-        width:${r.width + pad * 2}px;
-        height:${r.height + pad * 2}px;
-        border-radius:${Math.min(r.width, r.height) * 0.5 + pad}px;
-    `;
-    el.addEventListener('pointerup', (e) => {
-        e.stopPropagation();
-        el.remove();
-        onTap();
-    }, { once: true });
+    el.style.cssText = `left:${r.left - pad}px;top:${r.top - pad}px;width:${r.width + pad * 2}px;height:${r.height + pad * 2}px;border-radius:${Math.min(r.width, r.height) * 0.5 + pad}px;`;
+    el.addEventListener('pointerup', (e) => { e.stopPropagation(); onTap(); }, { once: true });
     document.body.appendChild(el);
     return { remove: () => el.remove() };
 }
 
 /* ─── Skip toast ─────────────────────────────────────────────────────── */
-function showSkipToast() {
+function _showSkipToast() {
     const el = document.createElement('div');
     el.className = 'tuto-skip-toast';
     el.textContent = tr('tuto.skipped_msg');
@@ -135,278 +131,111 @@ function showSkipToast() {
 }
 
 /* ─── Styles (injectés une seule fois) ───────────────────────────────── */
-let stylesInjected = false;
-function injectStyles() {
-    if (stylesInjected) return;
-    stylesInjected = true;
+let _stylesInjected = false;
+function _injectStyles() {
+    if (_stylesInjected) return;
+    _stylesInjected = true;
     const s = document.createElement('style');
     s.textContent = `
-/* ═══════════════════════════════════════════════
-   INKU TUTORIAL — v3 clean
-   Floating cards · Spotlight dim · No blur
-   ═══════════════════════════════════════════════ */
-
-/* ── Carte flottante ───────────────────────────── */
-@keyframes tutoCardIn{
-    from{opacity:0;transform:translateX(-50%) translateY(16px) scale(0.97)}
-    to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
-}
-@keyframes tutoCardOut{
-    from{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
-    to{opacity:0;transform:translateX(-50%) translateY(16px) scale(0.96)}
-}
+@keyframes tutoCardIn{from{opacity:0;transform:translateX(-50%) translateY(16px) scale(0.97)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+@keyframes tutoCardOut{from{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}to{opacity:0;transform:translateX(-50%) translateY(16px) scale(0.96)}}
 
 .tuto-card{
-    position:fixed;
-    left:50%;
-    transform:translateX(-50%);
-    width:calc(100% - 32px);
-    max-width:420px;
+    position:fixed;left:50%;transform:translateX(-50%);
+    width:calc(100% - 32px);max-width:420px;
     bottom:calc(20px + env(safe-area-inset-bottom,0px));
-    z-index:10000;
-    border-radius:24px;
-    background:
-        linear-gradient(175deg,rgba(6,18,36,0.97) 0%,rgba(2,10,22,0.98) 100%);
+    z-index:10000;border-radius:24px;
+    background:linear-gradient(175deg,rgba(6,18,36,0.97) 0%,rgba(2,10,22,0.98) 100%);
     border:1px solid rgba(52,211,153,0.22);
-    box-shadow:
-        0 8px 40px rgba(0,0,0,0.72),
-        0 0 0 1px rgba(52,211,153,0.05),
-        inset 0 1px 0 rgba(52,211,153,0.09);
+    box-shadow:0 8px 40px rgba(0,0,0,0.72),0 0 0 1px rgba(52,211,153,0.05),inset 0 1px 0 rgba(52,211,153,0.09);
     padding:22px 20px calc(18px + env(safe-area-inset-bottom,0px));
     animation:tutoCardIn 0.32s cubic-bezier(0.16,1,0.3,1) both;
-    /* accent line */
-    overflow:hidden;
+    overflow:hidden;pointer-events:auto;
 }
-.tuto-card::before{
-    content:'';
-    position:absolute;top:0;left:12%;right:12%;height:2px;
-    background:linear-gradient(90deg,transparent,rgba(52,211,153,0.65) 30%,rgba(5,150,105,0.85) 70%,transparent);
-    border-radius:0 0 4px 4px;
-}
-.tuto-card.is-exiting{
-    animation:tutoCardOut 0.2s cubic-bezier(0.4,0,1,1) forwards;
-}
+.tuto-card.is-busy{pointer-events:none;}
+.tuto-card::before{content:'';position:absolute;top:0;left:12%;right:12%;height:2px;background:linear-gradient(90deg,transparent,rgba(52,211,153,0.65) 30%,rgba(5,150,105,0.85) 70%,transparent);border-radius:0 0 4px 4px;}
+.tuto-card.is-exiting{animation:tutoCardOut 0.2s cubic-bezier(0.4,0,1,1) forwards;pointer-events:none;}
+.tuto-card--navigate{bottom:calc(104px + env(safe-area-inset-bottom,0px));}
 
-/* Variante navigate : carte au-dessus de la nav */
-.tuto-card--navigate{
-    bottom:calc(104px + env(safe-area-inset-bottom,0px));
-}
-
-/* ── Bouton fermer ─────────────────────────────── */
-.tuto-card__close{
-    position:absolute;top:12px;right:12px;
-    width:36px;height:36px;border-radius:50%;
-    background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);
-    color:rgba(239,68,68,0.75);font-size:0.9rem;
-    display:flex;align-items:center;justify-content:center;
-    cursor:pointer;touch-action:manipulation;
-    transition:background 0.12s,transform 0.1s;
-    z-index:1;
-}
+.tuto-card__close{position:absolute;top:12px;right:12px;width:36px;height:36px;border-radius:50%;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:rgba(239,68,68,0.75);font-size:0.9rem;display:flex;align-items:center;justify-content:center;cursor:pointer;touch-action:manipulation;transition:background 0.12s,transform 0.1s;z-index:1;}
 .tuto-card__close:active{background:rgba(239,68,68,0.22);transform:scale(0.88);}
 
-/* ── Hero icon ─────────────────────────────────── */
-@keyframes tutoIconIn{
-    from{transform:scale(0.4);opacity:0}
-    60%{transform:scale(1.1);opacity:1}
-    to{transform:scale(1);opacity:1}
-}
-@keyframes tutoRingPulse{
-    from{opacity:0.5;transform:scale(1)}
-    to{opacity:0;transform:scale(1.75)}
-}
-.tuto-card__hero{
-    display:flex;justify-content:center;
-    margin-bottom:14px;
-}
-.tuto-card__icon-wrap{
-    width:68px;height:68px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    background:radial-gradient(circle,rgba(52,211,153,0.12) 0%,rgba(52,211,153,0.03) 60%,transparent);
-    border:1.5px solid rgba(52,211,153,0.25);
-    box-shadow:0 0 20px rgba(52,211,153,0.1);
-    position:relative;
-    animation:tutoIconIn 0.48s cubic-bezier(0.16,1.4,0.4,1) 0.12s both;
-}
-.tuto-card__icon-wrap::before{
-    content:'';
-    position:absolute;inset:-8px;border-radius:50%;
-    border:1px solid rgba(52,211,153,0.14);
-    animation:tutoRingPulse 2s ease-out 0.3s infinite;
-}
-.tuto-card__icon-glyph{
-    font-size:2rem;line-height:1;
-    filter:drop-shadow(0 0 8px rgba(52,211,153,0.6));
-}
+@keyframes tutoIconIn{from{transform:scale(0.4);opacity:0}60%{transform:scale(1.1);opacity:1}to{transform:scale(1);opacity:1}}
+@keyframes tutoRingPulse{from{opacity:0.5;transform:scale(1)}to{opacity:0;transform:scale(1.75)}}
+.tuto-card__hero{display:flex;justify-content:center;margin-bottom:14px;}
+.tuto-card__icon-wrap{width:68px;height:68px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle,rgba(52,211,153,0.12) 0%,rgba(52,211,153,0.03) 60%,transparent);border:1.5px solid rgba(52,211,153,0.25);box-shadow:0 0 20px rgba(52,211,153,0.1);position:relative;animation:tutoIconIn 0.48s cubic-bezier(0.16,1.4,0.4,1) 0.12s both;}
+.tuto-card__icon-wrap::before{content:'';position:absolute;inset:-8px;border-radius:50%;border:1px solid rgba(52,211,153,0.14);animation:tutoRingPulse 2s ease-out 0.3s infinite;}
+.tuto-card__icon-glyph{font-size:2rem;line-height:1;filter:drop-shadow(0 0 8px rgba(52,211,153,0.6));}
 
-/* ── Contenu ───────────────────────────────────── */
-.tuto-card__step-label{
-    display:flex;align-items:center;gap:6px;
-    font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;
-    color:rgba(52,211,153,0.48);margin-bottom:6px;font-weight:700;
-}
-.tuto-card__step-dot{
-    width:5px;height:5px;border-radius:50%;
-    background:#34d399;box-shadow:0 0 6px #34d399;
-    animation:tutoStepDot 1.6s ease-in-out infinite;flex-shrink:0;
-}
+.tuto-card__step-label{display:flex;align-items:center;gap:6px;font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;color:rgba(52,211,153,0.48);margin-bottom:6px;font-weight:700;}
+.tuto-card__step-dot{width:5px;height:5px;border-radius:50%;background:#34d399;box-shadow:0 0 6px #34d399;animation:tutoStepDot 1.6s ease-in-out infinite;flex-shrink:0;}
 @keyframes tutoStepDot{0%,100%{opacity:1}50%{opacity:0.45}}
-.tuto-card__title{
-    font-size:1.15rem;font-weight:800;color:#e2f8ee;
-    margin-bottom:8px;line-height:1.2;
-    text-shadow:0 0 20px rgba(52,211,153,0.15);
-    padding-right:32px; /* évite la superposition avec le ✕ */
-}
-.tuto-card__body{
-    font-size:0.83rem;color:rgba(186,220,200,0.8);
-    line-height:1.6;margin-bottom:16px;white-space:pre-line;
-}
+.tuto-card__title{font-size:1.15rem;font-weight:800;color:#e2f8ee;margin-bottom:8px;line-height:1.2;text-shadow:0 0 20px rgba(52,211,153,0.15);padding-right:32px;}
+.tuto-card__body{font-size:0.83rem;color:rgba(186,220,200,0.8);line-height:1.6;margin-bottom:16px;white-space:pre-line;}
 .tuto-card__body strong{color:#34d399;font-weight:700;}
 .tuto-card__body em{color:rgba(226,248,238,0.9);font-style:normal;font-weight:600;}
 
-/* ── Pill affordability ────────────────────────── */
-.tuto-afford{
-    display:inline-flex;align-items:center;gap:6px;
-    padding:6px 14px;border-radius:10px;
-    font-size:0.8rem;font-weight:700;margin-bottom:14px;
-}
+.tuto-afford{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:10px;font-size:0.8rem;font-weight:700;margin-bottom:14px;}
 .tuto-afford--ok{background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);color:#4ade80;}
 .tuto-afford--ko{background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);color:#f87171;}
 
-/* ── Progress dots ─────────────────────────────── */
-.tuto-progress{
-    display:flex;align-items:center;justify-content:center;
-    gap:5px;margin-bottom:14px;
-}
-.tuto-progress__dot{
-    height:4px;border-radius:2px;
-    background:rgba(52,211,153,0.16);
-    transition:width 0.25s cubic-bezier(0.16,1,0.3,1),background 0.2s;
-    width:5px;
-}
+.tuto-progress{display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:14px;}
+.tuto-progress__dot{height:4px;border-radius:2px;background:rgba(52,211,153,0.16);transition:width 0.25s cubic-bezier(0.16,1,0.3,1),background 0.2s;width:5px;}
 .tuto-progress__dot.is-done{background:rgba(52,211,153,0.4);width:5px;}
 .tuto-progress__dot.is-active{background:#34d399;width:20px;box-shadow:0 0 6px rgba(52,211,153,0.5);}
 
-/* ── Bouton principal ──────────────────────────── */
 @keyframes tutoBtnShimmer{from{left:-80%}to{left:120%}}
-@keyframes tutoBtnGlow{
-    0%,100%{box-shadow:0 4px 16px rgba(52,211,153,0.3)}
-    50%{box-shadow:0 6px 24px rgba(52,211,153,0.5)}
-}
-.tuto-btn-primary{
-    width:100%;min-height:50px;border-radius:14px;
-    background:linear-gradient(135deg,#059669 0%,#34d399 100%);
-    color:#fff;font-size:0.94rem;font-weight:800;letter-spacing:0.02em;
-    border:none;cursor:pointer;touch-action:manipulation;
-    position:relative;overflow:hidden;
-    box-shadow:0 4px 16px rgba(52,211,153,0.3);
-    animation:tutoBtnGlow 2.4s ease-in-out 0.5s infinite;
-    transition:opacity 0.1s,transform 0.1s;
-}
-.tuto-btn-primary::after{
-    content:'';
-    position:absolute;top:0;width:50%;height:100%;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.16),transparent);
-    animation:tutoBtnShimmer 2.6s ease-in-out 1s infinite;
-}
+@keyframes tutoBtnGlow{0%,100%{box-shadow:0 4px 16px rgba(52,211,153,0.3)}50%{box-shadow:0 6px 24px rgba(52,211,153,0.5)}}
+.tuto-btn-primary{width:100%;min-height:50px;border-radius:14px;background:linear-gradient(135deg,#059669 0%,#34d399 100%);color:#fff;font-size:0.94rem;font-weight:800;letter-spacing:0.02em;border:none;cursor:pointer;touch-action:manipulation;position:relative;overflow:hidden;box-shadow:0 4px 16px rgba(52,211,153,0.3);animation:tutoBtnGlow 2.4s ease-in-out 0.5s infinite;transition:opacity 0.1s,transform 0.1s;}
+.tuto-btn-primary::after{content:'';position:absolute;top:0;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.16),transparent);animation:tutoBtnShimmer 2.6s ease-in-out 1s infinite;}
 .tuto-btn-primary:active{opacity:0.8;transform:scale(0.97);}
 
-/* ── Hint tap (navigate steps) ─────────────────── */
-.tuto-tap-hint{
-    display:inline-flex;align-items:center;gap:6px;
-    font-size:0.76rem;font-weight:700;letter-spacing:0.04em;
-    color:rgba(52,211,153,0.65);margin-bottom:12px;
-    animation:tutoStepDot 1.6s ease-in-out infinite;
-}
+.tuto-tap-hint{display:inline-flex;align-items:center;gap:6px;font-size:0.76rem;font-weight:700;letter-spacing:0.04em;color:rgba(52,211,153,0.65);margin-bottom:12px;animation:tutoStepDot 1.6s ease-in-out infinite;}
 
-/* ── Étape langue ──────────────────────────────── */
 .tuto-lang-btns{display:flex;gap:10px;margin-top:4px;}
-.tuto-lang-btn{
-    flex:1;min-height:52px;border-radius:14px;
-    background:rgba(52,211,153,0.05);border:1.5px solid rgba(52,211,153,0.18);
-    color:#e2f8ee;font-size:0.96rem;font-weight:700;
-    cursor:pointer;touch-action:manipulation;
-    transition:background 0.14s,border-color 0.14s,transform 0.1s;
-}
+.tuto-lang-btn{flex:1;min-height:52px;border-radius:14px;background:rgba(52,211,153,0.05);border:1.5px solid rgba(52,211,153,0.18);color:#e2f8ee;font-size:0.96rem;font-weight:700;cursor:pointer;touch-action:manipulation;transition:background 0.14s,border-color 0.14s,transform 0.1s;}
 .tuto-lang-btn:active{background:rgba(52,211,153,0.14);transform:scale(0.97);}
-.tuto-lang-btn.is-selected{
-    background:rgba(52,211,153,0.12);border-color:#34d399;
-    box-shadow:0 0 0 2px rgba(52,211,153,0.12),0 0 14px rgba(52,211,153,0.1);
-}
+.tuto-lang-btn.is-selected{background:rgba(52,211,153,0.12);border-color:#34d399;box-shadow:0 0 0 2px rgba(52,211,153,0.12),0 0 14px rgba(52,211,153,0.1);}
 
-/* ── Beacon décoratif (pointer-events:none) ────── */
-@keyframes tutoBeacon{
-    0%{box-shadow:0 0 0 0 rgba(52,211,153,0.5),0 0 10px rgba(52,211,153,0.25);opacity:1}
-    70%{box-shadow:0 0 0 16px rgba(52,211,153,0),0 0 18px rgba(52,211,153,0);opacity:0.7}
-    100%{box-shadow:0 0 0 0 rgba(52,211,153,0),0 0 10px rgba(52,211,153,0.25);opacity:1}
-}
-.tuto-beacon{
-    position:fixed;border-radius:50%;
-    pointer-events:none;z-index:10001;
-    border:2px solid rgba(52,211,153,0.85);
-    animation:tutoBeacon 1.7s ease-out infinite;
-    transform:translate(-50%,-50%);
-}
+@keyframes tutoBeacon{0%{box-shadow:0 0 0 0 rgba(52,211,153,0.5),0 0 10px rgba(52,211,153,0.25);opacity:1}70%{box-shadow:0 0 0 16px rgba(52,211,153,0),0 0 18px rgba(52,211,153,0);opacity:0.7}100%{box-shadow:0 0 0 0 rgba(52,211,153,0),0 0 10px rgba(52,211,153,0.25);opacity:1}}
+.tuto-beacon{position:fixed;border-radius:50%;pointer-events:none;z-index:10001;border:2px solid rgba(52,211,153,0.85);animation:tutoBeacon 1.7s ease-out infinite;transform:translate(-50%,-50%);}
 
-/* ── Spotlight (dim + trou cliquable) ──────────── */
-.tuto-spotlight{
-    position:fixed;z-index:10001;
-    cursor:pointer;pointer-events:auto;
-    border:2px solid rgba(52,211,153,0.9);
-    /* box-shadow crée le dim autour du trou */
-    box-shadow:
-        0 0 0 9999px rgba(2,8,20,0.72),
-        0 0 0 4px rgba(52,211,153,0.15),
-        0 0 20px rgba(52,211,153,0.3);
-    animation:tutoBeacon 1.5s ease-out infinite;
-}
+.tuto-spotlight{position:fixed;z-index:10001;cursor:pointer;pointer-events:auto;border:2px solid rgba(52,211,153,0.9);box-shadow:0 0 0 9999px rgba(2,8,20,0.72),0 0 0 4px rgba(52,211,153,0.15),0 0 20px rgba(52,211,153,0.3);animation:tutoBeacon 1.5s ease-out infinite;}
 
-/* ── Skip toast ────────────────────────────────── */
-.tuto-skip-toast{
-    position:fixed;z-index:99999;pointer-events:none;
-    bottom:calc(92px + env(safe-area-inset-bottom,0px));
-    left:50%;transform:translateX(-50%);
-    background:rgba(4,10,24,0.95);
-    border:1px solid rgba(52,211,153,0.25);
-    border-radius:12px;padding:10px 18px;
-    font-size:0.8rem;font-weight:600;color:#e2f8ee;
-    text-align:center;max-width:calc(100vw - 40px);
-    box-shadow:0 4px 20px rgba(0,0,0,0.5);
-    transition:opacity 0.4s;white-space:nowrap;
-}
+.tuto-skip-toast{position:fixed;z-index:99999;pointer-events:none;bottom:calc(92px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:rgba(4,10,24,0.95);border:1px solid rgba(52,211,153,0.25);border-radius:12px;padding:10px 18px;font-size:0.8rem;font-weight:600;color:#e2f8ee;text-align:center;max-width:calc(100vw - 40px);box-shadow:0 4px 20px rgba(0,0,0,0.5);transition:opacity 0.4s;white-space:nowrap;}
 `;
     document.head.appendChild(s);
 }
 
-/* ─── Transition sortie ──────────────────────────────────────────────── */
-function animateCardOut(card, callback) {
+/* ─── Transition sortie — UN SEUL callback, jamais deux fois ─────────── */
+function _animateOut(card, callback) {
+    let fired = false;
+    const fire = () => {
+        if (fired) return;
+        fired = true;
+        callback();
+    };
     card.classList.add('is-exiting');
-    const done = () => { card.removeEventListener('animationend', done); callback?.(); };
-    card.addEventListener('animationend', done);
-    setTimeout(callback, 250); // fallback
+    card.addEventListener('animationend', fire, { once: true });
+    setTimeout(fire, 260); // fallback : légèrement > 200ms (durée CSS)
 }
 
-/* ─── Rendu étape de contenu ─────────────────────────────────────────── */
-function renderContentStep(stepIndex, { onNext, onSkip }) {
+/* ─── Rendu étape contenu ────────────────────────────────────────────── */
+function _renderContentStep(stepIndex, { onNext, onSkip }) {
+    _destroyActive(); // Garantit un écran propre avant toute création
+
     const data = getStepData(stepIndex);
-    if (!data) return null;
+    if (!data) return;
 
     const isNavigate = data.interaction === 'navigate';
     const isLast     = stepIndex >= TOTAL_STEPS;
 
-    // Helpers visuels
-    let beacon    = null;
-    let spotlight = null;
-    const cleanup = () => { beacon?.remove(); spotlight?.remove(); };
-
-    // Progress dots HTML
     let progressHtml = '';
     for (let i = 1; i <= TOTAL_STEPS; i++) {
         const cls = i === stepIndex ? ' is-active' : i < stepIndex ? ' is-done' : '';
         progressHtml += `<div class="tuto-progress__dot${cls}"></div>`;
     }
 
-    // Pill affordability (étape 2)
     let affordHtml = '';
     if (data.showAffordability) {
         const bal = readBalance();
@@ -414,39 +243,20 @@ function renderContentStep(stepIndex, { onNext, onSkip }) {
         affordHtml = `<div class="tuto-afford ${ok ? 'tuto-afford--ok' : 'tuto-afford--ko'}">${ok ? '✓' : '✕'} ⬡ ${bal.toLocaleString()} Inkübits</div>`;
     }
 
-    const stepLabel = tr('tuto.step_of').replace('{n}', stepIndex).replace('{total}', TOTAL_STEPS);
+    const stepLabel  = tr('tuto.step_of').replace('{n}', stepIndex).replace('{total}', TOTAL_STEPS);
+    const heroHtml   = isNavigate ? '' : `<div class="tuto-card__hero"><div class="tuto-card__icon-wrap"><span class="tuto-card__icon-glyph">${data.icon}</span></div></div>`;
+    const actionsHtml = isNavigate ? '' : `<button class="tuto-btn-primary">${isLast ? tr('tuto.start') : tr('tuto.next')}</button>`;
+    const tapHintHtml = isNavigate && data.tapLabelKey ? `<div class="tuto-tap-hint">↓ ${tr(data.tapLabelKey)}</div>` : '';
 
-    // Hero (lecture uniquement)
-    const heroHtml = isNavigate ? '' : `
-    <div class="tuto-card__hero">
-        <div class="tuto-card__icon-wrap">
-            <span class="tuto-card__icon-glyph">${data.icon}</span>
-        </div>
-    </div>`;
-
-    // Actions
-    const actionsHtml = isNavigate
-        ? '' // spotlight avance le tuto
-        : `<button class="tuto-btn-primary">${isLast ? tr('tuto.start') : tr('tuto.next')}</button>`;
-
-    // Instruction tap (navigate) — label traduit du bouton cible
-    const tapHintHtml = isNavigate && data.tapLabelKey
-        ? `<div class="tuto-tap-hint">↓ ${tr(data.tapLabelKey)}</div>`
-        : '';
-
-    // Création de la carte (fixed, flottante)
     const card = document.createElement('div');
     card.className = `tuto-card${isNavigate ? ' tuto-card--navigate' : ''}`;
     card.setAttribute('role', 'dialog');
     card.setAttribute('aria-modal', 'true');
     card.setAttribute('aria-label', tr(data.titleKey));
-
     card.innerHTML = `
         <button class="tuto-card__close" aria-label="${tr('tuto.skip')}">✕</button>
         ${heroHtml}
-        <div class="tuto-card__step-label">
-            <span class="tuto-card__step-dot"></span>${stepLabel}
-        </div>
+        <div class="tuto-card__step-label"><span class="tuto-card__step-dot"></span>${stepLabel}</div>
         <div class="tuto-card__title">${data.icon} ${tr(data.titleKey)}</div>
         ${affordHtml}
         <div class="tuto-card__body">${tr(data.bodyKey)}</div>
@@ -455,46 +265,60 @@ function renderContentStep(stepIndex, { onNext, onSkip }) {
         ${actionsHtml}
     `;
 
-    const doSkip = () => { cleanup(); card.remove(); onSkip?.(); };
+    const doSkip = () => {
+        if (_busy) return;
+        _busy = true;
+        _destroyActive();
+        onSkip?.();
+    };
+
     const doNext = () => {
-        cleanup();
-        if (isLast) { card.remove(); onNext?.(); }
-        else { animateCardOut(card, () => { card.remove(); onNext?.(); }); }
+        if (_busy) return;
+        _busy = true;
+        card.classList.add('is-busy');
+        _activeOverlay?.remove();
+        _activeOverlay = null;
+        if (isLast) {
+            _destroyActive();
+            onNext?.();
+        } else {
+            _animateOut(card, () => {
+                if (_activeCard === card) { _activeCard = null; }
+                card.remove();
+                _busy = false;
+                onNext?.();
+            });
+        }
     };
 
     card.querySelector('.tuto-card__close').addEventListener('click', doSkip, { once: true });
     card.querySelector('.tuto-btn-primary')?.addEventListener('click', doNext, { once: true });
 
     document.body.appendChild(card);
+    _activeCard = card;
 
-    // Helpers post-insertion (besoin du layout)
     requestAnimationFrame(() => {
+        if (_activeCard !== card) return; // carte déjà détruite
         if (isNavigate && data.targetSelector) {
-            spotlight = spawnSpotlight(data.targetSelector, doNext);
+            _activeOverlay = _spawnSpotlight(data.targetSelector, doNext);
         } else if (data.targetSelector) {
-            beacon = spawnBeacon(data.targetSelector);
+            _activeOverlay = _spawnBeacon(data.targetSelector);
         }
     });
-
-    return card;
 }
 
 /* ─── Rendu étape langue ─────────────────────────────────────────────── */
-function renderLangStep({ onChose }) {
-    const currentLang = getLang();
+function _renderLangStep({ onChose }) {
+    _destroyActive();
 
+    const currentLang = getLang();
     const card = document.createElement('div');
     card.className = 'tuto-card';
     card.setAttribute('role', 'dialog');
     card.setAttribute('aria-modal', 'true');
     card.setAttribute('aria-label', tr('tuto.lang.title'));
-
     card.innerHTML = `
-        <div class="tuto-card__hero">
-            <div class="tuto-card__icon-wrap">
-                <span class="tuto-card__icon-glyph">🌍</span>
-            </div>
-        </div>
+        <div class="tuto-card__hero"><div class="tuto-card__icon-wrap"><span class="tuto-card__icon-glyph">🌍</span></div></div>
         <div class="tuto-card__title">${tr('tuto.lang.title')}</div>
         <div class="tuto-card__body">${tr('tuto.lang.body')}</div>
         <div class="tuto-lang-btns">
@@ -502,74 +326,72 @@ function renderLangStep({ onChose }) {
             <button class="tuto-lang-btn${currentLang === 'en' ? ' is-selected' : ''}" data-lang="en">${tr('tuto.lang.en')}</button>
         </div>
     `;
-
     card.querySelectorAll('.tuto-lang-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const lang = btn.dataset.lang;
-            setLang(lang);
+            if (_busy) return;
+            _busy = true;
+            setLang(btn.dataset.lang);
             markLangChosen();
-            card.remove();
-            onChose?.(lang);
-        });
+            _destroyActive();
+            onChose?.();
+        }, { once: true });
     });
 
     document.body.appendChild(card);
-    return card;
+    _activeCard = card;
 }
 
 /* ─── Contrôleur principal ───────────────────────────────────────────── */
 export function createTutorialController() {
-    let active = false;
-    let onCompleteCallback = null;
+    let _running    = false;
+    let _onComplete = null;
 
-    function finish() {
-        active = false;
+    function _finish() {
+        _running = false;
+        _destroyActive();
         completeTutorial();
-        onCompleteCallback?.();
+        _onComplete?.();
     }
 
-    function skip() {
-        active = false;
+    function _skip() {
+        _running = false;
+        _destroyActive();
         completeTutorial();
-        showSkipToast();
-        onCompleteCallback?.();
+        _showSkipToast();
+        _onComplete?.();
     }
 
-    function runContentStep(stepIndex) {
-        if (!active) return;
-        if (stepIndex > TOTAL_STEPS) { finish(); return; }
-
+    function _goToStep(stepIndex) {
+        if (!_running) return;
+        if (stepIndex > TOTAL_STEPS) { _finish(); return; }
         setTutorialStep(stepIndex);
-
-        renderContentStep(stepIndex, {
-            onNext: () => { if (active) runContentStep(stepIndex + 1); },
-            onSkip: () => { skip(); },
+        _renderContentStep(stepIndex, {
+            onNext: () => { if (_running) _goToStep(stepIndex + 1); },
+            onSkip: () => { _skip(); },
         });
     }
 
     function run(onComplete) {
         if (isTutorialDone()) { onComplete?.(); return; }
-        if (active) return;
+        if (_running) return;
 
-        active = true;
-        onCompleteCallback = onComplete;
-        injectStyles();
+        _running    = true;
+        _onComplete = onComplete;
+        _injectStyles();
 
         const state = getTutorialState();
 
         if (!state.langChosen) {
-            const detected = detectDeviceLang();
-            setLang(detected);
+            setLang(detectDeviceLang());
             applyTranslations(document);
-
-            renderLangStep({
-                onChose: (lang) => {
+            _renderLangStep({
+                onChose: () => {
                     applyTranslations(document);
-                    runContentStep(Math.max(1, state.step > 0 ? state.step + 1 : 1));
+                    _goToStep(Math.max(1, state.step > 0 ? state.step + 1 : 1));
                 },
             });
         } else {
-            runContentStep(Math.max(1, (state.step ?? 0) + 1));
+            _goToStep(Math.max(1, (state.step ?? 0) + 1));
         }
     }
 

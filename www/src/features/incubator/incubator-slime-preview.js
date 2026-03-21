@@ -510,7 +510,11 @@ export function createIncubatorSlimePreview() {
                 // Pause auto-float targeting while the player is manually dragging the slime.
                 if (!slime.draggedNode) {
                     if (deltaY > 5) {
-                        engine.applyVerticalImpulse(-Math.min(0.22 + deltaY * 0.012, 0.88));
+                        // Use a stronger corrective impulse when the slime is far below
+                        // the target (e.g. just after a resume where spawnY was at the
+                        // bottom of the canvas). Cap is raised to 2.4 so it converges
+                        // quickly without overshooting too much.
+                        engine.applyVerticalImpulse(-Math.min(0.22 + deltaY * 0.028, 2.4));
                     } else if (deltaY < -12) {
                         engine.applyVerticalImpulse(Math.min(0.08 + Math.abs(deltaY) * 0.004, 0.24));
                     }
@@ -688,49 +692,51 @@ export function createIncubatorSlimePreview() {
     }
 
     function suspendForExternalRuntime() {
-        if (!engine) {
-            return false;
-        }
         cancelMotionLoop();
         cleanupInteraction?.();
         cleanupInteraction = null;
         fluidDisturbance = null;
-        engine.stop();
+        if (engine) {
+            engine.stop();
+        }
+        // Mark as suspended even when engine is null (between cycles) so that
+        // resumeAfterExternalRuntime knows a navigation round-trip happened.
         isExternallySuspended = true;
         suspendedSlime = null;
         return true;
     }
 
     function resumeAfterExternalRuntime() {
-        if (!isExternallySuspended || !canvas || !currentBlueprint) {
+        if (!isExternallySuspended) {
             return false;
         }
         isExternallySuspended = false;
         suspendedSlime = null;
 
-        // Defer the spawn by one RAF frame so the browser has completed layout
-        // and canvas.getBoundingClientRect() returns correct non-zero dimensions.
-        engine?.destroy?.();
-        engine = null;
-        requestAnimationFrame(() => {
-            if (!canvas || !currentBlueprint) return;
-            // Verify canvas has real dimensions before spawning
-            const rect = canvas.getBoundingClientRect();
-            if (rect.width < 4 || rect.height < 4) {
-                // Still no layout — wait one more frame
-                requestAnimationFrame(() => {
-                    if (canvas && currentBlueprint) {
-                        ensureFrontLayers();
-                        bindGlassInteractions();
-                        mountPreviewRuntime({ startMotion: 'extruding', spawnImpulseY: -13.2 });
-                    }
-                });
-                return;
-            }
+        // Case 1: engine is alive (was stopped with engine.stop()).
+        // Just restart the render loop and the motion controller in place —
+        // the slime nodes keep their exact positions, no respawn needed.
+        if (engine && canvas && currentBlueprint) {
             ensureFrontLayers();
             bindGlassInteractions();
-            mountPreviewRuntime({ startMotion: 'idle', spawnImpulseY: -6.8 });
-        });
+            engine.start();
+            motionStartedAt = performance.now();
+            startMotionLoop('floating');
+            return true;
+        }
+
+        // Case 2: engine was destroyed during a cycle gap while we were away
+        // (e.g. purge finished but next candidate not yet spawned).
+        // ensureRuntimeAvailable will rebuild and spawn with the correct layout.
+        if (canvas && currentBlueprint) {
+            requestAnimationFrame(() => {
+                if (!canvas || !currentBlueprint) return;
+                ensureFrontLayers();
+                bindGlassInteractions();
+                mountPreviewRuntime({ startMotion: 'extruding', spawnImpulseY: -13.2 });
+            });
+        }
+
         return true;
     }
 

@@ -323,12 +323,11 @@ export function createLaboIncubatorFeature({ store } = {}) {
             return false;
         }
 
-        // Always restore the visual slime first, regardless of dwell deadline.
-        // The orchestrator will handle the state transition in startCycle().
-        // Without this, navigating back to labo shows an empty incubator.
-        if (!preview.resumeAfterExternalRuntime?.()) {
-            preview.ensureRuntimeAvailable?.();
-        }
+        // Restore the visual slime. resumeAfterExternalRuntime() handles its own
+        // retry loop internally — do NOT call ensureRuntimeAvailable() as a fallback
+        // here, as it would bypass the layout-ready check and spawn the slime at
+        // incorrect coordinates (getBoundingClientRect returns 0 while hidden).
+        preview.resumeAfterExternalRuntime?.();
         preview.syncLayout?.();
 
         // If the candidate's dwell time expired during navigation, signal that
