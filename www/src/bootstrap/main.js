@@ -12,12 +12,23 @@
 import { createTitleScreen } from './title-screen.js';
 import { createGameMenuApp }  from './create-game-menu-app.js';
 import { initPerformanceProfile } from '../utils/device-performance-profile.js';
+import { setLang, applyTranslations } from '../i18n/i18n.js';
+import { detectDeviceLang, isLangChosen } from '../features/tutorial/tutorial-state.js';
+import { createTutorialController } from '../features/tutorial/tutorial-controller.js';
 
 /* ── 0. Détecter les performances du device dès que possible ────────── */
 // Lance la détection (benchmark inclus) pendant le title screen, en tâche
 // de fond. Le tier est mis en cache dans localStorage pour les prochaines
 // sessions. Le CSS data-perf-tier est appliqué dès que le résultat est prêt.
 initPerformanceProfile();
+
+/* ── 0b. Détection automatique de la langue (première ouverture) ─────── */
+// Si le joueur n'a pas encore choisi sa langue dans le tutoriel, on applique
+// la langue détectée depuis l'appareil (fr si France, en sinon).
+if (!isLangChosen()) {
+    setLang(detectDeviceLang());
+    applyTranslations(document);
+}
 
 /* ── 1. Créer l'app du jeu (sans l'initialiser encore) ──────────────── */
 const app = createGameMenuApp(document);
@@ -45,6 +56,10 @@ function _bootGame() {
 
 function _initialize() {
     app.initialize();
+
+    // Lance le tutoriel pour les nouveaux joueurs (overlay sur le jeu déjà visible).
+    const tutorial = createTutorialController();
+    tutorial.run(() => { /* tutoriel terminé ou ignoré — rien à faire */ });
 
     // Verrouillage orientation portrait (API native)
     // Fonctionne sur PWA installée et la majorité des navigateurs mobiles.

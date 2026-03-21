@@ -199,6 +199,40 @@ export const TRANSLATIONS = {
         'pattern.crystal_facets': 'Cristal',
         'pattern.prismatic':      'Prismatique',
         'pattern.void_rift':      'Rift',
+
+        // ── Tutoriel ─────────────────────────────────────────────────────
+        'tuto.skip':                    'Passer le tutoriel',
+        'tuto.next':                    'Suivant →',
+        'tuto.start':                   'Commencer !',
+        'tuto.restart':                 'Rejouer le tutoriel',
+        'tuto.restart_sub':             'Revoir toutes les étapes depuis le début',
+        'tuto.step_of':                 'Étape {n} sur {total}',
+
+        // Étape 0 — Langue
+        'tuto.lang.title':              'Choisissez votre langue',
+        'tuto.lang.body':               'Sélectionnez la langue de l\'interface. Tu pourras changer ça plus tard dans les paramètres.',
+        'tuto.lang.fr':                 '🇫🇷 Français',
+        'tuto.lang.en':                 '🇬🇧 English',
+
+        // Étape 1 — Monnaie
+        'tuto.money.title':             'Les Inkübits ⬡',
+        'tuto.money.body':              'Les <strong>Inkübits</strong> sont la monnaie bleue du jeu — tu peux en voir le total en haut à droite.\n\nTon objectif : faire grandir ton équipe d\'Inkübs (slimes) pour en générer un maximum à la minute. Plus tu as d\'Inkübs actifs dans la prairie, plus tu gagnes !',
+
+        // Étape 2 — Acheter un slime
+        'tuto.buy.title':               'Acheter un Inkübs 🧪',
+        'tuto.buy.body':                'Dans le <strong>Labo</strong>, un incubateur génère en permanence de nouveaux Inkübs.\n\nLe prix en Inkübits ⬡ est affiché juste au-dessus du bouton d\'achat.\n• Bouton <span style="color:#4ade80;font-weight:700;">vert</span> = tu peux te le permettre !\n• Bouton <span style="color:#f87171;font-weight:700;">rouge</span> = il manque des Inkübits.\n\nChaque Inkübs acheté est rangé dans la boîte de stockage.',
+
+        // Étape 3 — Boîte de stockage
+        'tuto.storage.title':           'La Boîte de Stockage 📦',
+        'tuto.storage.body':            'Tous tes Inkübs achetés apparaissent dans la <strong>boîte de stockage</strong> (icône grille en haut à droite de la prairie ou du labo).\n\nAppuie sur un Inkübs pour afficher sa fiche détaillée — stats, génome, aperçu interactif.\nAppuie en dehors de la fiche pour la refermer.',
+
+        // Étape 4 — Prairie
+        'tuto.prairie.title':           'La Prairie 🌿',
+        'tuto.prairie.body':            'Déploie tes Inkübs dans la <strong>Prairie</strong> pour qu\'ils génèrent des Inkübits à la minute.\n\nIls interagissent entre eux en temps réel : certains s\'entendent très bien et se font gagner des points de stats, d\'autres se déplaisent mutuellement et font perdre des points.\n\nUtilise la <strong>loupe 🔍</strong> en haut à droite pour activer le mode Observation : appuie ensuite sur un Inkübs pour voir son niveau d\'XP et ses interactions en cours.',
+
+        // Étape 5 — Niveau & Loupe avancée
+        'tuto.level.title':             'Niveaux & Affinités ⭐',
+        'tuto.level.body':              'Quand <strong>3 stats atteignent leur maximum</strong>, l\'Inkübs gagne un niveau — il devient plus puissant et génère davantage d\'Inkübits.\n\nDans la loupe, le <strong>second volet</strong> affiche les stats détaillées par domaine ainsi que les affinités : le pourcentage relationnel avec chaque Inkübs présent est listé du plus fort au plus faible (top 5).\n\nTu peux effacer l\'historique d\'affinité avec les slimes actuellement dans la prairie via le bouton dédié.',
     },
 
     en: {
@@ -396,5 +430,39 @@ export const TRANSLATIONS = {
         'pattern.crystal_facets': 'Crystal',
         'pattern.prismatic':      'Prismatic',
         'pattern.void_rift':      'Rift',
+
+        // ── Tutorial ──────────────────────────────────────────────────────
+        'tuto.skip':                    'Skip tutorial',
+        'tuto.next':                    'Next →',
+        'tuto.start':                   'Let\'s go!',
+        'tuto.restart':                 'Replay tutorial',
+        'tuto.restart_sub':             'Go through all steps again from the beginning',
+        'tuto.step_of':                 'Step {n} of {total}',
+
+        // Step 0 — Language
+        'tuto.lang.title':              'Choose your language',
+        'tuto.lang.body':               'Select the interface language. You can change this later in settings.',
+        'tuto.lang.fr':                 '🇫🇷 Français',
+        'tuto.lang.en':                 '🇬🇧 English',
+
+        // Step 1 — Currency
+        'tuto.money.title':             'Inkübits ⬡',
+        'tuto.money.body':              '<strong>Inkübits</strong> are the game\'s blue currency — your total is shown in the top-right corner.\n\nYour goal: grow your team of Inkübs (slimes) to generate as many as possible per minute. The more active Inkübs you have in the prairie, the more you earn!',
+
+        // Step 2 — Buy a slime
+        'tuto.buy.title':               'Buy an Inkübs 🧪',
+        'tuto.buy.body':                'In the <strong>Lab</strong>, an incubator continuously generates new Inkübs.\n\nThe price in Inkübits ⬡ is displayed just above the buy button.\n• <span style="color:#4ade80;font-weight:700;">Green</span> button = you can afford it!\n• <span style="color:#f87171;font-weight:700;">Red</span> button = not enough Inkübits.\n\nEach purchased Inkübs is stored in your storage box.',
+
+        // Step 3 — Storage box
+        'tuto.storage.title':           'The Storage Box 📦',
+        'tuto.storage.body':            'All your purchased Inkübs appear in the <strong>storage box</strong> (grid icon in the top-right of the prairie or lab).\n\nTap an Inkübs to open its detail sheet — stats, genome, interactive preview.\nTap outside the sheet to close it.',
+
+        // Step 4 — Prairie
+        'tuto.prairie.title':           'The Prairie 🌿',
+        'tuto.prairie.body':            'Deploy your Inkübs into the <strong>Prairie</strong> so they generate Inkübits per minute.\n\nThey interact with each other in real time: some get along well and boost each other\'s stats, others clash and reduce them.\n\nUse the <strong>magnifier 🔍</strong> in the top-right to enter Observation mode: then tap an Inkübs to see its XP level and current interactions.',
+
+        // Step 5 — Level & Advanced loupe
+        'tuto.level.title':             'Levels & Affinities ⭐',
+        'tuto.level.body':              'When <strong>3 stats reach their maximum</strong>, the Inkübs gains a level — it becomes more powerful and generates more Inkübits.\n\nIn the magnifier, the <strong>second panel</strong> shows detailed stats by domain and affinities: the relationship percentage with each Inkübs present is listed from highest to lowest (top 5).\n\nYou can clear the affinity history with the Inkübs currently in the prairie using the dedicated button.',
     },
 };

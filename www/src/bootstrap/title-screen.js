@@ -371,6 +371,11 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
                 <i class="ph ph-info" style="color:#34d399;font-size:1rem;flex-shrink:0;margin-top:1px;"></i>
                 <div>${t('ts.data_info')}</div>
             </div>
+            <button class="pks-danger-row" id="sm-reset-tutorial" style="background:rgba(52,211,153,0.04);border-color:rgba(52,211,153,0.15);margin-bottom:10px;">
+                <div class="pks-row-icon" style="background:rgba(52,211,153,0.12);color:#34d399;"><i class="ph ph-graduation-cap"></i></div>
+                <div class="pks-row-body"><div class="pks-danger-name" style="color:#34d399;">${t('tuto.restart')}</div><div class="pks-danger-sub">${t('tuto.restart_sub')}</div></div>
+                <i class="ph ph-caret-right" style="color:rgba(52,211,153,0.4);font-size:0.8rem;flex-shrink:0;"></i>
+            </button>
             <button class="pks-danger-row" id="sm-reset">
                 <div class="pks-row-icon pks-icon-red"><i class="ph ph-trash"></i></div>
                 <div class="pks-row-body"><div class="pks-danger-name">${t('ts.erase_data')}</div><div class="pks-danger-sub">${t('ts.erase_sub')}</div></div>
@@ -624,6 +629,15 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
         const confirmOverlay=root.querySelector('#ts-confirm-reset');
         const showConfirm=()=>confirmOverlay.classList.add('show');
         const hideConfirm=()=>confirmOverlay.classList.remove('show');
+        root.querySelector('#sm-reset-tutorial')?.addEventListener('click', () => {
+            import('../features/tutorial/tutorial-state.js').then(({ resetTutorial }) => {
+                resetTutorial();
+                close();
+                // Brief visual feedback then close settings — tutorial will run on next PLAY
+                const btn = root.querySelector('#sm-reset-tutorial');
+                if (btn) { btn.style.opacity = '0.5'; setTimeout(() => { btn.style.opacity = ''; }, 800); }
+            });
+        });
         root.querySelector('#sm-reset')?.addEventListener('click',showConfirm);
         root.querySelector('#ts-confirm-no')?.addEventListener('click',hideConfirm);
         root.querySelector('#ts-confirm-yes')?.addEventListener('click',()=>{
