@@ -174,6 +174,10 @@ export function createPrairieFeature() {
     let obsOpen = false;
     let obsLoupeMode = false;  // true when loupe is active and user should tap a slime
     let obsUpdateInterval = 0;
+    let obsDragHandle = null;
+    let obsDrag   = null; // { pid, sx, sy, pt, pl }
+    let obsResize = null; // { pid, sx, sy, pw, ph, pt, pl, corner }
+    let obsPos    = null; // { top, left, width, height } — null = use CSS default
 
     function applyPanelLayout() {
         if (!dronePanel) {
@@ -250,7 +254,11 @@ export function createPrairieFeature() {
                 </button>
                 <div class="prairie-obs" data-prairie-obs hidden>
                     <div class="prairie-obs__surface">
-                        <header class="prairie-obs__header">
+                        <div class="prairie-obs__corner" data-corner="tl"></div>
+                        <div class="prairie-obs__corner" data-corner="tr"></div>
+                        <div class="prairie-obs__corner" data-corner="bl"></div>
+                        <div class="prairie-obs__corner" data-corner="br"></div>
+                        <header class="prairie-obs__header" data-prairie-obs-drag>
                             <h3 class="prairie-obs__title" data-prairie-obs-title>Observation</h3>
                             <div class="prairie-obs__tabs">
                                 <button type="button" class="prairie-obs__tab is-active" data-prairie-obs-tab="log">Activité</button>
@@ -284,6 +292,7 @@ export function createPrairieFeature() {
         loupeBtn = root.querySelector('[data-prairie-loupe]');
         obsPanel = root.querySelector('[data-prairie-obs]');
         obsClose = root.querySelector('[data-prairie-obs-close]');
+        obsDragHandle = root.querySelector('[data-prairie-obs-drag]');
         obsTitle = root.querySelector('[data-prairie-obs-title]');
         obsHint = root.querySelector('[data-prairie-obs-hint]');
         obsBody = root.querySelector('[data-prairie-obs-body]');
@@ -1050,7 +1059,27 @@ export function createPrairieFeature() {
         updateObsContent();
     }
 
-    function applyObsLayout() { /* positioning now handled by CSS */ }
+    function applyObsLayout() {
+        if (!obsPanel || !obsPos) return;
+        const vp = getViewportSize();
+        obsPos.width  = clamp(obsPos.width,  200, vp.width  - 10);
+        obsPos.height = clamp(obsPos.height, 140, vp.height - 50);
+        obsPos.top    = clamp(obsPos.top,      0, vp.height - obsPos.height - 10);
+        obsPos.left   = clamp(obsPos.left,     0, vp.width  - obsPos.width  - 4);
+        obsPanel.style.setProperty('--obs-top',   `${obsPos.top}px`);
+        obsPanel.style.setProperty('--obs-left',  `${obsPos.left}px`);
+        obsPanel.style.setProperty('--obs-bot',   'auto');
+        obsPanel.style.setProperty('--obs-right', 'auto');
+        obsPanel.style.setProperty('--obs-w',     `${obsPos.width}px`);
+        obsPanel.style.setProperty('--obs-h',     `${obsPos.height}px`);
+        obsPanel.style.setProperty('--obs-maxh',  'none');
+    }
+
+    function initObsPos() {
+        if (obsPos || !obsPanel) return;
+        const r = obsPanel.getBoundingClientRect();
+        obsPos = { top: r.top, left: r.left, width: r.width, height: r.height };
+    }
 
     function updateObsContent() {
         if (!obsOpen || !obsSelectedSlimeId) return;
@@ -1203,6 +1232,60 @@ export function createPrairieFeature() {
         });
 
         obsClose?.addEventListener('click', closeObsPanel);
+
+        // ── Drag (header) ──
+        obsDragHandle?.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('[data-prairie-obs-close]') || e.target.closest('[data-prairie-obs-tab]')) return;
+            initObsPos();
+            obsDrag = { pid: e.pointerId, sx: e.clientX, sy: e.clientY, pt: obsPos.top, pl: obsPos.left };
+            obsDragHandle.setPointerCapture(e.pointerId);
+            e.preventDefault();
+        }, { passive: false });
+        obsDragHandle?.addEventListener('pointermove', (e) => {
+            if (!obsDrag || obsDrag.pid !== e.pointerId) return;
+            obsPos.top  = obsDrag.pt + (e.clientY - obsDrag.sy);
+            obsPos.left = obsDrag.pl + (e.clientX - obsDrag.sx);
+            applyObsLayout();
+        }, { passive: true });
+        const releaseObsDrag = (e) => {
+            if (!obsDrag || obsDrag.pid !== e.pointerId) return;
+            obsDragHandle.releasePointerCapture(e.pointerId);
+            obsDrag = null;
+        };
+        obsDragHandle?.addEventListener('pointerup', releaseObsDrag, { passive: true });
+        obsDragHandle?.addEventListener('pointercancel', releaseObsDrag, { passive: true });
+
+        // ── 4-corner resize ──
+        for (const corner of (obsPanel?.querySelectorAll('[data-corner]') || [])) {
+            corner.addEventListener('pointerdown', (e) => {
+                initObsPos();
+                obsResize = {
+                    pid: e.pointerId, sx: e.clientX, sy: e.clientY,
+                    pw: obsPos.width, ph: obsPos.height, pt: obsPos.top, pl: obsPos.left,
+                    corner: corner.dataset.corner,
+                };
+                corner.setPointerCapture(e.pointerId);
+                e.preventDefault(); e.stopPropagation();
+            }, { passive: false });
+            corner.addEventListener('pointermove', (e) => {
+                if (!obsResize || obsResize.pid !== e.pointerId) return;
+                const dx = e.clientX - obsResize.sx;
+                const dy = e.clientY - obsResize.sy;
+                const c  = obsResize.corner;
+                if (c === 'br' || c === 'tr') obsPos.width  = obsResize.pw + dx;
+                if (c === 'bl' || c === 'tl') { obsPos.width = obsResize.pw - dx; obsPos.left = obsResize.pl + dx; }
+                if (c === 'br' || c === 'bl') obsPos.height = obsResize.ph + dy;
+                if (c === 'tr' || c === 'tl') { obsPos.height = obsResize.ph - dy; obsPos.top = obsResize.pt + dy; }
+                applyObsLayout();
+            }, { passive: true });
+            const releaseCorner = (e) => {
+                if (!obsResize || obsResize.pid !== e.pointerId) return;
+                corner.releasePointerCapture(e.pointerId);
+                obsResize = null;
+            };
+            corner.addEventListener('pointerup', releaseCorner, { passive: true });
+            corner.addEventListener('pointercancel', releaseCorner, { passive: true });
+        }
 
         // Tabs
         for (const tab of obsTabs) {
