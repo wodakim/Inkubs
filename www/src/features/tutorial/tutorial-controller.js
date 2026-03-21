@@ -91,7 +91,7 @@ function getStepData(index) {
         },
         {
             icon: '📦', titleKey: 'tuto.storage.title', bodyKey: 'tuto.storage.body',
-            targetSelector: '[data-nav-index="2"]',
+            targetSelector: null, // no beacon — user is already in the lab
             mode: 'sheet', interaction: 'read',
         },
         {
@@ -102,8 +102,8 @@ function getStepData(index) {
         },
         {
             icon: '⭐', titleKey: 'tuto.level.title',   bodyKey: 'tuto.level.body',
-            targetSelector: '[data-prairie-loupe]',
-            mode: 'bubble', interaction: 'read',
+            targetSelector: null, // loupe not yet visible at this point
+            mode: 'sheet', interaction: 'read',
         },
     ];
     return steps[index] ?? null;
@@ -396,22 +396,13 @@ function injectStyles() {
     100%{box-shadow:0 0 0 0 rgba(52,211,153,0),0 0 12px rgba(52,211,153,0.3);opacity:1}
 }
 
-/* ── Navigate overlay — stops above the nav bar ───────────── */
-/* Inherits position:fixed from .tuto-overlay; override bottom only */
-.tuto-overlay--navigate{
-    bottom:calc(72px + env(safe-area-inset-bottom,0px)) !important;
-    background:linear-gradient(180deg,rgba(2,8,18,0.52) 0%,rgba(2,8,18,0.76) 100%);
-    backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
-    touch-action:none;
-}
-/* Compact card: full border-radius, side margins, no hero */
-.tuto-overlay--navigate .tuto-card{
-    border-bottom:1px solid rgba(52,211,153,0.22);
+/* ── Compact card variant (navigate steps) ────────────────── */
+/* Full overlay is kept; only the card style differs */
+.tuto-card--compact{
+    /* Leave space for the nav bar so spotlight is visible */
+    margin-bottom:calc(80px + env(safe-area-inset-bottom,0px));
     border-radius:20px;
-    margin:0 10px 10px;
-    width:calc(100% - 20px);
-    max-width:448px;
-    padding-bottom:4px;
+    border-bottom:1px solid rgba(52,211,153,0.22);
 }
 
 /* ── Interactive spotlight (navigate steps) ───────────────── */
@@ -465,15 +456,16 @@ function renderContentStep(stepIndex, { onNext, onSkip }) {
     const isNavigate = data.interaction === 'navigate';
     const isLast     = stepIndex >= TOTAL_STEPS;
 
-    // Visual helpers
+    // Beacon only on read steps with a visible non-nav target
     const beacon = data.targetSelector && !isNavigate
         ? spawnBeacon(data.targetSelector) : null;
     let spotlight = null;
     const cleanupHelpers = () => { beacon?.remove(); spotlight?.remove(); };
 
-    // Overlay — navigate steps stop above the nav bar (no CSS tricks needed)
+    // All steps: full-screen overlay. Navigate steps use spotlight (z:10002)
+    // above the overlay to expose only the target button — no partial overlay.
     const overlay = document.createElement('div');
-    overlay.className = `tuto-overlay${isNavigate ? ' tuto-overlay--navigate' : ''}`;
+    overlay.className = 'tuto-overlay';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
     overlay.setAttribute('aria-label', tr(data.titleKey));
@@ -510,7 +502,7 @@ function renderContentStep(stepIndex, { onNext, onSkip }) {
     </div>`;
 
     overlay.innerHTML = `
-<div class="tuto-card">
+<div class="tuto-card${isNavigate ? ' tuto-card--compact' : ''}">
     <button class="tuto-card__close" aria-label="${tr('tuto.skip')}">✕</button>
     ${heroHtml}
     <div class="tuto-card__content">
