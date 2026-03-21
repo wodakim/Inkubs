@@ -508,11 +508,16 @@ export function createIncubatorSlimePreview() {
                     }
                 }
                 if (wrapper) {
-                    const t = (now - motionStartedAt) / 1000;
-                    const driftX = Math.sin(t * 1.1) * 2.2;
-                    const driftY = Math.cos(t * 1.7) * 1.4;
                     wrapper.style.opacity = '1';
-                    wrapper.style.transform = `translate3d(${driftX}px, ${driftY}px, 0) scale(1,1)`;
+                    // Freeze the drift while the player is dragging – the canvas must
+                    // stay still so getBoundingClientRect() stays stable for coordinate
+                    // mapping.  Resume drift animation on the next frame after release.
+                    if (!slime.draggedNode) {
+                        const t = (now - motionStartedAt) / 1000;
+                        const driftX = Math.sin(t * 1.1) * 2.2;
+                        const driftY = Math.cos(t * 1.7) * 1.4;
+                        wrapper.style.transform = `translate3d(${driftX}px, ${driftY}px, 0) scale(1,1)`;
+                    }
                 }
             } else if (motionMode === 'aspirating') {
                 setAspirationVisualState(true);
