@@ -141,6 +141,15 @@ export const TRANSLATIONS = {
         'storage.page':                 'Page',
         'storage.slot_level':           'niveau',
 
+        // Storage — zones d'action drag
+        'storage.action_store_label':   'Ranger',
+        'storage.action_store_aria':    'Ranger le slime dans l\'archive',
+        'storage.action_team_label':    'Équipe',
+        'storage.action_team_aria':     'Inclure le slime dans l\'équipe',
+        'storage.action_team_full':     'Équipe pleine',
+        'storage.action_archive_full':  'Archive pleine',
+        'storage.sell_price_hint':      '+{amount} ◆',
+
         // Storage — sandbox aperçu
         'sandbox.unavailable':          'Aperçu indisponible',
         'sandbox.canvas_aria':          'Aperçu interactif du slime',
@@ -375,6 +384,15 @@ export const TRANSLATIONS = {
         'storage.save_name_aria':       'Save name',
         'storage.page':                 'Page',
         'storage.slot_level':           'level',
+
+        // Storage — drag action zones
+        'storage.action_store_label':   'Store',
+        'storage.action_store_aria':    'Store slime in archive',
+        'storage.action_team_label':    'Team',
+        'storage.action_team_aria':     'Add slime to team',
+        'storage.action_team_full':     'Team full',
+        'storage.action_archive_full':  'Archive full',
+        'storage.sell_price_hint':      '+{amount} ◆',
 
         // Storage — sandbox preview
         'sandbox.unavailable':          'Preview unavailable',

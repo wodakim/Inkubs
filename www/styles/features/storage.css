@@ -766,45 +766,103 @@
     font-size: 0.58rem; font-weight: 600; color: rgba(226, 232, 240, 0.92); line-height: 1.1;
 }
 
-/* ═══════ SELL ZONE ═════════════════════════════════════════════════ */
+/* ═══════ DRAG ACTION ZONES ═════════════════════════════════════════ */
 
-.storage-sell-zone {
+.storage-drag-actions {
     position: fixed;
     left: 50%; transform: translateX(-50%);
-    bottom: 88dvh;
+    bottom: 89dvh;
     z-index: 30;
-    width: auto; min-width: 120px; min-height: 48px;
-    padding: 0 1rem;
-    display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 0.5rem;
-    border-radius: var(--radius-pill);
-    border: 1.5px solid rgba(244, 114, 182, 0.25);
-    background: linear-gradient(135deg, rgba(28, 8, 44, 0.97), rgba(12, 4, 22, 0.99));
-    box-shadow: 0 0 18px rgba(244, 114, 182, 0.08), 0 8px 24px rgba(0, 0, 0, 0.45);
+    display: flex; flex-direction: row; gap: 0.5rem;
     pointer-events: auto;
-    opacity: 0;
-    transition: opacity 200ms ease, border-color 200ms ease, box-shadow 200ms ease, bottom 280ms var(--ease-out-expo);
 }
 
-.storage-panel.is-dragging .storage-sell-zone {
-    opacity: 1;
+.storage-action-zone {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 0.22rem;
+    min-width: 72px; min-height: 52px;
+    padding: 0.45rem 0.75rem;
+    border-radius: var(--radius-lg);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    background: linear-gradient(165deg, rgba(8, 18, 36, 0.97), rgba(4, 10, 22, 0.99));
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+    cursor: default;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease, transform 120ms ease;
 }
 
-.storage-sell-zone.is-active {
-    border-color: rgba(244, 114, 182, 0.55);
-    box-shadow: 0 0 28px rgba(244, 114, 182, 0.22), 0 8px 24px rgba(0, 0, 0, 0.45);
-    background: linear-gradient(135deg, rgba(48, 10, 56, 0.98), rgba(20, 5, 30, 0.99));
+.storage-action-zone--move {
+    border-color: rgba(99, 179, 237, 0.22);
 }
 
-.storage-sell-zone__icon {
-    font-size: 1.3rem; line-height: 1;
-    filter: drop-shadow(0 0 5px rgba(244, 114, 182, 0.45));
+.storage-action-zone--sell {
+    border-color: rgba(244, 114, 182, 0.22);
 }
 
-.storage-sell-zone__label {
+.storage-action-zone.is-active.storage-action-zone--move {
+    border-color: rgba(99, 179, 237, 0.6);
+    box-shadow: 0 0 22px rgba(99, 179, 237, 0.2), 0 6px 20px rgba(0, 0, 0, 0.5);
+    background: linear-gradient(165deg, rgba(10, 28, 56, 0.98), rgba(4, 14, 32, 0.99));
+    transform: scale(1.04);
+}
+
+.storage-action-zone.is-active.storage-action-zone--sell {
+    border-color: rgba(244, 114, 182, 0.6);
+    box-shadow: 0 0 22px rgba(244, 114, 182, 0.2), 0 6px 20px rgba(0, 0, 0, 0.5);
+    background: linear-gradient(165deg, rgba(40, 8, 50, 0.98), rgba(18, 4, 26, 0.99));
+    transform: scale(1.04);
+}
+
+.storage-action-zone.is-full {
+    border-color: rgba(239, 68, 68, 0.45) !important;
+    box-shadow: 0 0 16px rgba(239, 68, 68, 0.15), 0 6px 20px rgba(0, 0, 0, 0.5) !important;
+}
+
+.storage-action-zone__icon {
+    font-size: 1.2rem; line-height: 1;
+}
+
+.storage-action-zone__label {
     font-family: var(--font-body);
-    font-size: 0.56rem; font-weight: 700;
+    font-size: 0.5rem; font-weight: 700;
     letter-spacing: 0.1em; text-transform: uppercase;
+    color: rgba(200, 220, 255, 0.7);
+}
+
+.storage-action-zone--sell .storage-action-zone__label {
     color: rgba(244, 114, 182, 0.8);
+}
+
+.storage-action-zone__hint {
+    font-family: var(--font-body);
+    font-size: 0.44rem; font-weight: 600;
+    letter-spacing: 0.06em;
+    color: rgba(239, 68, 68, 0.85);
+    min-height: 0.6rem;
+}
+
+.storage-action-zone__price {
+    font-family: var(--font-body);
+    font-size: 0.48rem; font-weight: 700;
+    color: rgba(250, 200, 100, 0.85);
+    letter-spacing: 0.04em;
+}
+
+/* Feedback toast — full/error state */
+.storage-drag-actions.is-feedback::after {
+    content: attr(data-feedback-msg);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%; transform: translateX(-50%);
+    white-space: nowrap;
+    background: rgba(239, 68, 68, 0.92);
+    color: #fff;
+    font-family: var(--font-body);
+    font-size: 0.52rem; font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    pointer-events: none;
+    animation: storage-feedback-pop 2.2s ease forwards;
 }
 
 /* ═══════ CONFIRM MODAL ════════════════════════════════════════════ */
@@ -1191,17 +1249,24 @@
 .storage-panel--floating .storage-panel__resize-handle::before { transform: rotate(-45deg); }
 .storage-panel--floating .storage-panel__resize-handle::after  { right: 7px; bottom: 7px; width: 7px; transform: rotate(-45deg); }
 
-/* Sell zone desktop */
+/* Action zones — desktop */
 @media (min-width: 600px) {
-    .storage-sell-zone {
-        left: auto; right: 14px; bottom: auto;
+    .storage-drag-actions {
+        left: auto; right: 14px; bottom: auto; transform: none;
         top: clamp(240px, 38vh, 330px);
-        transform: none; width: 62px; min-width: unset; min-height: 68px;
-        flex-direction: column; padding: 0; border-radius: var(--radius-lg);
-        opacity: 1;
+        flex-direction: column;
     }
-    .storage-panel.is-dragging .storage-sell-zone,
-    .storage-sell-zone { opacity: 1; }
+    .storage-action-zone {
+        min-width: 62px; min-height: 66px;
+    }
+}
+
+/* Feedback pop animation */
+@keyframes storage-feedback-pop {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(4px); }
+    12%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+    80%  { opacity: 1; }
+    100% { opacity: 0; }
 }
 
 /* ═══════ MOBILE ════════════════════════════════════════════════════ */

@@ -5,6 +5,7 @@ import { sortArchiveInSnapshot } from './storage-sort-service.js';
 import { clampPageNumber } from './storage-pagination-service.js';
 import { moveOrSwapCanonicalInSnapshot, normalizePlacement, renameCanonicalRecordInSnapshot, removeCanonicalRecordInSnapshot } from './storage-slot-operations.js';
 import { createCanonicalInspectionSandbox } from './storage-canonical-inspection-sandbox.js';
+import { computeAcquisitionCost } from '../economy/economy-calculator.js';
 
 const LONG_PRESS_MS = 260;
 const PRESS_CANCEL_DISTANCE_PX = 10;
@@ -66,7 +67,7 @@ function normalizePanelLayout(layout = {}) {
     };
 }
 
-export function createStoragePanelController({ mountTarget, repository, inspectionBridge = null, onVisibilityChange = null, floatingPanel = false }) {
+export function createStoragePanelController({ mountTarget, repository, store = null, inspectionBridge = null, onVisibilityChange = null, floatingPanel = false }) {
     if (!mountTarget) {
         throw new Error('A mount target is required for the storage panel controller.');
     }
@@ -277,10 +278,20 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
                 ${floatingPanel ? `<button type="button" class="storage-panel__resize-handle" data-storage-panel-resize aria-label="${t('storage.resize_aria')}"></button>` : ''}
             </div>
 
-            <button type="button" class="storage-sell-zone" data-storage-sell-zone aria-label="${t('storage.sell_zone_aria')}">
-                <span class="storage-sell-zone__icon" aria-hidden="true">🛒</span>
-                <span class="storage-sell-zone__label">${t('storage.sell_label')}</span>
-            </button>
+            <div class="storage-drag-actions" data-storage-drag-actions hidden>
+                <button type="button" class="storage-action-zone storage-action-zone--move"
+                        data-storage-action-zone="move" aria-label="${t('storage.action_store_aria')}">
+                    <span class="storage-action-zone__icon" aria-hidden="true" data-storage-move-icon>📦</span>
+                    <span class="storage-action-zone__label" data-storage-move-label>${t('storage.action_store_label')}</span>
+                    <span class="storage-action-zone__hint" data-storage-move-hint></span>
+                </button>
+                <button type="button" class="storage-action-zone storage-action-zone--sell"
+                        data-storage-action-zone="sell" aria-label="${t('storage.sell_zone_aria')}">
+                    <span class="storage-action-zone__icon" aria-hidden="true">🛒</span>
+                    <span class="storage-action-zone__label">${t('storage.sell_label')}</span>
+                    <span class="storage-action-zone__price" data-storage-sell-price></span>
+                </button>
+            </div>
 
             <div class="storage-confirm-modal" data-storage-sell-modal hidden aria-hidden="true">
                 <div class="storage-confirm-modal__backdrop" data-storage-sell-cancel></div>
@@ -328,7 +339,12 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             detailContent: root.querySelector('[data-storage-detail-content]'),
             detailTitle: root.querySelector('[data-storage-detail-title]'),
             scrollBody: root.querySelector('[data-storage-scroll-body]'),
-            sellZone: root.querySelector('[data-storage-sell-zone]'),
+            dragActions: root.querySelector('[data-storage-drag-actions]'),
+            moveZone: root.querySelector('[data-storage-action-zone="move"]'),
+            moveLabel: root.querySelector('[data-storage-move-label]'),
+            moveHint: root.querySelector('[data-storage-move-hint]'),
+            sellZone: root.querySelector('[data-storage-action-zone="sell"]'),
+            sellPrice: root.querySelector('[data-storage-sell-price]'),
             sellModal: root.querySelector('[data-storage-sell-modal]'),
             sellCopy: root.querySelector('[data-storage-sell-copy]'),
             sellSubject: root.querySelector('[data-storage-sell-subject]'),
@@ -344,6 +360,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         refs.dragHandle?.addEventListener('pointerdown', onPanelDragStart);
         refs.resizeHandle?.addEventListener('pointerdown', onPanelResizeStart);
         refs.sellZone?.addEventListener('click', (event) => event.preventDefault());
+        refs.moveZone?.addEventListener('click', (event) => event.preventDefault());
         refs.prevButton?.addEventListener('click', () => setPage(currentPage - 1));
         refs.nextButton?.addEventListener('click', () => setPage(currentPage + 1));
         root.addEventListener('click', onRootClick);
@@ -455,7 +472,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         // localStorage offsets from a different viewport size
         panelLayout = normalizePanelLayout(panelLayout || {});
         applyPanelLayout();
-        refs.sellZone && (refs.sellZone.hidden = false);
+        // drag actions are shown/hidden by startDrag/clearDrag, not open/close
         onVisibilityChange?.(true);
     }
 
@@ -467,7 +484,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         clearDrag();
         closeDetail();
         closeSellModal();
-        refs.sellZone && (refs.sellZone.hidden = true);
+        // drag actions are already hidden (clearDrag was called above)
         isOpen = false;
         root.classList.remove('is-open');
         root.hidden = true;
@@ -681,6 +698,8 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         slot.classList.add('is-drag-source');
         root?.classList.add('is-dragging');
         positionGhost(ghost, event.clientX, event.clientY);
+        configureDragActionZones(placement, record);
+        refs.dragActions?.removeAttribute('hidden');
     }
 
     function updateDrag(event) {
@@ -690,9 +709,10 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
 
         positionGhost(activeDrag.ghost, event.clientX, event.clientY);
         const hitElement = document.elementFromPoint(event.clientX, event.clientY);
-        const sellZone = hitElement?.closest?.('[data-storage-sell-zone]') || null;
-        setActiveSellTarget(sellZone);
-        const targetSlot = sellZone ? null : (hitElement?.closest?.('[data-storage-slot="true"]') || null);
+        const actionZoneEl = hitElement?.closest?.('[data-storage-action-zone]') || null;
+        const actionZoneType = actionZoneEl?.dataset?.storageActionZone || null;
+        setActiveActionZone(actionZoneEl, actionZoneType);
+        const targetSlot = actionZoneEl ? null : (hitElement?.closest?.('[data-storage-slot="true"]') || null);
         setActiveDropTarget(targetSlot);
     }
 
@@ -702,19 +722,39 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         }
 
         const hitElement = document.elementFromPoint(event.clientX, event.clientY);
-        const sellZone = hitElement?.closest?.('[data-storage-sell-zone]') || null;
-        const dropTarget = sellZone ? null : (hitElement?.closest?.('[data-storage-slot="true"]') || activeDrag.activeTargetElement);
+        const actionZoneEl = hitElement?.closest?.('[data-storage-action-zone]') || null;
+        const actionZoneType = actionZoneEl?.dataset?.storageActionZone || null;
+        const dropTarget = actionZoneEl ? null : (hitElement?.closest?.('[data-storage-slot="true"]') || activeDrag.activeTargetElement);
         const sourcePlacement = activeDrag.sourcePlacement;
         const sourceCanonicalId = activeDrag.sourceCanonicalId;
         const targetPlacement = placementFromSlot(dropTarget);
 
-        if (sellZone && sourceCanonicalId) {
+        if (actionZoneType === 'sell' && sourceCanonicalId) {
             const snapshot = repository.getSnapshot();
             const record = snapshot.recordsById[sourceCanonicalId] || null;
             clearDrag();
             cancelPress();
             if (record) {
                 openSellModal({ canonicalId: sourceCanonicalId, record });
+            }
+            return;
+        }
+
+        if (actionZoneType === 'move' && sourceCanonicalId) {
+            const snapshot = repository.getSnapshot();
+            const isFromTeam = sourcePlacement.kind === 'team';
+            const destination = isFromTeam
+                ? findFirstEmptyArchivePlacement(snapshot)
+                : findFirstEmptyTeamPlacement(snapshot);
+            clearDrag();
+            cancelPress();
+            if (!destination) {
+                showActionFeedback(isFromTeam ? 'archive_full' : 'team_full');
+            } else {
+                repository.transact((draft) => {
+                    moveOrSwapCanonicalInSnapshot(draft, { from: sourcePlacement, to: destination });
+                    return draft;
+                }, { type: 'storage:reorder', from: sourcePlacement, to: destination });
             }
             return;
         }
@@ -744,7 +784,9 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         if (activeDrag?.activeTargetElement) {
             activeDrag.activeTargetElement.classList.remove('is-drag-target');
         }
-        refs.sellZone?.classList.remove('is-drag-target');
+        refs.moveZone?.classList.remove('is-active', 'is-full');
+        refs.sellZone?.classList.remove('is-active');
+        refs.dragActions?.setAttribute('hidden', '');
         activeDrag?.ghost?.remove();
         activeDrag = null;
         root?.classList.remove('is-dragging');
@@ -780,12 +822,86 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         slotElement.classList.add('is-drag-target');
     }
 
-    function setActiveSellTarget(sellZoneElement) {
-        if (!activeDrag || !refs.sellZone) {
+    function setActiveActionZone(zoneElement, zoneType) {
+        if (!activeDrag) {
             return;
         }
 
-        refs.sellZone.classList.toggle('is-drag-target', Boolean(sellZoneElement));
+        refs.moveZone?.classList.toggle('is-active', zoneType === 'move');
+        refs.sellZone?.classList.toggle('is-active', zoneType === 'sell');
+
+        if (zoneType === 'move' && refs.moveHint) {
+            const snapshot = repository.getSnapshot();
+            const isFromTeam = activeDrag.sourcePlacement.kind === 'team';
+            const isFull = isFromTeam
+                ? !findFirstEmptyArchivePlacement(snapshot)
+                : !findFirstEmptyTeamPlacement(snapshot);
+            refs.moveZone?.classList.toggle('is-full', isFull);
+            refs.moveHint.textContent = isFull
+                ? t(isFromTeam ? 'storage.action_archive_full' : 'storage.action_team_full')
+                : '';
+        } else if (refs.moveHint) {
+            refs.moveHint.textContent = '';
+            refs.moveZone?.classList.remove('is-full');
+        }
+    }
+
+    function findFirstEmptyArchivePlacement(snapshot) {
+        const maxPages = snapshot.meta?.unlockedPages || snapshot.meta?.maxPages || 1;
+        const slotsPerPage = snapshot.meta?.archiveSlotsPerPage || 16;
+        for (let page = 1; page <= maxPages; page++) {
+            const slots = snapshot.pages[String(page)] || Array.from({ length: slotsPerPage }, () => null);
+            const slotIndex = slots.findIndex((v) => !v);
+            if (slotIndex >= 0) {
+                return { kind: 'archive', page, slotIndex };
+            }
+        }
+        return null;
+    }
+
+    function findFirstEmptyTeamPlacement(snapshot) {
+        const slots = snapshot.teamSlots || [];
+        const slotIndex = slots.findIndex((v) => !v);
+        return slotIndex >= 0 ? { kind: 'team', slotIndex } : null;
+    }
+
+    function computeSellValue(record) {
+        const cost = computeAcquisitionCost(record);
+        return Math.max(1, Math.floor(cost * 0.5));
+    }
+
+    function configureDragActionZones(placement, record) {
+        const isFromTeam = placement.kind === 'team';
+
+        if (refs.moveZone) {
+            const label = t(isFromTeam ? 'storage.action_store_label' : 'storage.action_team_label');
+            const aria  = t(isFromTeam ? 'storage.action_store_aria'  : 'storage.action_team_aria');
+            if (refs.moveLabel) refs.moveLabel.textContent = label;
+            refs.moveZone.setAttribute('aria-label', aria);
+            const icon = refs.moveZone.querySelector('[data-storage-move-icon]');
+            if (icon) icon.textContent = isFromTeam ? '📦' : '⚔️';
+        }
+
+        if (refs.sellPrice && record) {
+            const value = computeSellValue(record);
+            refs.sellPrice.textContent = `+${value} ◆`;
+        }
+    }
+
+    function showActionFeedback(reason) {
+        const msgKey = reason === 'team_full' ? 'storage.action_team_full' : 'storage.action_archive_full';
+        const el = refs.dragActions;
+        if (!el) return;
+        el.removeAttribute('hidden');
+        el.classList.add('is-feedback');
+        el.dataset.feedbackMsg = t(msgKey);
+        const timer = setTimeout(() => {
+            el.classList.remove('is-feedback');
+            delete el.dataset.feedbackMsg;
+        }, 2200);
+        // store timer so destroy() can clear it
+        if (!root._feedbackTimers) root._feedbackTimers = [];
+        root._feedbackTimers.push(timer);
     }
 
     function createDragGhost(record) {
@@ -956,9 +1072,8 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             return;
         }
 
-        pendingSell = {
-            canonicalId,
-        };
+        const sellValue = computeSellValue(record);
+        pendingSell = { canonicalId, sellValue };
 
         // Populate subject line with name + rarity badge
         if (refs.sellSubject) {
@@ -971,6 +1086,13 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         }
 
         refs.sellCopy.textContent = t('storage.irreversible');
+
+        // Show sell value in the confirm button
+        const confirmBtn = refs.sellModal.querySelector('[data-storage-sell-confirm]');
+        if (confirmBtn) {
+            confirmBtn.textContent = `${t('storage.sell_confirm')} (+${sellValue} ◆)`;
+        }
+
         refs.sellModal.hidden = false;
         refs.sellModal.setAttribute('aria-hidden', 'false');
     }
@@ -991,6 +1113,8 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         }
 
         const canonicalId = pendingSell.canonicalId;
+        const sellValue = pendingSell.sellValue || 0;
+
         if (selectedCanonicalId === canonicalId) {
             closeDetail();
         }
@@ -1002,6 +1126,10 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             type: 'storage:sell',
             canonicalId,
         });
+
+        if (sellValue > 0 && store) {
+            store.dispatch({ type: 'ADD_CURRENCY', payload: { currency: 'hexagon', amount: sellValue } });
+        }
 
         closeSellModal();
     }
