@@ -61,6 +61,8 @@ class SlimeBrain {
     // Observable event log for the loupe panel
     this.interactionLog = [];  // { time, type, targetId, detail }
     this.statChangeLog = [];   // { time, stat, oldVal, newVal, cause }
+    // Post-fight forced speech bubble (consumed by maybeSpawnBubble in prairie-feature.js)
+    this._pendingBubble = null;
   }
   getBias(id) { return this.biasByTarget.get(id) || 0; }
   addBias(id, d) {
@@ -112,6 +114,7 @@ function getOrInitAffinity(slime, targetId, targetName) {
             crossedDeepBond: false,
             crossedHostile: false,
             crossedRival: false,
+            crossedCombatPartner: false,
         };
     }
     return rl.affinities[targetId];
@@ -184,6 +187,21 @@ function updateSocialRelationship(brain, slime, entries, now) {
     else if (currentBias <= -0.55) rel.type = 'rival';
     else if (currentBias <= -0.25) rel.type = 'hostile';
     else                           rel.type = 'neutral';
+
+    // Combat partner override: mutual fighters with high ferocity, not pure enemies
+    const hasFightMem = rel.significantEvents?.some(
+        e => e.kind === 'fight_won' || e.kind === 'fight_lost');
+    if (hasFightMem
+        && (slime.stats?.ferocity || 50) > 62
+        && (targetSlime.stats?.ferocity || 50) > 62
+        && currentBias > -0.25 && currentBias < 0.55) {
+        rel.type = 'combat_partner';
+    }
+    if (!rel.crossedCombatPartner && rel.type === 'combat_partner') {
+        rel.crossedCombatPartner = true;
+        writeRelMemory(slime, brain.targetId, targetName, 'combat_partner',
+            `Partenaire de combat avec ${targetName}`);
+    }
 
     // ── Update social flags ──
     const rl = slime.livingState.relationshipLedger;
@@ -297,6 +315,9 @@ function applyFightStatChanges(slime, brain, won, opponentId, opponentName) {
         if (s.ferocity > 68) brain.addBias(opponentId, 0.05);
         writeRelMemory(slime, opponentId, opponentName, 'fight_won',
             `A vaincu ${opponentName} au combat`);
+        // Persist combat history for temperament evolution
+        const progW = slime?.livingState?.progressionLedger;
+        if (progW) progW.combatWins = (progW.combatWins || 0) + 1;
     } else {
         const vitalityLoss  = randRange(2, 5);
         const stabilityLoss = randRange(0.5, 3);
@@ -309,6 +330,13 @@ function applyFightStatChanges(slime, brain, won, opponentId, opponentName) {
         brain.addBias(opponentId, -0.12);
         writeRelMemory(slime, opponentId, opponentName, 'fight_lost',
             `A été vaincu par ${opponentName}`);
+        // Persist combat history for temperament evolution
+        const progL = slime?.livingState?.progressionLedger;
+        if (progL) progL.combatLosses = (progL.combatLosses || 0) + 1;
+        // Resilience training: tough slimes partially recover stability
+        if (oldStab > 55) {
+            s.stability = Math.min(99, s.stability + 0.5);
+        }
     }
 }
 
@@ -367,6 +395,30 @@ function resolveFightClash(brainA, slimeA, slimeB, now) {
     if (winnerBrain) {
         winner.triggerAction('attack', 600, 1.0);
     }
+    // Queue immediate speech bubble for both fighters
+    if (winnerBrain) winnerBrain._pendingBubble = { emotion: 'combat' };
+    if (loserBrain)  loserBrain._pendingBubble  = { emotion: 'pain' };
+}
+
+/**
+ * Derives the current temperament archetype from a slime's stats + combat history.
+ * Also persists the result to progressionLedger.temperament for the obs panel.
+ * Archetypes: 'combatant' | 'fearful' | 'resilient' | 'pacifist' | 'neutral'
+ */
+function getTemperament(slime) {
+    const s   = slime?.stats || {};
+    const prog = slime?.livingState?.progressionLedger;
+    const wins   = prog?.combatWins   || 0;
+    const losses = prog?.combatLosses || 0;
+
+    let tag = 'neutral';
+    if ((s.ferocity || 50) >= 68 && wins >= 2)            tag = 'combatant';
+    else if ((s.stability || 50) <= 35 && losses >= 2)    tag = 'fearful';
+    else if ((s.stability || 50) >= 65 && losses >= 1)    tag = 'resilient';
+    else if ((s.empathy || 50) >= 65 && (s.ferocity || 50) <= 45) tag = 'pacifist';
+
+    if (prog) prog.temperament = tag;
+    return tag;
 }
 
 // ── Movement primitives ──────────────────────────────────────────────────────
@@ -518,6 +570,19 @@ function pickBehavior(brain, slime, others, world, now, prairieObjects) {
       W.push(['flee', 0.5 + instab * 0.5, id]);
       W.push(['recoil', 0.3 + instab * 0.4, id]);
     }
+  }
+
+  // ── Temperament modifiers ──
+  const temperament = getTemperament(slime);
+  if (temperament !== 'neutral') {
+    const TEMP_MODS = {
+      combatant: { challenge: 1.6, fight_clash: 1.5, flee: 0.25, recoil: 0.4 },
+      fearful:   { flee: 2.0, recoil: 1.5, challenge: 0.15, fight_clash: 0.1, bond: 0.8 },
+      resilient: { recoil: 0.5, flee: 0.6, challenge: 1.3, bond: 1.2 },
+      pacifist:  { bond: 1.5, romance: 1.5, calm: 1.4, challenge: 0.08, fight_clash: 0.05 },
+    };
+    const mods = TEMP_MODS[temperament];
+    if (mods) for (const w of W) { if (mods[w[0]] !== undefined) w[1] *= mods[w[0]]; }
   }
 
   // Variety penalty
@@ -1093,6 +1158,7 @@ export class SlimeInteractionEngine {
             observe: 'curiosity', approach: 'curiosity', investigate: 'curiosity',
             follow: 'empathy', bond: 'empathy', romance: 'empathy', calm: 'empathy',
             challenge: 'ferocity', flee: 'stability', recoil: 'stability',
+            fight_clash: 'ferocity',
           };
           const stat = learnMap[brain.behavior];
           if (stat && slime.stats[stat] !== undefined) {

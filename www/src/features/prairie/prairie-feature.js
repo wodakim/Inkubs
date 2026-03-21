@@ -1140,6 +1140,18 @@ export function createPrairieFeature() {
         const bLabel = BEHAVIOR_LABELS[brain.behavior] || brain.behavior;
         html += `<div class="prairie-obs__current">Comportement : <strong>${bLabel}</strong></div>`;
 
+        // Temperament archetype (computed from stats + combat history)
+        const prog = entry.slime.livingState?.progressionLedger;
+        const temperament = prog?.temperament;
+        if (temperament && temperament !== 'neutral') {
+            const TEMP_ICONS = { combatant: '⚔️', fearful: '😨', resilient: '🛡️', pacifist: '☮️' };
+            const TEMP_FR    = { combatant: 'Combattant', fearful: 'Craintif', resilient: 'Résilient', pacifist: 'Pacifiste' };
+            const wins   = prog?.combatWins   || 0;
+            const losses = prog?.combatLosses || 0;
+            const combatStr = (wins > 0 || losses > 0) ? ` · ${wins}V / ${losses}D` : '';
+            html += `<div class="prairie-obs__current" style="opacity:0.85;font-size:0.88em">${TEMP_ICONS[temperament] || '•'} Tempérament : <strong>${TEMP_FR[temperament] || temperament}</strong>${combatStr}</div>`;
+        }
+
         // Bias summary
         if (brain.biasByTarget.size > 0) {
             html += '<div class="prairie-obs__bias-title">Relations</div>';
@@ -1155,8 +1167,8 @@ export function createPrairieFeature() {
         // Canonical relationship memories from living state (persisted across sessions)
         const relLedger = entry.slime.livingState?.relationshipLedger;
         if (relLedger && Object.keys(relLedger.affinities || {}).length > 0) {
-            const REL_TYPE_ICONS = { lover: '💕', friend: '💚', friendly: '🙂', neutral: '😐', hostile: '😠', rival: '⚔️' };
-            const REL_TYPE_FR = { lover: 'amoureux', friend: 'ami', friendly: 'sympathique', neutral: 'neutre', hostile: 'hostile', rival: 'rival' };
+            const REL_TYPE_ICONS = { lover: '💕', friend: '💚', friendly: '🙂', neutral: '😐', hostile: '😠', rival: '⚔️', combat_partner: '🥊' };
+            const REL_TYPE_FR = { lover: 'amoureux', friend: 'ami', friendly: 'sympathique', neutral: 'neutre', hostile: 'hostile', rival: 'rival', combat_partner: 'partenaire de combat' };
             html += '<div class="prairie-obs__bias-title">Mémoire des relations</div>';
             for (const [, rel] of Object.entries(relLedger.affinities)) {
                 const icon = REL_TYPE_ICONS[rel.type] || '😐';
@@ -1872,6 +1884,27 @@ export function createPrairieFeature() {
     function maybeSpawnBubble(entry, now) {
         const brain = entry.slime._prairieBrain;
         if (!brain) return;
+
+        // ── Forced post-fight bubble (bypasses normal throttle) ──
+        if (brain._pendingBubble) {
+            const { emotion } = brain._pendingBubble;
+            brain._pendingBubble = null;
+            const vocab = INKUBUS_VOCAB[emotion] || INKUBUS_VOCAB.thinking;
+            const text = vocab[Math.floor(Math.random() * vocab.length)];
+            const center = entry.slime.getVisualCenter?.() || entry.slime.getRawVisualCenter?.();
+            if (center) {
+                activeBubbles = activeBubbles.filter(b => b.slimeId !== entry.canonicalId);
+                activeBubbles.push({
+                    slimeId: entry.canonicalId,
+                    text, emotion, duration: 2200 + Math.random() * 800,
+                    startedAt: now,
+                    x: center.x,
+                    y: center.y - entry.slime.baseRadius * 1.6,
+                });
+            }
+            return;
+        }
+
         // Don't spam: one bubble per slime at a time, min 2.5s between
         const existing = activeBubbles.find(b => b.slimeId === entry.canonicalId);
         if (existing && now < existing.startedAt + 1800) return;
@@ -1882,6 +1915,9 @@ export function createPrairieFeature() {
         if (silent.includes(behavior)) {
             // Very rare chance for idle chatter
             if (Math.random() > 0.0008) return;
+        } else if (behavior === 'fight_clash') {
+            // Combat is loud — much higher bubble rate
+            if (Math.random() > 0.12) return;
         } else {
             // ~1.5% chance per tick (every 50ms → roughly every 3-4 seconds)
             if (Math.random() > 0.015) return;
