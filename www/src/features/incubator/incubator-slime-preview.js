@@ -190,7 +190,7 @@ export function createIncubatorSlimePreview() {
     }
 
     function applyFluidDisturbance(now, slime, rect) {
-        if (!fluidDisturbance || !slime || !rect) return;
+        if (!fluidDisturbance || !slime || !rect || slime.draggedNode) return;
         const elapsed = now - fluidDisturbance.startedAt;
         const progress = Math.min(1, elapsed / fluidDisturbance.duration);
         if (progress >= 1) {
@@ -220,10 +220,15 @@ export function createIncubatorSlimePreview() {
         if (!frontGlassRipple || !point) return;
         frontGlassRipple.classList.remove('is-active');
         void frontGlassRipple.offsetWidth;
+        const size = isDoubleTap ? 30 : 20;
+        frontGlassRipple.style.width = `${size}px`;
+        frontGlassRipple.style.height = `${size}px`;
+        // Center the ripple exactly on the touch point (negative margin trick avoids
+        // conflicting with any CSS transform used by the scale-out animation).
         frontGlassRipple.style.left = `${point.x}px`;
         frontGlassRipple.style.top = `${point.y}px`;
-        frontGlassRipple.style.width = `${isDoubleTap ? 30 : 20}px`;
-        frontGlassRipple.style.height = `${isDoubleTap ? 30 : 20}px`;
+        frontGlassRipple.style.marginLeft = `${-size / 2}px`;
+        frontGlassRipple.style.marginTop = `${-size / 2}px`;
         frontGlassRipple.classList.add('is-active');
     }
 
@@ -252,13 +257,33 @@ export function createIncubatorSlimePreview() {
     function mapGlassPointToCanvas(point) {
         const glassRect = frontGlass?.getBoundingClientRect?.();
         const canvasRect = canvas?.getBoundingClientRect?.();
-        if (!point || !glassRect || !canvasRect) return null;
-        const ratioX = point.x / Math.max(glassRect.width, 1);
-        const ratioY = point.y / Math.max(glassRect.height, 1);
+        if (!point || !glassRect || !canvasRect || !canvas) return null;
+        // Convert glass-relative point → absolute client coords → canvas-pixel coords.
+        // This correctly handles the canvas being inset inside the glass (wrapper padding)
+        // as well as DPR scaling (canvas.width may differ from canvasRect.width).
+        const clientX = point.x + glassRect.left;
+        const clientY = point.y + glassRect.top;
         return {
-            x: ratioX * canvasRect.width,
-            y: ratioY * canvasRect.height,
+            x: ((clientX - canvasRect.left) / Math.max(canvasRect.width, 1)) * (canvas.width || canvasRect.width),
+            y: ((clientY - canvasRect.top) / Math.max(canvasRect.height, 1)) * (canvas.height || canvasRect.height),
         };
+    }
+
+    function clientToSlimeCoords(clientX, clientY) {
+        const rect = canvas?.getBoundingClientRect?.();
+        if (!rect || !canvas) return null;
+        return {
+            x: ((clientX - rect.left) / Math.max(rect.width, 1)) * (canvas.width || rect.width),
+            y: ((clientY - rect.top) / Math.max(rect.height, 1)) * (canvas.height || rect.height),
+        };
+    }
+
+    function isClientOutsideFrontGlass(clientX, clientY) {
+        const rect = frontGlass?.getBoundingClientRect?.();
+        if (!rect) return true;
+        const margin = 24; // px tolerance so finger can graze the edge
+        return clientX < rect.left - margin || clientX > rect.right + margin ||
+               clientY < rect.top - margin || clientY > rect.bottom + margin;
     }
 
     function applyShockToSlime(point, strength = 1, isDoubleTap = false) {
@@ -298,19 +323,86 @@ export function createIncubatorSlimePreview() {
         cleanupInteraction?.();
         if (!frontGlass) return;
 
+        // Prevent the browser from stealing the gesture for scroll/pan.
+        // Without this, the browser fires pointercancel the moment it
+        // detects a drag, immediately dropping the slime grab.
+        const prevTouchAction = frontGlass.style.touchAction;
+        frontGlass.style.touchAction = 'none';
+
+        let dragPointerId = null;
+
         const onPointerDown = (event) => {
             const point = getPointerPoint(event);
             if (!point) return;
+
+            // Try to grab the slime for dragging first.
+            if (dragPointerId === null) {
+                const slime = engine?.getCurrentSlime?.();
+                const cp = clientToSlimeCoords(event.clientX, event.clientY);
+                if (slime && cp) {
+                    slime.checkGrab?.(cp.x, cp.y);
+                    if (slime.draggedNode) {
+                        dragPointerId = event.pointerId;
+                        frontGlass.setPointerCapture?.(event.pointerId);
+                        return; // Grabbed – skip shock interaction.
+                    }
+                }
+            }
+
+            // Not close enough to grab: fall back to tap/shock interaction.
             const now = performance.now();
-            const isDoubleTap = (now - lastTapAt) <= POKE_DOUBLE_TAP_MS && distanceBetween(point, lastTapPoint) <= POKE_DISTANCE_THRESHOLD;
+            const isDoubleTap = (now - lastTapAt) <= POKE_DOUBLE_TAP_MS &&
+                distanceBetween(point, lastTapPoint) <= POKE_DISTANCE_THRESHOLD;
             applyShockToSlime(point, isDoubleTap ? 1.2 : 1, isDoubleTap);
             lastTapAt = now;
             lastTapPoint = point;
         };
 
-        frontGlass.addEventListener('pointerdown', onPointerDown, { passive: true });
+        const onPointerMove = (event) => {
+            if (event.pointerId !== dragPointerId) return;
+            const slime = engine?.getCurrentSlime?.();
+            if (!slime?.draggedNode) {
+                dragPointerId = null;
+                return;
+            }
+            // Natural detach: release when finger strays outside the incubator glass.
+            if (isClientOutsideFrontGlass(event.clientX, event.clientY)) {
+                slime.releaseGrab?.();
+                dragPointerId = null;
+                frontGlass.releasePointerCapture?.(event.pointerId);
+                return;
+            }
+            const cp = clientToSlimeCoords(event.clientX, event.clientY);
+            if (cp) slime.updateGrab?.(cp.x, cp.y);
+        };
+
+        const onPointerUp = (event) => {
+            if (event.pointerId !== dragPointerId) return;
+            engine?.getCurrentSlime?.()?.releaseGrab?.();
+            dragPointerId = null;
+            frontGlass.releasePointerCapture?.(event.pointerId);
+        };
+
+        const onPointerCancel = () => {
+            engine?.getCurrentSlime?.()?.releaseGrab?.();
+            dragPointerId = null;
+        };
+
+        frontGlass.addEventListener('pointerdown',       onPointerDown,   { passive: true });
+        frontGlass.addEventListener('pointermove',       onPointerMove,   { passive: true });
+        frontGlass.addEventListener('pointerup',         onPointerUp,     { passive: true });
+        frontGlass.addEventListener('pointercancel',     onPointerCancel, { passive: true });
+        frontGlass.addEventListener('lostpointercapture', onPointerCancel, { passive: true });
+
         cleanupInteraction = () => {
-            frontGlass?.removeEventListener('pointerdown', onPointerDown, { passive: true });
+            frontGlass?.removeEventListener('pointerdown',       onPointerDown);
+            frontGlass?.removeEventListener('pointermove',       onPointerMove);
+            frontGlass?.removeEventListener('pointerup',         onPointerUp);
+            frontGlass?.removeEventListener('pointercancel',     onPointerCancel);
+            frontGlass?.removeEventListener('lostpointercapture', onPointerCancel);
+            // Restore touch-action to what it was before we set it.
+            if (frontGlass) frontGlass.style.touchAction = prevTouchAction;
+            dragPointerId = null;
             cleanupInteraction = null;
         };
     }
@@ -415,17 +507,25 @@ export function createIncubatorSlimePreview() {
                 setExtrusionVisualState(false);
                 const targetY = rect.height * FLOAT_TARGET_RATIO;
                 const deltaY = center.y - targetY;
-                if (deltaY > 5) {
-                    engine.applyVerticalImpulse(-Math.min(0.22 + deltaY * 0.012, 0.88));
-                } else if (deltaY < -12) {
-                    engine.applyVerticalImpulse(Math.min(0.08 + Math.abs(deltaY) * 0.004, 0.24));
+                // Pause auto-float targeting while the player is manually dragging the slime.
+                if (!slime.draggedNode) {
+                    if (deltaY > 5) {
+                        engine.applyVerticalImpulse(-Math.min(0.22 + deltaY * 0.012, 0.88));
+                    } else if (deltaY < -12) {
+                        engine.applyVerticalImpulse(Math.min(0.08 + Math.abs(deltaY) * 0.004, 0.24));
+                    }
                 }
                 if (wrapper) {
-                    const t = (now - motionStartedAt) / 1000;
-                    const driftX = Math.sin(t * 1.1) * 2.2;
-                    const driftY = Math.cos(t * 1.7) * 1.4;
                     wrapper.style.opacity = '1';
-                    wrapper.style.transform = `translate3d(${driftX}px, ${driftY}px, 0) scale(1,1)`;
+                    // Freeze the drift while the player is dragging – the canvas must
+                    // stay still so getBoundingClientRect() stays stable for coordinate
+                    // mapping.  Resume drift animation on the next frame after release.
+                    if (!slime.draggedNode) {
+                        const t = (now - motionStartedAt) / 1000;
+                        const driftX = Math.sin(t * 1.1) * 2.2;
+                        const driftY = Math.cos(t * 1.7) * 1.4;
+                        wrapper.style.transform = `translate3d(${driftX}px, ${driftY}px, 0) scale(1,1)`;
+                    }
                 }
             } else if (motionMode === 'aspirating') {
                 setAspirationVisualState(true);
@@ -538,7 +638,7 @@ export function createIncubatorSlimePreview() {
             return false;
         }
 
-        mountPreviewRuntime({ startMotion: 'idle', spawnImpulseY: -6.8 });
+        mountPreviewRuntime({ startMotion: 'extruding', spawnImpulseY: -13.2 });
         return Boolean(engine?.getCurrentSlime?.());
     }
 
@@ -622,7 +722,7 @@ export function createIncubatorSlimePreview() {
                     if (canvas && currentBlueprint) {
                         ensureFrontLayers();
                         bindGlassInteractions();
-                        mountPreviewRuntime({ startMotion: 'idle', spawnImpulseY: -6.8 });
+                        mountPreviewRuntime({ startMotion: 'extruding', spawnImpulseY: -13.2 });
                     }
                 });
                 return;
