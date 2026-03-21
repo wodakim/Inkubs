@@ -141,12 +141,19 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         }
         event.preventDefault();
         event.stopPropagation();
+        const corner = event.currentTarget.dataset.storageCorner || 'br';
+        // wSign: +1 = right side grows right, -1 = left side grows left
+        // hSign: +1 = bottom grows down, -1 = top grows up
         panelResize = {
             pointerId: event.pointerId,
             startX: event.clientX,
             startY: event.clientY,
             originWidth: panelLayout.width,
             originHeight: panelLayout.height,
+            originOffsetX: panelLayout.offsetX,
+            originOffsetY: panelLayout.offsetY,
+            wSign: (corner === 'tr' || corner === 'br') ? 1 : -1,
+            hSign: (corner === 'bl' || corner === 'br') ? 1 : -1,
         };
         globalThis.addEventListener('pointermove', onPanelPointerMove, { passive: false });
         globalThis.addEventListener('pointerup', onPanelPointerUp, { passive: false });
@@ -170,9 +177,13 @@ export function createStoragePanelController({ mountTarget, repository, store = 
 
         if (panelResize && panelResize.pointerId === event.pointerId) {
             event.preventDefault();
-            panelLayout.width  = panelResize.originWidth  + (event.clientX - panelResize.startX);
-            panelLayout.height = panelResize.originHeight + (event.clientY - panelResize.startY);
-            // Normalize clamps both size and offset after resize
+            const dx = event.clientX - panelResize.startX;
+            const dy = event.clientY - panelResize.startY;
+            // Opposite corner stays fixed: center shifts by half the delta
+            panelLayout.width   = panelResize.originWidth   + panelResize.wSign * dx;
+            panelLayout.height  = panelResize.originHeight  + panelResize.hSign * dy;
+            panelLayout.offsetX = panelResize.originOffsetX + dx / 2;
+            panelLayout.offsetY = panelResize.originOffsetY + dy / 2;
             panelLayout = normalizePanelLayout(panelLayout);
             applyPanelLayout();
         }
@@ -275,7 +286,12 @@ export function createStoragePanelController({ mountTarget, repository, store = 
 
                 </div>
 
-                ${floatingPanel ? `<button type="button" class="storage-panel__resize-handle" data-storage-panel-resize aria-label="${t('storage.resize_aria')}"></button>` : ''}
+                ${floatingPanel ? `
+                    <div class="storage-panel__corner" data-storage-corner="tl"></div>
+                    <div class="storage-panel__corner" data-storage-corner="tr"></div>
+                    <div class="storage-panel__corner" data-storage-corner="bl"></div>
+                    <div class="storage-panel__corner" data-storage-corner="br"></div>
+                ` : ''}
             </div>
 
             <div class="storage-confirm-modal" data-storage-sell-modal hidden aria-hidden="true">
@@ -361,12 +377,12 @@ export function createStoragePanelController({ mountTarget, repository, store = 
             teamShowcase: root.querySelector('.storage-team-showcase'),
             pcBox: root.querySelector('.storage-pc-box'),
             dragHandle: root.querySelector('[data-storage-panel-drag-handle]'),
-            resizeHandle: root.querySelector('[data-storage-panel-resize]'),
+            cornerHandles: [...root.querySelectorAll('[data-storage-corner]')],
         };
 
         refs.closeButton?.addEventListener('click', close);
         refs.dragHandle?.addEventListener('pointerdown', onPanelDragStart);
-        refs.resizeHandle?.addEventListener('pointerdown', onPanelResizeStart);
+        refs.cornerHandles?.forEach((c) => c.addEventListener('pointerdown', onPanelResizeStart));
         refs.sellZone?.addEventListener('click', (event) => event.preventDefault());
         refs.moveZone?.addEventListener('click', (event) => event.preventDefault());
         refs.prevButton?.addEventListener('click', () => setPage(currentPage - 1));
@@ -709,6 +725,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         positionGhost(ghost, event.clientX, event.clientY);
         configureDragActionZones(placement, record);
         refs.dragActions?.removeAttribute('hidden');
+        positionDragActions();
     }
 
     function updateDrag(event) {
@@ -884,6 +901,41 @@ export function createStoragePanelController({ mountTarget, repository, store = 
     function computeSellValue(record) {
         const cost = computeAcquisitionCost(record);
         return Math.max(1, Math.floor(cost * 0.5));
+    }
+
+    function positionDragActions() {
+        if (!refs.dragActions || !root) {
+            return;
+        }
+        const panelRect = root.getBoundingClientRect();
+        const navEl = document.querySelector('[data-nav-shell]');
+        const navTop = navEl ? navEl.getBoundingClientRect().top : window.innerHeight;
+        const MARGIN = 6;
+
+        // Ensure element is in DOM so offsetHeight is accurate
+        const actH = refs.dragActions.offsetHeight || 60;
+        const actW = refs.dragActions.offsetWidth  || 160;
+        const vp   = getViewportSize();
+
+        // Default: just below the panel
+        let top = panelRect.bottom + MARGIN;
+
+        // If would overlap navbar, move up
+        if (top + actH + MARGIN > navTop) {
+            top = navTop - actH - MARGIN;
+        }
+        // If still inside the panel (panel is huge), overlap panel bottom instead
+        if (top < panelRect.top) {
+            top = panelRect.bottom - actH - MARGIN;
+        }
+
+        // Center on panel, clamped to viewport
+        let left = panelRect.left + (panelRect.width - actW) / 2;
+        left = clamp(left, MARGIN, vp.width - actW - MARGIN);
+
+        refs.dragActions.style.top       = `${Math.round(top)}px`;
+        refs.dragActions.style.left      = `${Math.round(left)}px`;
+        refs.dragActions.style.transform = 'none';
     }
 
     function configureDragActionZones(placement, record) {

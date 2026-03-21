@@ -770,10 +770,9 @@
 
 .storage-drag-actions {
     position: fixed;
-    /* Maintenant dans document.body : position:fixed est vraiment relatif
-       au viewport sur tous les appareils (plus de containing-block transform). */
-    left: 50%; transform: translateX(-50%);
-    top: 10px;
+    /* Position calculée en JS (positionDragActions) sous le panel,
+       au-dessus de la navbar. top/left définis dynamiquement. */
+    top: 0; left: 0; /* valeurs de repli, écrasées par JS */
     z-index: 600;
     display: flex; flex-direction: row; gap: 0.5rem;
     pointer-events: auto;
@@ -1236,32 +1235,51 @@
 .storage-panel--floating .storage-panel__surface::before { display: none; }
 .storage-panel--floating .storage-panel__header { cursor: grab; user-select: none; touch-action: none; }
 .storage-panel--floating .storage-panel__header:active { cursor: grabbing; }
-.storage-panel--floating .storage-panel__resize-handle {
-    display: grid;
-    position: absolute; right: 0.55rem; bottom: 0.55rem;
-    width: 26px; height: 26px; border: 0; border-radius: var(--radius-xs);
-    background: transparent; touch-action: none; place-items: center;
-}
-.storage-panel--floating .storage-panel__resize-handle::before,
-.storage-panel--floating .storage-panel__resize-handle::after {
-    content: ""; position: absolute; right: 4px; bottom: 4px;
-    width: 9px; height: 2px; border-radius: var(--radius-pill);
-    background: rgba(16, 185, 129, 0.4); transform-origin: center;
-}
-.storage-panel--floating .storage-panel__resize-handle::before { transform: rotate(-45deg); }
-.storage-panel--floating .storage-panel__resize-handle::after  { right: 7px; bottom: 7px; width: 7px; transform: rotate(-45deg); }
+/* Action zones — desktop supprimé : JS positionne dynamiquement */
+/* ═══════ COINS DE REDIMENSIONNEMENT (4 corners) ════════════════════ */
 
-/* Action zones — desktop */
-@media (min-width: 600px) {
-    .storage-drag-actions {
-        left: auto; right: 14px; top: clamp(200px, 35vh, 300px);
-        transform: none;
-        flex-direction: column;
-    }
-    .storage-action-zone {
-        min-width: 62px; min-height: 66px;
-    }
+.storage-panel__corner {
+    position: absolute;
+    width: 28px; height: 28px;
+    z-index: 10;
+    pointer-events: auto;
+    touch-action: none;
 }
+.storage-panel__corner::before,
+.storage-panel__corner::after {
+    content: '';
+    position: absolute;
+    background: rgba(16, 185, 129, 0.55);
+    border-radius: var(--radius-pill);
+    transition: background 150ms ease;
+}
+.storage-panel__corner:hover::before,
+.storage-panel__corner:hover::after,
+.storage-panel__corner:active::before,
+.storage-panel__corner:active::after {
+    background: rgba(16, 185, 129, 0.9);
+}
+/* Barre horizontale */
+.storage-panel__corner::before { width: 16px; height: 3px; }
+/* Barre verticale */
+.storage-panel__corner::after  { width: 3px;  height: 16px; }
+
+/* TL */
+.storage-panel__corner[data-storage-corner="tl"] { top: 4px; left: 4px; cursor: nw-resize; }
+.storage-panel__corner[data-storage-corner="tl"]::before { top: 0; left: 0; }
+.storage-panel__corner[data-storage-corner="tl"]::after  { top: 0; left: 0; }
+/* TR */
+.storage-panel__corner[data-storage-corner="tr"] { top: 4px; right: 4px; cursor: ne-resize; }
+.storage-panel__corner[data-storage-corner="tr"]::before { top: 0; right: 0; }
+.storage-panel__corner[data-storage-corner="tr"]::after  { top: 0; right: 0; }
+/* BL */
+.storage-panel__corner[data-storage-corner="bl"] { bottom: 4px; left: 4px; cursor: sw-resize; }
+.storage-panel__corner[data-storage-corner="bl"]::before { bottom: 0; left: 0; }
+.storage-panel__corner[data-storage-corner="bl"]::after  { bottom: 0; left: 0; }
+/* BR */
+.storage-panel__corner[data-storage-corner="br"] { bottom: 4px; right: 4px; cursor: se-resize; }
+.storage-panel__corner[data-storage-corner="br"]::before { bottom: 0; right: 0; }
+.storage-panel__corner[data-storage-corner="br"]::after  { bottom: 0; right: 0; }
 
 /* Feedback pop animation */
 @keyframes storage-feedback-pop {
