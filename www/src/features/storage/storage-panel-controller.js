@@ -755,6 +755,13 @@ export function createStoragePanelController({ mountTarget, repository, store = 
                     moveOrSwapCanonicalInSnapshot(draft, { from: sourcePlacement, to: destination });
                     return draft;
                 }, { type: 'storage:reorder', from: sourcePlacement, to: destination });
+                // Switcher sur l'onglet de destination pour confirmer visuellement
+                if (isFromTeam) {
+                    setPage(destination.page);
+                    setTab('archive');
+                } else {
+                    setTab('team');
+                }
             }
             return;
         }
