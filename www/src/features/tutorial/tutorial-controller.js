@@ -400,10 +400,31 @@ function injectStyles() {
 /* ── Overlay passthrough (navigate steps) ─────────────────── */
 .tuto-overlay--passthrough{
     pointer-events:none;
-    background:linear-gradient(180deg,rgba(2,8,18,0.48) 0%,rgba(2,8,18,0.68) 100%);
-    backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+    /* Blur only the lower portion — currency widget (top ~70px) stays crisp */
+    background:linear-gradient(180deg,rgba(2,8,18,0.0) 0%,rgba(2,8,18,0.0) 68px,rgba(2,8,18,0.55) 120px,rgba(2,8,18,0.72) 100%);
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+    /* Frosted glass from 120px down only */
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,transparent 100px,black 160px,black 100%);
+    mask-image:linear-gradient(180deg,transparent 0,transparent 100px,black 160px,black 100%);
 }
-.tuto-overlay--passthrough .tuto-card{pointer-events:auto;}
+/* Restore blur only below currency zone via pseudo-element */
+.tuto-overlay--passthrough::after{
+    content:'';
+    position:absolute;inset:0;
+    backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
+    -webkit-mask-image:linear-gradient(180deg,transparent 0,transparent 100px,black 160px,black 100%);
+    mask-image:linear-gradient(180deg,transparent 0,transparent 100px,black 160px,black 100%);
+    pointer-events:none;z-index:-1;
+}
+/* Navigate steps: card must not cover the nav bar (~72px) */
+.tuto-overlay--passthrough .tuto-card{
+    pointer-events:auto;
+    margin-bottom:calc(72px + env(safe-area-inset-bottom,0px));
+    border-radius:28px;
+    border-bottom:1px solid rgba(52,211,153,0.22);
+    /* compact: remove hero to reduce height */
+}
+.tuto-overlay--passthrough .tuto-card__hero{display:none;}
 
 /* ── Interactive spotlight (navigate steps) ───────────────── */
 .tuto-spotlight{
@@ -413,21 +434,7 @@ function injectStyles() {
     animation:tutoBeaconPulse 1.4s ease-out infinite;
 }
 
-/* ── Tap-to-continue hint ─────────────────────────────────── */
-.tuto-tap-hint{
-    display:flex;align-items:center;justify-content:center;
-    gap:8px;padding:12px 22px 2px;
-    font-size:0.84rem;font-weight:700;color:rgba(52,211,153,0.9);
-    text-align:center;
-}
-.tuto-tap-hint__icon{
-    font-size:1.3rem;display:inline-block;
-    animation:tutoTapBounce 1.1s ease-in-out infinite;
-}
-@keyframes tutoTapBounce{
-    0%,100%{transform:translateY(0) scale(1)}
-    50%{transform:translateY(-5px) scale(1.2)}
-}
+/* .tuto-tap-hint removed — spotlight alone guides the user */
 
 /* ── Skip toast ───────────────────────────────────────────── */
 .tuto-skip-toast{
@@ -631,9 +638,9 @@ function renderContentStep(stepIndex, { onNext, onSkip }) {
     }
 
     // Navigate steps show a tap-hint instead of a primary button.
-    const navLabel = data.navLabelKey ? tr(data.navLabelKey) : '';
+    // Navigate steps: no button — the spotlight on the nav bar is the only CTA.
     const actionsHtml = isNavigate
-        ? `<div class="tuto-tap-hint"><span class="tuto-tap-hint__icon">👆</span>${tr('tuto.tap_to_nav').replace('{label}', navLabel)}</div>`
+        ? ''
         : `<div class="tuto-card__actions"><button class="tuto-btn-primary">${isLast ? tr('tuto.start') : tr('tuto.next')}</button></div>`;
 
     overlay.innerHTML = `
