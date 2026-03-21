@@ -1,3 +1,5 @@
+import { getPerfSettings } from '../../utils/device-performance-profile.js';
+
 function getViewportSize(refs) {
     const viewport = window.visualViewport;
     const width = Math.max(Math.floor(viewport?.width || refs.shell?.clientWidth || window.innerWidth), 1);
@@ -59,12 +61,17 @@ export function createDustBackgroundController({ refs }) {
             return 0;
         }
 
-        return Math.min(40, Math.max(24, Math.round(area / 18000)));
+        const perf = getPerfSettings();
+        if (perf.particleDensityArea <= 0) {
+            return perf.particleMax;
+        }
+        return Math.min(perf.particleMax, Math.max(perf.particleMin, Math.round(area / perf.particleDensityArea)));
     }
 
     function syncCanvasSize() {
         const viewport = getViewportSize(refs);
-        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        const perf = getPerfSettings();
+        const dpr = Math.min(window.devicePixelRatio || 1, perf.dprCap);
         width = viewport.width;
         height = viewport.height;
         canvas.width = Math.floor(width * dpr);

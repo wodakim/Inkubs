@@ -1,4 +1,4 @@
-import { ctx, worldWidth, worldHeight } from '../../../runtime/runtimeState.js';
+import { ctx, worldWidth, worldHeight, renderQuality } from '../../../runtime/runtimeState.js';
 import { clamp, lerp } from '../../../shared/math.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -14,7 +14,7 @@ export function installRender(Slime) {
     const pose = this.renderPose || {};
 
     // ── Rarity aura (drawn under body shadow) ───────────────────────────
-    this._drawRarityAura(visualX, visualY);
+    if (renderQuality.rarityAura) this._drawRarityAura(visualX, visualY);
 
     // Shadow
     {
@@ -61,7 +61,7 @@ export function installRender(Slime) {
     ctx.fill();
 
     // ── Body overlay details (crystal facets, fractal lines…) ────────────────
-    this._drawBodyOverlay(pattern, safeVisualX, safeVisualY, safeBaseRadius);
+    if (renderQuality.bodyOverlay) this._drawBodyOverlay(pattern, safeVisualX, safeVisualY, safeBaseRadius);
 
     // ── Juicy body enhancements — clipped inside body ────────────────────────
     ctx.save();
@@ -69,7 +69,7 @@ export function installRender(Slime) {
     ctx.clip();
 
     // ── 1. Subsurface scatter: warm glow from bottom-center ─────────────────
-    {
+    if (renderQuality.subsurface) {
       const ssGrad = ctx.createRadialGradient(
         safeVisualX, safeVisualY + safeBaseRadius * 0.55, 0,
         safeVisualX, safeVisualY + safeBaseRadius * 0.3, safeBaseRadius * 1.1
@@ -83,7 +83,7 @@ export function installRender(Slime) {
     }
 
     // ── 2. Rim / edge light: subtle bright ring from top-right ──────────────
-    {
+    if (renderQuality.rimLight) {
       const rimGrad = ctx.createRadialGradient(
         safeVisualX + safeBaseRadius * 0.6, safeVisualY - safeBaseRadius * 0.6, safeBaseRadius * 0.3,
         safeVisualX, safeVisualY, safeMaxDist * 1.15
@@ -97,7 +97,7 @@ export function installRender(Slime) {
     }
 
     // ── 3. Primary specular highlight (large, soft, top-left) ───────────────
-    {
+    if (renderQuality.highlights) {
       const hlGrad = ctx.createRadialGradient(
         safeVisualX - safeBaseRadius * 0.28, safeVisualY - safeBaseRadius * 0.32, 0,
         safeVisualX - safeBaseRadius * 0.28, safeVisualY - safeBaseRadius * 0.32, safeBaseRadius * 0.55
@@ -115,10 +115,8 @@ export function installRender(Slime) {
         -Math.PI / 4, 0, Math.PI * 2
       );
       ctx.fill();
-    }
 
-    // ── 4. Secondary tiny specular (sharp sparkle dot) ────────────────────
-    {
+      // ── 4. Secondary tiny specular (sharp sparkle dot) ────────────────────
       const s2Grad = ctx.createRadialGradient(
         safeVisualX - safeBaseRadius * 0.18, safeVisualY - safeBaseRadius * 0.42, 0,
         safeVisualX - safeBaseRadius * 0.18, safeVisualY - safeBaseRadius * 0.42, safeBaseRadius * 0.14
