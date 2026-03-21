@@ -367,24 +367,30 @@ export function createPrairieFeature() {
         if (!rect || !rect.width || !rect.height || !canvas) {
             return null;
         }
+        // localX/Y are in canvas device pixels; effectiveZoom accounts for DPR.
+        const dpr = Math.min(window.devicePixelRatio || 1, getPerfSettings().dprCap);
+        const effectiveZoom = camera.zoom * dpr;
         const localX = ((clientX - rect.left) / rect.width) * canvas.width;
         const localY = ((clientY - rect.top) / rect.height) * canvas.height;
         return {
-            x: camera.x + (localX - canvas.width * 0.5) / camera.zoom,
-            y: camera.y + (localY - canvas.height * 0.5) / camera.zoom,
+            x: camera.x + (localX - canvas.width * 0.5) / effectiveZoom,
+            y: camera.y + (localY - canvas.height * 0.5) / effectiveZoom,
         };
     }
 
     function worldToScreen(worldX, worldY) {
+        const dpr = Math.min(window.devicePixelRatio || 1, getPerfSettings().dprCap);
+        const effectiveZoom = camera.zoom * dpr;
         return {
-            x: ((worldX - camera.x) * camera.zoom) + (canvas?.width || 1) * 0.5,
-            y: ((worldY - camera.y) * camera.zoom) + (canvas?.height || 1) * 0.5,
+            x: ((worldX - camera.x) * effectiveZoom) + (canvas?.width || 1) * 0.5,
+            y: ((worldY - camera.y) * effectiveZoom) + (canvas?.height || 1) * 0.5,
         };
     }
 
     function clampCamera() {
-        const viewWidth = Math.max(1, canvas?.width || viewport?.clientWidth || 1);
-        const viewHeight = Math.max(1, canvas?.height || viewport?.clientHeight || 1);
+        // Use CSS pixel dimensions (not canvas device pixels) so world units match.
+        const viewWidth = Math.max(1, viewport?.clientWidth || canvas?.clientWidth || 1);
+        const viewHeight = Math.max(1, viewport?.clientHeight || canvas?.clientHeight || 1);
         const halfViewWidth = viewWidth * 0.5 / Math.max(camera.zoom, 0.1);
         const halfViewHeight = viewHeight * 0.5 / Math.max(camera.zoom, 0.1);
         camera.x = clamp(Number.isFinite(camera.x) ? camera.x : world.width * 0.5, halfViewWidth, Math.max(halfViewWidth, world.width - halfViewWidth));
@@ -1954,11 +1960,14 @@ export function createPrairieFeature() {
             return;
         }
         const zoom = Number.isFinite(camera.zoom) ? camera.zoom : 1;
-        const translateX = (canvas.width * 0.5) - (camera.x * zoom);
-        const translateY = (canvas.height * 0.5) - (camera.y * zoom);
+        // Scale by DPR so that world units (CSS pixels) map correctly to device pixels.
+        const dpr = Math.min(window.devicePixelRatio || 1, getPerfSettings().dprCap);
+        const effectiveZoom = zoom * dpr;
+        const translateX = (canvas.width * 0.5) - (camera.x * effectiveZoom);
+        const translateY = (canvas.height * 0.5) - (camera.y * effectiveZoom);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.setTransform(zoom, 0, 0, zoom, translateX, translateY);
+        ctx.setTransform(effectiveZoom, 0, 0, effectiveZoom, translateX, translateY);
 
         // Draw prairie background objects (grass, puddles, flowers behind slimes)
         drawPrairieObjects();
@@ -2083,6 +2092,7 @@ export function createPrairieFeature() {
         if (rafId) {
             window.cancelAnimationFrame(rafId);
         }
+        // addEventListener deduplicates – safe to call multiple times.
         document.addEventListener('visibilitychange', handleVisibilityChange);
         window.addEventListener('inku:perf-tier-changed', handlePerfTierChanged);
         rafId = window.requestAnimationFrame(step);
@@ -2093,8 +2103,15 @@ export function createPrairieFeature() {
             window.cancelAnimationFrame(rafId);
             rafId = 0;
         }
-        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        // Keep the visibilitychange listener alive so the loop can restart when
+        // the user returns from another app or tab.  Only teardownLoop() (called
+        // from unmount) fully removes it.
         window.removeEventListener('inku:perf-tier-changed', handlePerfTierChanged);
+    }
+
+    function teardownLoop() {
+        stopLoop();
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
     }
 
     function handlePerfTierChanged() {
@@ -2259,7 +2276,7 @@ export function createPrairieFeature() {
         unmount() {
             persistAllActiveRecords('prairie_unmount');
             saveSession({ activeCanonicalIds: [...activeCanonicalIds], camera: { ...camera }, panel: panelLayout });
-            stopLoop();
+            teardownLoop();
             clearTimeout(saveTimeout);
             window.clearTimeout(dronePanelCloseTimeout);
             clearInterval(obsUpdateInterval);
