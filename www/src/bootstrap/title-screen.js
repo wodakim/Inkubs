@@ -5,6 +5,8 @@
  * Injecté dans <html> pour contourner overflow:hidden du body.
  */
 
+import { t, getLang, setLang } from '../i18n/i18n.js';
+
 export function createTitleScreen({ onPlay } = {}) {
 
     /* ── Settings ── */
@@ -203,7 +205,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
     <!-- Title -->
     <div class="flex flex-col items-center flex-shrink-0 mt-0 sm:mt-1 relative z-20">
         <h1 class="text-4xl sm:text-5xl font-black text-white title-glow tracking-tight" style="font-family:'Nunito',sans-serif;">Inkü</h1>
-        <p class="text-emerald-400 text-[9px] sm:text-xs tracking-widest mt-1 font-bold uppercase opacity-80">Incubateur Virtuel</p>
+        <p class="text-emerald-400 text-[9px] sm:text-xs tracking-widest mt-1 font-bold uppercase opacity-80">${t('ts.subtitle')}</p>
     </div>
     <!-- Mid -->
     <div class="flex-1 w-full flex items-center justify-center px-4 py-2 min-h-0 relative z-10">
@@ -257,15 +259,15 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
                     <div class="absolute inset-0 rounded-full animate-spin" style="border:3px solid transparent;border-top-color:#34d399;border-left-color:#34d399"></div>
                     <i class="ph ph-fingerprint absolute inset-0 flex items-center justify-center text-lg animate-pulse" style="color:rgba(16,185,129,0.5)"></i>
                 </div>
-                <p id="ts-loading-text" class="font-bold tracking-wide text-center px-4 text-xs" style="color:#34d399">Synchronisation ADN...</p>
+                <p id="ts-loading-text" class="font-bold tracking-wide text-center px-4 text-xs" style="color:#34d399">${t('ts.loading_1')}</p>
             </div>
             <!-- Titre carte -->
             <div class="text-center mb-1">
-                <h2 class="text-base font-black text-white tracking-wide">Prêt à jouer</h2>
-                <p class="font-mono mt-0.5 uppercase tracking-widest" style="font-size:9px;color:rgba(52,211,153,0.7)">Mode hors-ligne actif</p>
+                <h2 class="text-base font-black text-white tracking-wide">${t('ts.ready')}</h2>
+                <p class="font-mono mt-0.5 uppercase tracking-widest" style="font-size:9px;color:rgba(52,211,153,0.7)">${t('ts.offline')}</p>
             </div>
             <!-- PLAY -->
-            <button id="ts-btn-play" class="btn-aaa"><i class="ph ph-play text-xs"></i>RÉVEILLER LE SLIME</button>
+            <button id="ts-btn-play" class="btn-aaa"><i class="ph ph-play text-xs"></i>${t('ts.wake')}</button>
             <!-- Version -->
             <p class="text-center font-mono" style="font-size:8px;color:rgba(16,185,129,0.3);letter-spacing:0.15em">INKÜ · v0.1.0</p>
         </div>
@@ -278,7 +280,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
     <div class="pks-header">
         <button class="pks-back" id="ts-close-settings"><i class="ph ph-arrow-left" style="font-size:0.9rem;"></i></button>
         <div class="pks-header-text">
-            <div class="pks-title">Paramètres</div>
+            <div class="pks-title">${t('ts.settings')}</div>
             <div class="pks-version">INKÜ · v0.1.0</div>
         </div>
     </div>
@@ -287,12 +289,12 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
 
         <!-- SON -->
         <div class="pks-section">
-            <div class="pks-section-label"><div class="pks-section-bar"></div>Son</div>
+            <div class="pks-section-label"><div class="pks-section-bar"></div>${t('ts.sound')}</div>
             <div class="pks-card">
                 <div class="pks-row pks-row--slider">
                     <div class="pks-row-icon pks-icon-green"><i class="ph ph-speaker-high"></i></div>
                     <div class="pks-row-body">
-                        <div class="pks-row-top"><span class="pks-row-name">Volume général</span><span class="pks-slider-val" id="sm-master-v">80</span></div>
+                        <div class="pks-row-top"><span class="pks-row-name">${t('ts.master')}</span><span class="pks-slider-val" id="sm-master-v">80</span></div>
                         <input type="range" class="pks-slider" id="sm-master" min="0" max="100">
                     </div>
                 </div>
@@ -300,7 +302,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
                 <div class="pks-row pks-row--slider">
                     <div class="pks-row-icon pks-icon-blue"><i class="ph ph-music-note"></i></div>
                     <div class="pks-row-body">
-                        <div class="pks-row-top"><span class="pks-row-name">Musique</span><span class="pks-slider-val" id="sm-music-v">60</span></div>
+                        <div class="pks-row-top"><span class="pks-row-name">${t('ts.music')}</span><span class="pks-slider-val" id="sm-music-v">60</span></div>
                         <input type="range" class="pks-slider" id="sm-music" min="0" max="100">
                     </div>
                 </div>
@@ -308,7 +310,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
                 <div class="pks-row pks-row--slider">
                     <div class="pks-row-icon pks-icon-purple"><i class="ph ph-bell"></i></div>
                     <div class="pks-row-body">
-                        <div class="pks-row-top"><span class="pks-row-name">Effets sonores</span><span class="pks-slider-val" id="sm-sfx-v">90</span></div>
+                        <div class="pks-row-top"><span class="pks-row-name">${t('ts.sfx')}</span><span class="pks-slider-val" id="sm-sfx-v">90</span></div>
                         <input type="range" class="pks-slider" id="sm-sfx" min="0" max="100">
                     </div>
                 </div>
@@ -317,23 +319,23 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
 
         <!-- AFFICHAGE -->
         <div class="pks-section">
-            <div class="pks-section-label"><div class="pks-section-bar pks-bar-blue"></div>Affichage</div>
+            <div class="pks-section-label"><div class="pks-section-bar pks-bar-blue"></div>${t('ts.display')}</div>
             <div class="pks-card">
                 <div class="pks-row">
                     <div class="pks-row-icon pks-icon-amber"><i class="ph ph-monitor"></i></div>
-                    <div class="pks-row-body"><div class="pks-row-name">Qualité graphique</div><div class="pks-row-sub">Impact sur la batterie</div></div>
-                    <div class="pks-row-ctrl"><div class="pks-seg" id="sm-quality"><button class="pks-seg-btn" data-v="low">Bas</button><button class="pks-seg-btn" data-v="medium">Moy</button><button class="pks-seg-btn" data-v="high">Haut</button></div></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.graphics_quality')}</div><div class="pks-row-sub">${t('ts.battery')}</div></div>
+                    <div class="pks-row-ctrl"><div class="pks-seg" id="sm-quality"><button class="pks-seg-btn" data-v="low">${t('ts.q_low')}</button><button class="pks-seg-btn" data-v="medium">${t('ts.q_mid')}</button><button class="pks-seg-btn" data-v="high">${t('ts.q_high')}</button></div></div>
                 </div>
                 <div class="pks-divider"></div>
                 <div class="pks-row">
                     <div class="pks-row-icon pks-icon-green"><i class="ph ph-gauge"></i></div>
-                    <div class="pks-row-body"><div class="pks-row-name">Compteur FPS</div><div class="pks-row-sub">Affiche les images par seconde</div></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.fps_counter')}</div><div class="pks-row-sub">${t('ts.fps_sub')}</div></div>
                     <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-fps"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
                 </div>
                 <div class="pks-divider"></div>
                 <div class="pks-row">
                     <div class="pks-row-icon pks-icon-blue"><i class="ph ph-leaf"></i></div>
-                    <div class="pks-row-body"><div class="pks-row-name">Réduire les animations</div><div class="pks-row-sub">Accessibilité &amp; économie batterie</div></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.reduce_anim')}</div><div class="pks-row-sub">${t('ts.reduce_anim_sub')}</div></div>
                     <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-motion"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
                 </div>
             </div>
@@ -341,23 +343,23 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
 
         <!-- GAMEPLAY -->
         <div class="pks-section">
-            <div class="pks-section-label"><div class="pks-section-bar pks-bar-purple"></div>Gameplay</div>
+            <div class="pks-section-label"><div class="pks-section-bar pks-bar-purple"></div>${t('ts.gameplay')}</div>
             <div class="pks-card">
                 <div class="pks-row">
                     <div class="pks-row-icon pks-icon-purple"><i class="ph ph-device-mobile"></i></div>
-                    <div class="pks-row-body"><div class="pks-row-name">Vibrations</div><div class="pks-row-sub">Retour tactile lors des actions</div></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.vibrations')}</div><div class="pks-row-sub">${t('ts.vibrations_sub')}</div></div>
                     <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-vibr"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
                 </div>
                 <div class="pks-divider"></div>
                 <div class="pks-row">
                     <div class="pks-row-icon pks-icon-amber"><i class="ph ph-bell"></i></div>
-                    <div class="pks-row-body"><div class="pks-row-name">Notifications</div><div class="pks-row-sub">Alertes de progression du slime</div></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.notifications')}</div><div class="pks-row-sub">${t('ts.notif_sub')}</div></div>
                     <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-notif"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
                 </div>
                 <div class="pks-divider"></div>
                 <div class="pks-row">
                     <div class="pks-row-icon pks-icon-green"><i class="ph ph-globe"></i></div>
-                    <div class="pks-row-body"><div class="pks-row-name">Langue</div><div class="pks-row-sub">Localisation de l'interface</div></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.language')}</div><div class="pks-row-sub">${t('ts.language_sub')}</div></div>
                     <div class="pks-row-ctrl"><div class="pks-seg" id="sm-lang"><button class="pks-seg-btn" data-v="fr">🇫🇷 FR</button><button class="pks-seg-btn" data-v="en">🇬🇧 EN</button></div></div>
                 </div>
             </div>
@@ -365,14 +367,14 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
 
         <!-- DONNÉES -->
         <div class="pks-section">
-            <div class="pks-section-label"><div class="pks-section-bar pks-bar-red"></div>Données</div>
+            <div class="pks-section-label"><div class="pks-section-bar pks-bar-red"></div>${t('ts.data')}</div>
             <div class="pks-info-box">
                 <i class="ph ph-info" style="color:#34d399;font-size:1rem;flex-shrink:0;margin-top:1px;"></i>
-                <div>Version <span style="color:#34d399;font-weight:800;">v0.1.0</span> · Mode <span style="color:#34d399;font-weight:800;">OFFLINE</span><br>Données stockées localement sur l'appareil.</div>
+                <div>${t('ts.data_info')}</div>
             </div>
             <button class="pks-danger-row" id="sm-reset">
                 <div class="pks-row-icon pks-icon-red"><i class="ph ph-trash"></i></div>
-                <div class="pks-row-body"><div class="pks-danger-name">Effacer toutes les données</div><div class="pks-danger-sub">Slimes, progression, collection — irréversible</div></div>
+                <div class="pks-row-body"><div class="pks-danger-name">${t('ts.erase_data')}</div><div class="pks-danger-sub">${t('ts.erase_sub')}</div></div>
                 <i class="ph ph-caret-right" style="color:rgba(239,68,68,0.4);font-size:0.8rem;flex-shrink:0;"></i>
             </button>
         </div>
@@ -382,10 +384,16 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
     <!-- Confirmation effacement (overlay sur toute la modale settings) -->
     <div id="ts-confirm-reset">
         <div class="pks-confirm-icon"><i class="ph ph-warning"></i></div>
-        <div class="pks-confirm-title">Remise à zéro</div>
-        <p class="pks-confirm-body">Toutes les données seront <strong>définitivement supprimées</strong> — slimes, progression, collection. Cette action est irréversible.</p>
-        <button id="ts-confirm-yes" class="pks-confirm-yes">Tout effacer</button>
-        <button id="ts-confirm-no" class="pks-confirm-no">Annuler</button>
+        <div class="pks-confirm-title">${t('ts.reset_title')}</div>
+        <p class="pks-confirm-body">${t('ts.reset_body')}</p>
+        <button id="ts-confirm-yes" class="pks-confirm-yes">${t('ts.erase_all')}</button>
+        <button id="ts-confirm-no" class="pks-confirm-no">${t('ts.cancel')}</button>
+    </div>
+
+    <!-- Overlay redémarrage après changement de langue -->
+    <div id="ts-lang-restart" style="position:absolute;inset:0;z-index:20;background:rgba(4,6,12,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;opacity:0;pointer-events:none;transition:opacity 0.25s ease;">
+        <i class="ph ph-globe" style="font-size:2rem;color:#34d399;"></i>
+        <div style="font-size:1rem;font-weight:900;color:white;text-align:center;">${t('ts.lang_restart')}</div>
     </div>
 </div>
 `; }
@@ -483,7 +491,21 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
             const seg=root.querySelector('#'+id);
             seg?.querySelectorAll('.pks-seg-btn').forEach(b=>{
                 b.classList.toggle('on',b.dataset.v===S[k]);
-                b.addEventListener('click',()=>{S[k]=b.dataset.v;saveS(S);seg.querySelectorAll('.pks-seg-btn').forEach(x=>x.classList.toggle('on',x===b));});
+                b.addEventListener('click',()=>{
+                    const prev=S[k];
+                    S[k]=b.dataset.v;saveS(S);
+                    seg.querySelectorAll('.pks-seg-btn').forEach(x=>x.classList.toggle('on',x===b));
+                    // Si la langue a changé, afficher overlay redémarrage puis recharger
+                    if(k==='lang'&&b.dataset.v!==prev){
+                        const overlay=root.querySelector('#ts-lang-restart');
+                        if(overlay){overlay.style.opacity='1';overlay.style.pointerEvents='auto';}
+                        setTimeout(()=>{
+                            document.body.style.transition='opacity 0.4s';
+                            document.body.style.opacity='0';
+                        },600);
+                        setTimeout(()=>location.reload(),1050);
+                    }
+                });
             });
         });
         [['sm-fps','fps'],['sm-motion','motion'],['sm-notif','notif'],['sm-vibr','vibr']].forEach(([id,k])=>{
@@ -505,7 +527,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
     }
 
     /* ── Play flow ── */
-    const MSGS=['Synchronisation ADN...','Chargement du laboratoire...','Réveil du slime...'];
+    const MSGS=[t('ts.loading_1'),t('ts.loading_2'),t('ts.loading_3')];
     let _done=false,_kill=null;
 
     function _play(){

@@ -8,6 +8,8 @@
  * notifyRareCandidate(rarityTier, store, activeSectionId).
  */
 
+import { t } from '../../i18n/i18n.js';
+
 /** Ordre de priorité des tiers de rareté (du plus bas au plus haut). */
 const RARITY_ORDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
 
@@ -24,11 +26,11 @@ function meetsThreshold(tier, minTier) {
 }
 
 const TIER_LABELS = {
-    common:    'Commun',
-    uncommon:  'Peu commun',
-    rare:      'Rare',
-    epic:      'Épique',
-    legendary: 'Légendaire',
+    common:    t('rarity.common'),
+    uncommon:  t('rarity.uncommon'),
+    rare:      t('rarity.rare'),
+    epic:      t('rarity.epic'),
+    legendary: t('rarity.legendary'),
 };
 
 const TIER_EMOJIS = {
@@ -85,10 +87,10 @@ function showRarityNotification({ tier, label, emoji }) {
         <div class="rarity-alert-popup__inner">
             <span class="rarity-alert-popup__emoji" aria-hidden="true">${emoji}</span>
             <div class="rarity-alert-popup__text">
-                <span class="rarity-alert-popup__eyebrow">Incubateur</span>
-                <span class="rarity-alert-popup__message">Slime <strong>${label}</strong> disponible !</span>
+                <span class="rarity-alert-popup__eyebrow">${t('notif.title')}</span>
+                <span class="rarity-alert-popup__message">${t('notif.body').replace('{label}', `<strong>${label}</strong>`)}</span>
             </div>
-            <button type="button" class="rarity-alert-popup__close" aria-label="Fermer">✕</button>
+            <button type="button" class="rarity-alert-popup__close" aria-label="${t('notif.close')}">✕</button>
         </div>
     `;
 

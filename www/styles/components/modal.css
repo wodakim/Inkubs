@@ -343,6 +343,29 @@
     border-color: rgba(16, 185, 129, 0.35);
 }
 
+/* ── Sélecteur de langue (in-game profile) ──────────────────────────── */
+.profile-lang-btn {
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: rgba(148, 163, 184, 0.5);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.profile-lang-btn.is-active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: rgba(52, 211, 153, 0.95);
+}
+
 /* ── Settings panel ─────────────────────────────────────────────────────
    Le panneau est un sibling du profile-card dans le profile-modal (fixed inset-0).
    Il est centré exactement comme la card (same dimensions) et slide depuis la droite.

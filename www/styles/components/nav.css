@@ -245,6 +245,36 @@
     font-weight: 700;
 }
 
+/* ── Locked Tab ──────────────────────────────────────────────────────── */
+.nav-btn[data-locked="true"] {
+    opacity: 0.34;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Badge cadenas */
+.nav-lock-badge {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: rgba(10, 16, 36, 0.92);
+    border: 1px solid rgba(100, 116, 139, 0.4);
+    display: grid;
+    place-items: center;
+    font-size: 7px;
+    line-height: 1;
+    color: rgba(148, 163, 184, 0.9);
+}
+
+.nav-lock-badge::before {
+    content: '🔒';
+    font-size: 6px;
+    line-height: 1;
+}
+
 /* ── Notification Dot ────────────────────────────────────────────────── */
 .nav-notification-dot {
     position: absolute;
