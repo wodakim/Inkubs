@@ -207,6 +207,8 @@ export const TRANSLATIONS = {
         'tuto.restart':                 'Rejouer le tutoriel',
         'tuto.restart_sub':             'Revoir toutes les étapes depuis le début',
         'tuto.step_of':                 'Étape {n} sur {total}',
+        'tuto.nav.labo':                'Labo',
+        'tuto.nav.prairie':             'Prairie',
 
         // Étape 0 — Langue
         'tuto.lang.title':              'Choisissez votre langue',
@@ -438,6 +440,8 @@ export const TRANSLATIONS = {
         'tuto.restart':                 'Replay tutorial',
         'tuto.restart_sub':             'Go through all steps again from the beginning',
         'tuto.step_of':                 'Step {n} of {total}',
+        'tuto.nav.labo':                'Lab',
+        'tuto.nav.prairie':             'Prairie',
 
         // Step 0 — Language
         'tuto.lang.title':              'Choose your language',

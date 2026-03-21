@@ -26,6 +26,44 @@ import {
 const CONTENT_STEPS = 5; // étapes 1-5 (money, buy, storage, prairie, level)
 const TOTAL_STEPS   = CONTENT_STEPS; // displayed to user (langue = step 0, invisible)
 
+/* ─── Helpers visuels ────────────────────────────────────────────────── */
+
+/** Crée un anneau pulsant autour d'un élément DOM. Retourne un handle {remove}. */
+function spawnBeacon(selector) {
+    const target = document.querySelector(selector);
+    if (!target) return null;
+    const r = target.getBoundingClientRect();
+    const size = Math.max(r.width, r.height, 28) + 18;
+    const el = document.createElement('div');
+    el.className = 'tuto-beacon';
+    el.style.left  = `${r.left + r.width  * 0.5}px`;
+    el.style.top   = `${r.top  + r.height * 0.5}px`;
+    el.style.width  = `${size}px`;
+    el.style.height = `${size}px`;
+    document.body.appendChild(el);
+    return { remove: () => el.remove() };
+}
+
+/** Affiche une flèche animée pointant vers un onglet de nav. */
+function spawnNavArrow(navSelector, labelText) {
+    const target = document.querySelector(navSelector);
+    if (!target) return null;
+    const r = target.getBoundingClientRect();
+    const el = document.createElement('div');
+    el.className = 'tuto-nav-arrow';
+    el.innerHTML = `<div class="tuto-nav-arrow__icon">↓</div><div class="tuto-nav-arrow__label">${labelText}</div>`;
+    el.style.left = `${r.left + r.width * 0.5}px`;
+    el.style.transform = 'translateX(-50%)';
+    document.body.appendChild(el);
+    return { remove: () => el.remove() };
+}
+
+/** Lit le solde d'Inkübits courant depuis le HUD DOM. */
+function readBalance() {
+    const el = document.querySelector('[data-currency-value="hexagon"]');
+    return parseInt((el?.textContent || '0').replace(/[^0-9]/g, ''), 10) || 0;
+}
+
 /* ─── i18n helper local ─────────────────────────────────────────────── */
 function tr(key) {
     const lang = getLang();
@@ -37,11 +75,32 @@ function tr(key) {
 function getStepData(index) {
     const steps = [
         null, // index 0 = langue (cas spécial)
-        { icon: '⬡',  titleKey: 'tuto.money.title',   bodyKey: 'tuto.money.body'   },
-        { icon: '🧪', titleKey: 'tuto.buy.title',     bodyKey: 'tuto.buy.body'     },
-        { icon: '📦', titleKey: 'tuto.storage.title', bodyKey: 'tuto.storage.body' },
-        { icon: '🌿', titleKey: 'tuto.prairie.title', bodyKey: 'tuto.prairie.body' },
-        { icon: '⭐', titleKey: 'tuto.level.title',   bodyKey: 'tuto.level.body'   },
+        {
+            icon: '⬡',  titleKey: 'tuto.money.title',   bodyKey: 'tuto.money.body',
+            targetSelector: '[data-currency-value="hexagon"]',
+            navSelector: null, navLabelKey: null,
+        },
+        {
+            icon: '🧪', titleKey: 'tuto.buy.title',     bodyKey: 'tuto.buy.body',
+            targetSelector: '[data-nav-index="2"]',
+            navSelector: '[data-nav-index="2"]', navLabelKey: 'tuto.nav.labo',
+            showAffordability: true,
+        },
+        {
+            icon: '📦', titleKey: 'tuto.storage.title', bodyKey: 'tuto.storage.body',
+            targetSelector: '[data-nav-index="2"]',
+            navSelector: '[data-nav-index="2"]', navLabelKey: 'tuto.nav.labo',
+        },
+        {
+            icon: '🌿', titleKey: 'tuto.prairie.title', bodyKey: 'tuto.prairie.body',
+            targetSelector: '[data-nav-index="0"]',
+            navSelector: '[data-nav-index="0"]', navLabelKey: 'tuto.nav.prairie',
+        },
+        {
+            icon: '⭐', titleKey: 'tuto.level.title',   bodyKey: 'tuto.level.body',
+            targetSelector: '[data-prairie-loupe]',
+            navSelector: '[data-nav-index="0"]', navLabelKey: 'tuto.nav.prairie',
+        },
     ];
     return steps[index] ?? null;
 }
@@ -66,6 +125,46 @@ function injectStyles() {
 }
 @keyframes tutoFadeIn{from{opacity:0}to{opacity:1}}
 @keyframes tutoSlideUp{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* ── Beacon / spotlight ──────────────────────────────── */
+.tuto-beacon{
+    position:fixed;border-radius:50%;pointer-events:none;z-index:9998;
+    border:2.5px solid rgba(52,211,153,0.85);
+    animation:tutoBeaconPulse 1.8s ease-out infinite;
+    transform:translate(-50%,-50%);
+}
+@keyframes tutoBeaconPulse{
+    0%{box-shadow:0 0 0 0 rgba(52,211,153,0.55);opacity:1}
+    65%{box-shadow:0 0 0 16px rgba(52,211,153,0);opacity:0.75}
+    100%{box-shadow:0 0 0 0 rgba(52,211,153,0);opacity:1}
+}
+
+/* ── Nav arrow hint ──────────────────────────────────── */
+.tuto-nav-arrow{
+    position:fixed;bottom:calc(64px + env(safe-area-inset-bottom, 0px));
+    pointer-events:none;z-index:9998;
+    display:flex;flex-direction:column;align-items:center;gap:4px;
+    animation:tutoArrowBounce 1.1s ease-in-out infinite;
+}
+.tuto-nav-arrow__icon{font-size:1.5rem;line-height:1;}
+.tuto-nav-arrow__label{
+    font-size:0.65rem;font-weight:700;letter-spacing:0.08em;
+    text-transform:uppercase;color:#34d399;
+    text-shadow:0 1px 6px rgba(0,0,0,0.8);
+}
+@keyframes tutoArrowBounce{
+    0%,100%{transform:translateY(0)}
+    50%{transform:translateY(-7px)}
+}
+
+/* ── Inline affordability pill ───────────────────────── */
+.tuto-afford{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 14px;border-radius:10px;font-size:0.82rem;font-weight:700;
+    margin-bottom:14px;
+}
+.tuto-afford--ok{background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.3);color:#4ade80;}
+.tuto-afford--ko{background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.3);color:#f87171;}
 
 .tuto-card{
     width:100%;max-width:440px;
@@ -159,6 +258,17 @@ function renderContentStep(stepIndex, { onNext, onSkip }) {
     const data = getStepData(stepIndex);
     if (!data) return null;
 
+    // Spawn visual helpers (beacon + nav arrow) — stored for cleanup
+    const beacon   = data.targetSelector ? spawnBeacon(data.targetSelector) : null;
+    const navArrow = data.navSelector
+        ? spawnNavArrow(data.navSelector, tr(data.navLabelKey ?? '') || '')
+        : null;
+
+    function cleanupHelpers() {
+        beacon?.remove();
+        navArrow?.remove();
+    }
+
     const overlay = document.createElement('div');
     overlay.className = 'tuto-overlay';
     overlay.setAttribute('role', 'dialog');
@@ -177,12 +287,26 @@ function renderContentStep(stepIndex, { onNext, onSkip }) {
         dotsHtml += `<div class="tuto-card__dot${i === stepIndex ? ' is-active' : ''}"></div>`;
     }
 
+    // Affordability pill (step 2 — buy)
+    let affordHtml = '';
+    if (data.showAffordability) {
+        const balance = readBalance();
+        const canAfford = balance > 0;
+        const cls = canAfford ? 'tuto-afford--ok' : 'tuto-afford--ko';
+        const icon = canAfford ? '✓' : '✕';
+        const label = canAfford
+            ? `${icon} ⬡ ${balance.toLocaleString()} Inkübits`
+            : `${icon} ⬡ 0 Inkübits`;
+        affordHtml = `<div class="tuto-afford ${cls}">${label}</div>`;
+    }
+
     overlay.innerHTML = `
 <div class="tuto-card">
     <button class="tuto-card__close" aria-label="${tr('tuto.skip')}">✕</button>
     <div class="tuto-card__step-label">${stepLabel}</div>
     <div class="tuto-card__icon">${data.icon}</div>
     <h2 class="tuto-card__title">${tr(data.titleKey)}</h2>
+    ${affordHtml}
     <div class="tuto-card__body">${tr(data.bodyKey)}</div>
     <div class="tuto-card__dots">${dotsHtml}</div>
     <div class="tuto-card__actions">
@@ -192,17 +316,19 @@ function renderContentStep(stepIndex, { onNext, onSkip }) {
 
     const card = overlay.querySelector('.tuto-card');
     overlay.querySelector('.tuto-card__close').addEventListener('click', () => {
+        cleanupHelpers();
         overlay.remove();
         onSkip?.();
     });
     overlay.querySelector('.tuto-btn-primary').addEventListener('click', () => {
+        cleanupHelpers();
         card.style.animation = 'none';
         overlay.remove();
         onNext?.();
     });
     // Tap on overlay background = skip (same as X)
     overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) { overlay.remove(); onSkip?.(); }
+        if (e.target === overlay) { cleanupHelpers(); overlay.remove(); onSkip?.(); }
     });
 
     return overlay;
