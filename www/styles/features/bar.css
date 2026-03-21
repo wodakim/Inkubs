@@ -1,0 +1,778 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   INKÜ — BAR v1.0
+   Scène animée · Slime barman · Quêtes journalières & définitives
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Wrapper racine ────────────────────────────────────────────────────── */
+.bar-feature-wrapper,
+.bar-feature {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    isolation: isolate;
+}
+
+.bar-feature {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ── Fond / ambiance ───────────────────────────────────────────────────── */
+.bar-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    /* Mur de brique chaud, dégradé de bas en haut */
+    background:
+        radial-gradient(ellipse at 50% 0%,   rgba(245,158,11,0.14) 0%,   transparent 55%),
+        radial-gradient(ellipse at 50% 100%, rgba(4,6,12,0.9)      0%,   transparent 70%),
+        linear-gradient(180deg,
+            #0e0703 0%,
+            #110a05 35%,
+            #0d0804 70%,
+            #06040a 100%);
+}
+
+/* Texture brique (CSS) */
+.bar-bg__wall {
+    position: absolute;
+    inset: 0;
+    background-image:
+        repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 18px,
+            rgba(0,0,0,0.35) 18px,
+            rgba(0,0,0,0.35) 20px
+        ),
+        repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 38px,
+            rgba(0,0,0,0.18) 38px,
+            rgba(0,0,0,0.18) 40px
+        );
+    background-size: 40px 20px, 40px 20px;
+    opacity: 0.45;
+}
+
+/* ── Enseigne néon ─────────────────────────────────────────────────────── */
+.bar-neon-sign {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    z-index: 2;
+}
+
+.bar-neon-text {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    animation: bar-neon-flicker 6s ease-in-out infinite;
+}
+
+.bar-neon-text--main {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #fde68a;
+    text-shadow:
+        0 0  6px #fde68a,
+        0 0 14px #f59e0b,
+        0 0 28px rgba(245,158,11,0.55),
+        0 0 50px rgba(245,158,11,0.25);
+}
+
+.bar-neon-text--sub {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #6ee7b7;
+    text-shadow:
+        0 0  5px #6ee7b7,
+        0 0 12px #10b981,
+        0 0 24px rgba(16,185,129,0.55);
+    animation-delay: -1.8s;
+}
+
+@keyframes bar-neon-flicker {
+    0%,  92%, 94%, 100% { opacity: 1; }
+    93%                  { opacity: 0.55; }
+    95%, 97%             { opacity: 0.9; }
+    96%                  { opacity: 0.6; }
+}
+
+/* ── Étagères ──────────────────────────────────────────────────────────── */
+.bar-bg__shelves {
+    position: absolute;
+    top: 50px;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    padding: 0 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.bar-shelf {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    padding: 0 8px 4px;
+    /* Planche en bois */
+    background: linear-gradient(180deg,
+        rgba(92,51,14,0.0) 0%,
+        rgba(92,51,14,0.65) 80%,
+        rgba(40,20,4,0.9) 100%);
+    border-bottom: 2px solid rgba(120,70,20,0.6);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.bar-shelf--top { height: 46px; }
+.bar-shelf--mid { height: 40px; }
+
+/* Bouteilles */
+.bar-bottle {
+    display: block;
+    border-radius: 3px 3px 0 0;
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: inset -2px 0 4px rgba(0,0,0,0.3), inset 1px 0 3px rgba(255,255,255,0.1);
+}
+.bar-bottle::before { /* Bouchon */
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40%;
+    height: 5px;
+    border-radius: 2px 2px 0 0;
+    background: rgba(0,0,0,0.5);
+}
+.bar-bottle--tall  { width: 12px; height: 36px; }
+.bar-bottle--round { width: 16px; height: 28px; border-radius: 8px 8px 0 0; }
+
+.bar-bottle--green  { background: linear-gradient(180deg, #166534, #14532d); }
+.bar-bottle--amber  { background: linear-gradient(180deg, #92400e, #78350f); }
+.bar-bottle--blue   { background: linear-gradient(180deg, #1e3a5f, #172b4d); }
+.bar-bottle--purple { background: linear-gradient(180deg, #4c1d95, #3b0764); }
+
+/* Verres */
+.bar-glass {
+    display: block;
+    width: 14px;
+    height: 20px;
+    border: 1.5px solid rgba(200,220,255,0.3);
+    border-top-width: 1px;
+    border-bottom-width: 2px;
+    border-radius: 0 0 3px 3px;
+    background: rgba(180,220,255,0.06);
+    box-shadow: inset 1px 0 3px rgba(255,255,255,0.1);
+    flex-shrink: 0;
+}
+.bar-glass--full {
+    background: linear-gradient(180deg, rgba(16,185,129,0.25) 0%, rgba(16,185,129,0.1) 100%);
+    box-shadow: 0 0 6px rgba(16,185,129,0.2), inset 1px 0 3px rgba(255,255,255,0.15);
+}
+
+/* ── Lumière pendante ──────────────────────────────────────────────────── */
+.bar-bg__pendant-light {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 52px;
+    background: linear-gradient(180deg, rgba(120,70,20,0.8), rgba(180,100,20,0.5));
+    z-index: 3;
+}
+.bar-bg__pendant-light::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 16px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #fde68a, #fbbf24);
+    box-shadow: 0 0 20px 8px rgba(251,191,36,0.45), 0 0 60px 20px rgba(245,158,11,0.2);
+}
+
+.bar-bg__light-cone {
+    position: absolute;
+    top: 68px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left:  90px solid transparent;
+    border-right: 90px solid transparent;
+    border-top:   160px solid rgba(251,191,36,0.06);
+    filter: blur(12px);
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* ── Fumée / particules ────────────────────────────────────────────────── */
+.bar-bg__smoke {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 2;
+    overflow: hidden;
+}
+
+.bar-smoke-particle {
+    position: absolute;
+    bottom: 45%;
+    border-radius: 50%;
+    background: rgba(200,180,140,0.07);
+    filter: blur(8px);
+    animation: bar-smoke-rise linear infinite;
+}
+
+.bar-smoke-particle:nth-child(1) { width: 36px; height: 36px; left: 18%; animation-duration: 11s; animation-delay: 0s;    }
+.bar-smoke-particle:nth-child(2) { width: 28px; height: 28px; left: 40%; animation-duration: 9s;  animation-delay: -3s;   }
+.bar-smoke-particle:nth-child(3) { width: 44px; height: 44px; left: 62%; animation-duration: 13s; animation-delay: -6s;   }
+.bar-smoke-particle:nth-child(4) { width: 20px; height: 20px; left: 78%; animation-duration: 8s;  animation-delay: -1.5s; }
+.bar-smoke-particle:nth-child(5) { width: 32px; height: 32px; left: 28%; animation-duration: 14s; animation-delay: -9s;   }
+
+@keyframes bar-smoke-rise {
+    0%   { transform: translateY(0)   translateX(0)    scale(0.8); opacity: 0; }
+    15%  { opacity: 0.6; }
+    80%  { opacity: 0.3; }
+    100% { transform: translateY(-140px) translateX(20px) scale(1.4); opacity: 0; }
+}
+
+/* ── Zone milieu : barman + comptoir ───────────────────────────────────── */
+.bar-scene-mid {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* ── Barman Gloop ──────────────────────────────────────────────────────── */
+.bar-bartender {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 120px;
+    cursor: pointer;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    z-index: 4;
+}
+
+/* Bulle de dialogue ───────────────────────────────────────────────────── */
+.bar-bubble {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 160px;
+    max-width: min(280px, 85vw);
+    padding: 10px 14px;
+    border-radius: 14px 14px 14px 4px;
+    background: rgba(6,12,28,0.92);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    z-index: 10;
+    animation: bar-bubble-appear 200ms var(--ease-slime, ease) both;
+}
+.bar-bubble::after { /* Queue de bulle */
+    content: '';
+    position: absolute;
+    bottom: -7px;
+    left: 20px;
+    width: 12px;
+    height: 12px;
+    background: rgba(6,12,28,0.92);
+    border-right: 1.5px solid rgba(255,255,255,0.12);
+    border-bottom: 1.5px solid rgba(255,255,255,0.12);
+    clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+.bar-bubble.is-slime .bar-bubble__text {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: #a3e635;
+    letter-spacing: 0.06em;
+}
+.bar-bubble.is-human .bar-bubble__text {
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    color: #e2e8f0;
+    line-height: 1.5;
+}
+
+@keyframes bar-bubble-appear {
+    from { opacity: 0; transform: translateX(-50%) scale(0.88) translateY(6px); }
+    to   { opacity: 1; transform: translateX(-50%) scale(1)    translateY(0); }
+}
+
+/* ── SVG Slime ─────────────────────────────────────────────────────────── */
+.bar-slime {
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.bar-slime__svg {
+    width: 100px;
+    height: 130px;
+    filter: drop-shadow(0 0 10px rgba(16,185,129,0.25));
+    animation: bar-slime-breathe 3.2s ease-in-out infinite;
+    transform-origin: center 60%;
+    transition: filter 150ms ease;
+}
+
+.bar-bartender:hover .bar-slime__svg,
+.bar-bartender:focus .bar-slime__svg {
+    filter: drop-shadow(0 0 18px rgba(16,185,129,0.5));
+}
+
+/* Animation de respiration */
+@keyframes bar-slime-breathe {
+    0%, 100% { transform: scaleY(1)    scaleX(1); }
+    40%       { transform: scaleY(1.03) scaleX(0.98); }
+    70%       { transform: scaleY(0.97) scaleX(1.02); }
+}
+
+/* Phase parole slime — vibration */
+[data-dialogue-phase="slime"] .bar-slime__svg {
+    animation: bar-slime-talk-slime 0.18s ease-in-out infinite;
+}
+@keyframes bar-slime-talk-slime {
+    0%, 100% { transform: rotate(-2deg) scale(1.02); }
+    50%       { transform: rotate(2deg)  scale(0.98); }
+}
+
+/* Phase parole humaine — bouche ouverte simulée */
+[data-dialogue-phase="human"] .bar-slime__mouth {
+    animation: bar-mouth-talk 0.35s ease-in-out infinite;
+}
+@keyframes bar-mouth-talk {
+    0%, 100% { d: path('M 41 92 Q 55 105 69 92'); }
+    50%       { d: path('M 41 96 Q 55 100 69 96'); }
+}
+
+/* Hint clic (pulsation autour du slime) */
+.bar-slime__click-hint {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+}
+.bar-slime__click-ring {
+    display: block;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    border: 2px solid rgba(16,185,129,0.4);
+    animation: bar-click-ring 2s ease-out infinite;
+}
+.bar-slime__click-icon {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.1rem;
+    animation: bar-click-bounce 1.5s ease-in-out infinite;
+}
+@keyframes bar-click-ring {
+    0%   { transform: scale(0.85); opacity: 0.8; }
+    100% { transform: scale(1.5);  opacity: 0; }
+}
+@keyframes bar-click-bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50%       { transform: translateX(-50%) translateY(-5px); }
+}
+
+/* ── Comptoir ──────────────────────────────────────────────────────────── */
+.bar-counter {
+    position: relative;
+    width: 100%;
+    z-index: 3;
+    flex-shrink: 0;
+}
+
+.bar-counter__top {
+    position: relative;
+    height: 18px;
+    background: linear-gradient(90deg,
+        #1c0e04, #5c3410 15%, #8b5120 35%, #6b3d12 55%, #4a2206 80%, #1c0e04);
+    border-top: 2px solid rgba(255,220,150,0.25);
+    box-shadow:
+        0 -2px 12px rgba(245,158,11,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.bar-counter__top-shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg,
+        transparent 0%, rgba(255,255,255,0.06) 30%, rgba(255,255,255,0.12) 50%,
+        rgba(255,255,255,0.06) 70%, transparent 100%);
+}
+.bar-counter__glass {
+    position: absolute;
+    right: 18%;
+    top: -6px;
+    width: 14px;
+    height: 20px;
+    border: 1.5px solid rgba(200,220,255,0.25);
+    border-radius: 0 0 3px 3px;
+    background: rgba(16,185,129,0.12);
+    box-shadow: 0 0 8px rgba(16,185,129,0.2);
+}
+
+.bar-counter__body {
+    height: 72px;
+    background: linear-gradient(180deg,
+        #2d1505 0%, #1a0d04 40%, #0f0703 100%);
+    border-top: 1px solid rgba(92,52,14,0.5);
+    position: relative;
+    overflow: hidden;
+}
+.bar-counter__panel {
+    position: absolute;
+    inset: 8px 12px;
+    border: 1px solid rgba(92,52,14,0.3);
+    border-radius: 4px;
+    background: repeating-linear-gradient(
+        90deg,
+        rgba(255,255,255,0.01) 0px,
+        rgba(255,255,255,0.01) 40px,
+        rgba(0,0,0,0.08) 40px,
+        rgba(0,0,0,0.08) 41px
+    );
+}
+
+/* Tireuse à bière */
+.bar-counter__tap {
+    position: absolute;
+    right: 22%;
+    top: -32px;
+    width: 16px;
+    z-index: 5;
+}
+.bar-counter__tap-head {
+    width: 22px;
+    height: 10px;
+    margin-left: -3px;
+    border-radius: 6px 6px 0 0;
+    background: linear-gradient(180deg, #94a3b8, #64748b);
+    box-shadow: 0 -1px 4px rgba(255,255,255,0.15);
+}
+.bar-counter__tap-pipe {
+    width: 10px;
+    margin-left: 3px;
+    height: 32px;
+    background: linear-gradient(90deg, #475569, #94a3b8 40%, #475569);
+    border-radius: 2px;
+}
+
+/* ── Sol du bar ────────────────────────────────────────────────────────── */
+.bar-floor {
+    position: relative;
+    z-index: 1;
+    height: 60px;
+    background: linear-gradient(180deg,
+        #080503 0%,
+        #0a0604 50%,
+        #06040a 100%);
+    border-top: 1px solid rgba(92,52,14,0.2);
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+.bar-floor__mat {
+    margin-top: 4px;
+    width: 70%;
+    height: 14px;
+    border-radius: 4px;
+    background: repeating-linear-gradient(
+        90deg,
+        rgba(30,15,5,0.9) 0px,
+        rgba(30,15,5,0.9) 10px,
+        rgba(20,10,3,0.9) 10px,
+        rgba(20,10,3,0.9) 20px
+    );
+    border: 1px solid rgba(92,52,14,0.2);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   QUEST PANEL (bottom sheet)
+   ══════════════════════════════════════════════════════════════════════════ */
+.bar-quest-panel {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    z-index: 20;
+    background: linear-gradient(180deg,
+        rgba(6,12,28,0.97) 0%,
+        rgba(4,8,18,0.99) 100%);
+    border-top: 1.5px solid rgba(16,185,129,0.25);
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -8px 40px rgba(0,0,0,0.7),
+                0 -2px 0   rgba(16,185,129,0.1);
+    max-height: 72%;
+    display: flex;
+    flex-direction: column;
+
+    /* Slide-up animation */
+    transform: translateY(100%);
+    transition: transform 350ms var(--ease-slime, cubic-bezier(0.22,1.18,0.28,1));
+}
+.bar-quest-panel.is-open {
+    transform: translateY(0);
+}
+
+.bar-quest-panel__drag-indicator {
+    width: 40px; height: 4px;
+    border-radius: var(--radius-pill);
+    background: rgba(255,255,255,0.15);
+    margin: 10px auto 4px;
+    flex-shrink: 0;
+}
+
+.bar-quest-panel__header {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px 10px;
+    gap: 10px;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.bar-quest-panel__close {
+    margin-left: auto;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.4);
+    font-size: 0.8rem;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: color var(--motion-fast) ease, background var(--motion-fast) ease;
+}
+.bar-quest-panel__close:hover { color: white; background: rgba(255,255,255,0.12); }
+
+.bar-quest-panel__body {
+    flex: 1;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 10px 14px 20px;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Tabs */
+.bar-quest-tabs {
+    display: flex;
+    gap: 6px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 12px;
+    padding: 3px;
+    flex: 1;
+}
+
+.bar-quest-tab {
+    flex: 1;
+    padding: 7px 4px;
+    border-radius: 9px;
+    font-family: var(--font-body);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: rgba(255,255,255,0.35);
+    transition: all var(--motion-fast) ease;
+    touch-action: manipulation;
+}
+.bar-quest-tab.is-active {
+    background: rgba(16,185,129,0.18);
+    color: #6ee7b7;
+    box-shadow: 0 1px 0 rgba(16,185,129,0.2);
+}
+
+/* Labels dans le panneau */
+.bar-quest-panel__day-label,
+.bar-quest-panel__group-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.28);
+    margin: 10px 0 6px;
+}
+
+.bar-quest-panel__empty {
+    text-align: center;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.3);
+    padding: 24px 0;
+}
+
+/* ── Carte de quête ────────────────────────────────────────────────────── */
+.bar-quest-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    margin-bottom: 6px;
+    transition: border-color var(--motion-fast) ease;
+}
+
+.bar-quest-card.is-completed {
+    border-color: rgba(16,185,129,0.3);
+    background: rgba(16,185,129,0.05);
+}
+.bar-quest-card.is-claimed {
+    opacity: 0.5;
+    border-color: rgba(255,255,255,0.04);
+}
+
+.bar-quest-card__left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.bar-quest-card__trophy {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.5));
+}
+
+.bar-quest-card__text { min-width: 0; }
+
+.bar-quest-card__label {
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bar-quest-card__desc {
+    font-family: var(--font-body);
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.38);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bar-quest-card__right {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.bar-quest-card__reward-preview {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(96,165,250,0.55);
+}
+
+.bar-quest-card__claim-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #059669, #10b981);
+    border: none;
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: white;
+    cursor: pointer;
+    touch-action: manipulation;
+    box-shadow: 0 2px 8px rgba(16,185,129,0.35);
+    transition: transform var(--motion-fast) ease, box-shadow var(--motion-fast) ease;
+}
+.bar-quest-card__claim-btn:active { transform: scale(0.94); }
+.bar-quest-card__claim-btn--flash {
+    animation: bar-claim-flash 400ms ease;
+}
+@keyframes bar-claim-flash {
+    0%, 100% { background: linear-gradient(135deg, #059669, #10b981); }
+    50%       { background: linear-gradient(135deg, #fde68a, #f59e0b); box-shadow: 0 0 20px rgba(251,191,36,0.6); }
+}
+
+.bar-quest-card__reward {
+    font-family: var(--font-mono);
+    font-weight: 900;
+}
+
+.bar-quest-card__claimed-badge {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: rgba(52,211,153,0.55);
+    letter-spacing: 0.05em;
+}
+
+/* Barre de progression */
+.bar-quest-card__bar-wrap {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.bar-quest-card__progress-label {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.35);
+    flex-shrink: 0;
+}
+
+.bar-quest-card__bar {
+    flex: 1;
+    height: 4px;
+    border-radius: var(--radius-pill);
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+}
+
+.bar-quest-card__bar-fill {
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(90deg, #059669, #10b981);
+    transition: width 500ms var(--ease-slime, ease);
+    box-shadow: 0 0 6px rgba(16,185,129,0.4);
+    min-width: 0;
+}
+
+.is-completed .bar-quest-card__bar-fill {
+    background: linear-gradient(90deg, #047857, #10b981);
+    box-shadow: 0 0 10px rgba(16,185,129,0.6);
+}
