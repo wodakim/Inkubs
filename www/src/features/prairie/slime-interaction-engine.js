@@ -11,6 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { getPerformanceTier } from '../../utils/device-performance-profile.js';
+import { recordSlimeEvent } from '../../vendor/inku-slime-v3/engine/lifecycle/livingState.js';
 
 // TICK_MS adapts to the active performance tier
 function getTickMs() {
@@ -80,6 +81,181 @@ class SlimeBrain {
     this.statChangeLog.push({ time: Date.now(), stat, oldVal: Math.round(oldVal*10)/10, newVal: Math.round(newVal*10)/10, cause });
     if (this.statChangeLog.length > 40) this.statChangeLog.shift();
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SOCIAL RELATIONSHIP SYSTEM
+//  Writes persistent memories and maintains the canonical relationship ledger
+//  (livingState.relationshipLedger.affinities) that survives withdraw/redeploy.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getSlimeName(slime) {
+    return slime?._canonicalName || 'Inkübus';
+}
+
+/** Returns (or creates) the affinity entry for a given target in a slime's ledger. */
+function getOrInitAffinity(slime, targetId, targetName) {
+    const rl = slime?.livingState?.relationshipLedger;
+    if (!rl) return null;
+    if (!rl.affinities[targetId]) {
+        rl.affinities[targetId] = {
+            displayName: targetName,
+            bias: 0,
+            type: 'neutral',
+            interactionCount: 0,
+            firstMetAt: new Date().toISOString(),
+            lastSeenAt: null,
+            significantEvents: [],
+            // One-shot threshold flags so the same milestone is never written twice
+            crossedFriendly: false,
+            crossedFriend: false,
+            crossedDeepBond: false,
+            crossedHostile: false,
+            crossedRival: false,
+        };
+    }
+    return rl.affinities[targetId];
+}
+
+/** Appends a significant event to the affinity ledger AND writes to the memory ledger. */
+function writeRelMemory(slime, targetId, targetName, eventKind, note) {
+    const rel = getOrInitAffinity(slime, targetId, targetName);
+    if (!rel) return;
+    rel.significantEvents.push({ kind: eventKind, at: new Date().toISOString(), note });
+    if (rel.significantEvents.length > 10) rel.significantEvents.shift();
+    recordSlimeEvent(slime, 'social_' + eventKind, {
+        targetId, targetName, note, relType: rel.type, bias: rel.bias,
+    }, { importance: 'significant', persistLongTerm: true });
+}
+
+/** Syncs bias/type and fires one-shot milestone memories. Called every AI tick per active pair. */
+function updateSocialRelationship(brain, slime, entries, now) {
+    if (!brain.targetId || !slime?.livingState) return;
+    const targetEntry = entries.find(e => e.id === brain.targetId);
+    if (!targetEntry?.slime) return;
+    const targetSlime = targetEntry.slime;
+    const targetName = getSlimeName(targetSlime);
+    const selfName   = getSlimeName(slime);
+
+    // Per-pair runtime throttle data stored on the brain (not persisted, ephemeral)
+    if (!brain._relTrack) brain._relTrack = new Map();
+    let track = brain._relTrack.get(brain.targetId);
+    if (!track) {
+        track = { lastThresholdCheck: 0, lastRomanceMem: 0, lastConflictMem: 0 };
+        brain._relTrack.set(brain.targetId, track);
+    }
+
+    const rel = getOrInitAffinity(slime, brain.targetId, targetName);
+    if (!rel) return;
+
+    // ── First contact ──
+    if (rel.interactionCount === 0) {
+        rel.interactionCount = 1;
+        rel.lastSeenAt = new Date().toISOString();
+        rel.bias = brain.getBias(brain.targetId);
+        writeRelMemory(slime, brain.targetId, targetName, 'first_contact',
+            `Premier contact avec ${targetName}`);
+        // Mirror in target's ledger
+        if (targetSlime.livingState) {
+            const tRel = getOrInitAffinity(targetSlime, brain.selfId, selfName);
+            if (tRel && tRel.interactionCount === 0) {
+                tRel.interactionCount = 1;
+                tRel.lastSeenAt = new Date().toISOString();
+                writeRelMemory(targetSlime, brain.selfId, selfName, 'first_contact',
+                    `Premier contact avec ${selfName}`);
+            }
+        }
+        return;
+    }
+
+    // ── Throttle threshold checks to every 2 seconds ──
+    rel.bias = brain.getBias(brain.targetId);
+    rel.lastSeenAt = new Date().toISOString();
+    rel.displayName = targetName;
+    if (now - track.lastThresholdCheck < 2000) return;
+    track.lastThresholdCheck = now;
+
+    const currentBias = rel.bias;
+
+    // ── Update relationship type ──
+    if (currentBias >= 0.80)       rel.type = 'lover';
+    else if (currentBias >= 0.55)  rel.type = 'friend';
+    else if (currentBias >= 0.25)  rel.type = 'friendly';
+    else if (currentBias <= -0.55) rel.type = 'rival';
+    else if (currentBias <= -0.25) rel.type = 'hostile';
+    else                           rel.type = 'neutral';
+
+    // ── Update social flags ──
+    const rl = slime.livingState.relationshipLedger;
+    const affs = Object.values(rl.affinities);
+    rl.socialFlags.friendships = affs.filter(r => r.type === 'friend' || r.type === 'friendly' || r.type === 'lover').length;
+    rl.socialFlags.rivalries   = affs.filter(r => r.type === 'rival'  || r.type === 'hostile').length;
+    rl.socialFlags.bonded      = affs.some(r => r.type === 'friend' || r.type === 'lover');
+
+    // ── One-shot positive milestones ──
+    if (!rel.crossedFriendly && currentBias >= 0.25) {
+        rel.crossedFriendly = true;
+        writeRelMemory(slime, brain.targetId, targetName, 'friendly_bond',
+            `Amitié naissante avec ${targetName}`);
+    }
+    if (!rel.crossedFriend && currentBias >= 0.55) {
+        rel.crossedFriend = true;
+        writeRelMemory(slime, brain.targetId, targetName, 'true_friend',
+            `Véritable ami de ${targetName}`);
+    }
+    if (!rel.crossedDeepBond && currentBias >= 0.80) {
+        rel.crossedDeepBond = true;
+        writeRelMemory(slime, brain.targetId, targetName, 'deep_bond',
+            `Lien profond avec ${targetName}`);
+    }
+
+    // ── One-shot negative milestones ──
+    if (!rel.crossedHostile && currentBias <= -0.25) {
+        rel.crossedHostile = true;
+        writeRelMemory(slime, brain.targetId, targetName, 'hostility',
+            `Hostilité envers ${targetName}`);
+    }
+    if (!rel.crossedRival && currentBias <= -0.55) {
+        rel.crossedRival = true;
+        writeRelMemory(slime, brain.targetId, targetName, 'rivalry',
+            `Rivalité établie avec ${targetName}`);
+    }
+
+    // ── Romance memory (max once per 60 s) ──
+    if (brain.behavior === 'romance' && currentBias >= 0.25 && now - track.lastRomanceMem > 60000) {
+        track.lastRomanceMem = now;
+        writeRelMemory(slime, brain.targetId, targetName, 'romantic_moment',
+            `Moment romantique avec ${targetName}`);
+    }
+}
+
+/**
+ * Writes a conflict memory for both participants (attacker and victim).
+ * Throttled: at most once per 30 s per pair, per direction.
+ */
+function writeConflictMemoryPair(attacker, attackerId, attackerName, victim, victimId, victimName, now) {
+    const ab = attacker._prairieBrain;
+    if (ab && attacker.livingState) {
+        if (!ab._relTrack) ab._relTrack = new Map();
+        let aTrack = ab._relTrack.get(victimId);
+        if (!aTrack) { aTrack = { lastThresholdCheck: 0, lastRomanceMem: 0, lastConflictMem: 0 }; ab._relTrack.set(victimId, aTrack); }
+        if (now - aTrack.lastConflictMem > 30000) {
+            aTrack.lastConflictMem = now;
+            writeRelMemory(attacker, victimId, victimName, 'conflict',
+                `Confrontation avec ${victimName}`);
+        }
+    }
+    const vb = victim._prairieBrain;
+    if (vb && victim.livingState) {
+        if (!vb._relTrack) vb._relTrack = new Map();
+        let vTrack = vb._relTrack.get(attackerId);
+        if (!vTrack) { vTrack = { lastThresholdCheck: 0, lastRomanceMem: 0, lastConflictMem: 0 }; vb._relTrack.set(attackerId, vTrack); }
+        if (now - vTrack.lastConflictMem > 30000) {
+            vTrack.lastConflictMem = now;
+            writeRelMemory(victim, attackerId, attackerName, 'conflict_victim',
+                `Confronté par ${attackerName}`);
+        }
+    }
 }
 
 // ── Movement primitives ──────────────────────────────────────────────────────
@@ -463,6 +639,12 @@ function execBehavior(brain, slime, others, world, now) {
           const otherStab = sigmoid(target.stats?.stability || 50);
           if (otherStab < 0.45 && ob.behavior !== 'flee' && ob.behavior !== 'recoil')
             startBehavior(ob, otherStab < 0.3 ? 'flee' : 'recoil', brain.selfId, now);
+          // Write conflict memories for both slimes
+          writeConflictMemoryPair(
+            slime, brain.selfId, getSlimeName(slime),
+            target, brain.targetId, getSlimeName(target),
+            now
+          );
         }
       }
       break;
@@ -707,6 +889,11 @@ export class SlimeInteractionEngine {
 
       // Execute
       execBehavior(brain, slime, entries, world, now);
+
+      // Persistent social relationship updates (writes to livingState.relationshipLedger)
+      if (brain.targetId) {
+        updateSocialRelationship(brain, slime, entries, now);
+      }
 
       // Stat micro-learning (very rare)
       if (brain.targetId && Math.random() < 0.003) {

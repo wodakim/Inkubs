@@ -565,6 +565,11 @@ export function createPrairieFeature() {
         for (let i = 0; i < 8; i += 1) {
             slime.update();
         }
+        // Store canonical name for the interaction/memory system
+        slime._canonicalName = record?.identity?.name
+            || record?.canonicalSnapshot?.identity?.name
+            || record?.displayName
+            || 'Inkübus';
         return slime;
     }
 
@@ -1143,6 +1148,24 @@ export function createPrairieFeature() {
                 const biasLabel = bias > 0.3 ? '💚' : bias > 0 ? '🙂' : bias > -0.3 ? '😐' : '😠';
                 const biasColor = bias > 0 ? 'rgba(80,220,120,0.8)' : 'rgba(220,80,80,0.8)';
                 html += `<div class="prairie-obs__bias-row"><span>${biasLabel} ${tName}</span><span style="color:${biasColor}">${bias > 0 ? '+' : ''}${(bias * 100).toFixed(0)}%</span></div>`;
+            }
+        }
+
+        // Canonical relationship memories from living state (persisted across sessions)
+        const relLedger = entry.slime.livingState?.relationshipLedger;
+        if (relLedger && Object.keys(relLedger.affinities || {}).length > 0) {
+            const REL_TYPE_ICONS = { lover: '💕', friend: '💚', friendly: '🙂', neutral: '😐', hostile: '😠', rival: '⚔️' };
+            const REL_TYPE_FR = { lover: 'amoureux', friend: 'ami', friendly: 'sympathique', neutral: 'neutre', hostile: 'hostile', rival: 'rival' };
+            html += '<div class="prairie-obs__bias-title">Mémoire des relations</div>';
+            for (const [, rel] of Object.entries(relLedger.affinities)) {
+                const icon = REL_TYPE_ICONS[rel.type] || '😐';
+                const typeFr = REL_TYPE_FR[rel.type] || rel.type || 'neutre';
+                const biasColor = rel.bias > 0 ? 'rgba(80,220,120,0.8)' : rel.bias < 0 ? 'rgba(220,80,80,0.8)' : 'rgba(180,180,180,0.7)';
+                html += `<div class="prairie-obs__bias-row"><span>${icon} ${rel.displayName || '?'}</span><span style="color:${biasColor}">${typeFr}</span></div>`;
+                const lastEv = rel.significantEvents?.[rel.significantEvents.length - 1];
+                if (lastEv) {
+                    html += `<div class="prairie-obs__stat-change" style="font-style:italic;opacity:0.75;padding-left:8px"><span>${lastEv.note}</span></div>`;
+                }
             }
         }
 
