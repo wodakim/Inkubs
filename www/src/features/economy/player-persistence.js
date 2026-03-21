@@ -38,6 +38,8 @@ export function savePlayerState(player) {
                 sketch:  Number(player.currencies?.sketch)  || 0,
             },
             notificationSettings: player.notificationSettings ?? null,
+            displayName: typeof player.displayName === 'string' ? player.displayName : null,
+            avatarKey:   typeof player.avatarKey   === 'string' ? player.avatarKey   : null,
         };
         localStorage.setItem(PLAYER_STORAGE_KEY, JSON.stringify(data));
     } catch {

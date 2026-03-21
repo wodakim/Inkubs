@@ -10,6 +10,7 @@
     position: fixed;
     inset: 0;
     z-index: 50;
+    overflow: hidden; /* masque le panneau settings quand il est hors-écran à droite */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -309,6 +310,312 @@
 #reset-data-btn:active {
     background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.06));
     transform: scale(0.97);
+}
+
+/* ── Slot buttons (replace locked) ──────────────────────────────────── */
+.profile-slot-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    height: 80px;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 70%),
+        rgba(255, 255, 255, 0.02);
+    color: rgba(16, 185, 129, 0.7);
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all var(--motion-fast) ease;
+    cursor: pointer;
+}
+
+.profile-slot-btn:active {
+    transform: scale(0.95);
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.18) 0%, transparent 70%),
+        rgba(255, 255, 255, 0.04);
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
+/* ── Sélecteur de langue (in-game profile) ──────────────────────────── */
+.profile-lang-btn {
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: rgba(148, 163, 184, 0.5);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.profile-lang-btn.is-active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: rgba(52, 211, 153, 0.95);
+}
+
+/* ── Settings panel ─────────────────────────────────────────────────────
+   Le panneau est un sibling du profile-card dans le profile-modal (fixed inset-0).
+   Il est centré exactement comme la card (same dimensions) et slide depuis la droite.
+   Cette architecture évite tout conflit avec overflow:hidden de la card.
+─────────────────────────────────────────────────────────────────────── */
+.profile-settings-panel {
+    position: absolute;
+    /* Mêmes dimensions que la card (w-[85%] max-w-sm de Tailwind) */
+    width: 85%;
+    max-width: 24rem;
+    /* Centré verticalement et horizontalement dans le modal */
+    top: 50%;
+    left: 50%;
+    /* État initial : déplacé hors écran à droite */
+    transform: translate(calc(-50% + 100vw), -50%);
+    transition: transform var(--motion-medium) var(--ease-spring);
+
+    background: var(--glass-bg, rgba(6, 12, 28, 0.97));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom-color: rgba(16, 185, 129, 0.12);
+    border-radius: 28px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+
+    /* Scroll interne OK ici : pas de parent overflow:hidden qui interfère */
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 90vh;
+
+    z-index: 60; /* au-dessus du modal z-50 */
+}
+
+.profile-settings-panel.is-open {
+    /* Centré exactement comme la card */
+    transform: translate(-50%, -50%);
+}
+
+.profile-settings-panel__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.profile-settings-back {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    transition: all var(--motion-fast) ease;
+}
+
+.profile-settings-back:active {
+    transform: scale(0.9);
+}
+
+.profile-settings-panel__title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-text-primary);
+    letter-spacing: 0.02em;
+}
+
+/* ── Profile settings section ─────────────────────────────────────── */
+.settings-section-label {
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(16, 185, 129, 0.55);
+    margin-bottom: 0.6rem;
+    display: block;
+}
+
+.profile-avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    /* s'assure que la grille ne déborde jamais */
+    width: 100%;
+}
+
+.avatar-option {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 1.5px solid rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(100, 116, 139, 0.7);
+    transition: border-color var(--motion-fast) ease, background var(--motion-fast) ease, color var(--motion-fast) ease;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.avatar-option i {
+    font-size: 1.35rem;
+    pointer-events: none;
+}
+
+.avatar-option:active,
+.avatar-option.is-selected {
+    border-color: rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 0.08);
+    color: var(--color-slime-400);
+}
+
+.profile-name-input {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-md);
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    outline: none;
+    transition: border-color var(--motion-fast) ease;
+    margin-bottom: 0.75rem;
+}
+
+.profile-name-input:focus {
+    border-color: rgba(16, 185, 129, 0.45);
+}
+
+.profile-save-btn {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.06));
+    color: var(--color-slime-400);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all var(--motion-fast) ease;
+}
+
+.profile-save-btn:active {
+    transform: scale(0.97);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(16, 185, 129, 0.12));
+}
+
+/* ── Performance tier section ─────────────────────────────────────── */
+.perf-tier-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 1rem;
+}
+
+.perf-tier-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.025);
+    text-align: left;
+    transition: border-color var(--motion-fast) ease, background var(--motion-fast) ease;
+    cursor: pointer;
+    min-height: 52px;
+}
+
+.perf-tier-btn.is-active {
+    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(16, 185, 129, 0.06);
+}
+
+.perf-tier-btn:active {
+    transform: scale(0.97);
+}
+
+.perf-tier-ph-icon {
+    font-size: 1.15rem;
+    color: rgba(100, 116, 139, 0.7);
+    flex-shrink: 0;
+    transition: color var(--motion-fast) ease;
+}
+
+.perf-tier-btn.is-active .perf-tier-ph-icon {
+    color: var(--color-slime-400);
+}
+
+.perf-tier-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.perf-tier-name {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    letter-spacing: 0;
+    transition: color var(--motion-fast) ease;
+}
+
+.perf-tier-btn.is-active .perf-tier-name {
+    color: var(--color-text-primary);
+}
+
+.perf-tier-desc {
+    font-family: var(--font-body);
+    font-size: 10px;
+    color: rgba(100, 116, 139, 0.6);
+    letter-spacing: 0;
+}
+
+.perf-auto-btn {
+    width: 100%;
+    padding: 0.7rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.025);
+    color: rgba(100, 116, 139, 0.7);
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    transition: all var(--motion-fast) ease;
+    min-height: 44px;
+}
+
+.perf-auto-btn:active {
+    transform: scale(0.97);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-secondary);
 }
 
 /* ═══════ RESET CONFIRM MODAL ════════════════════════════════════════ */

@@ -403,7 +403,10 @@ const stylesheetText = `
 .glass-column {
   position: relative;
   width: min(100%, 280px);
-  height: min(58vh, 420px);
+  /* Hauteur fixe : l'incubateur est un canvas 560×720px mis à l'échelle
+     par CSS transform — vh est inapproprié car il change dynamiquement
+     (barre d'adresse mobile) et provoque un reflow qui décale tout l'incubateur. */
+  height: 420px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -1271,6 +1274,15 @@ const stylesheetText = `
   min-width: 340px;
   align-self: center;
   margin-inline: auto;
+}
+
+.inku-incubator[data-integration-embed-mode="true"] .display-panel__screen {
+  /* Hauteur fixe : candidate-row et idle-hint sont toggles hidden/visible
+     pendant le cycle automatique. Sans min-height, le display-panel
+     rétrécit → le chassis remonte → tout le contenu de l'incubateur
+     "bouge". On fixe une hauteur plancher couvrant la state maximale
+     (candidate-row visible) pour que le chassis reste immobile. */
+  min-height: 110px;
 }
 
 .inku-incubator[data-integration-embed-mode="true"] .chassis {

@@ -8,6 +8,15 @@ export let currentSlime = null;
 export const particles = [];
 export const inputState = { left: false, right: false, jumpQueued: false };
 
+/** Qualité de rendu des slimes — mis à jour par device-performance-profile */
+export let renderQuality = {
+    subsurface:  true,
+    rarityAura:  true,
+    bodyOverlay: true,
+    highlights:  true,
+    rimLight:    true,
+};
+
 export function setCanvas(nextCanvas, nextCtx) {
   canvas = nextCanvas;
   ctx = nextCtx;
@@ -33,4 +42,8 @@ export function pushParticle(particle) {
 
 export function clearParticles() {
   particles.length = 0;
+}
+
+export function setRenderQuality(settings) {
+  renderQuality = { ...renderQuality, ...settings };
 }

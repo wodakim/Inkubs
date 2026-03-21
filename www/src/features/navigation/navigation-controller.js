@@ -44,9 +44,10 @@ export function createNavigationController({ refs, store }) {
 
     refs.navButtons.forEach((button) => {
         const targetIndex = Number(button.dataset.navIndex);
+        const isLocked = button.dataset.locked === 'true';
 
         listeners.listen(button, 'pointerdown', (event) => {
-            if (!event.isPrimary || event.button > 0) {
+            if (!event.isPrimary || event.button > 0 || isLocked) {
                 return;
             }
             flashNavPress(button);
@@ -54,6 +55,7 @@ export function createNavigationController({ refs, store }) {
 
         listeners.listen(button, 'click', (event) => {
             event.stopPropagation();
+            if (isLocked) return;
             setActiveSectionByIndex(targetIndex);
         });
     });

@@ -1,3 +1,9 @@
+const AVATAR_KEYS = new Set(['user', 'robot', 'alien', 'skull', 'ghost', 'flame', 'crown', 'cat']);
+
+function resolveAvatarClass(key) {
+    return `ph-fill ph-${AVATAR_KEYS.has(key) ? key : 'user'}`;
+}
+
 export function createHudController({ refs, store }) {
     function render(player) {
         refs.hudPlayerRole.textContent = player.roleLabel;
@@ -10,6 +16,10 @@ export function createHudController({ refs, store }) {
         refs.modalPlayerXpBar.style.width = player.xpProgress;
         refs.currencyValues.hexagon.textContent = Math.floor(player.currencies.hexagon).toLocaleString('fr-FR');
         refs.currencyValues.sketch.textContent = String(player.currencies.sketch);
+
+        const avatarClass = resolveAvatarClass(player.avatarKey);
+        if (refs.hudPlayerAvatarIcon) refs.hudPlayerAvatarIcon.className = `${avatarClass} text-emerald text-xl`;
+        if (refs.modalPlayerAvatarIcon) refs.modalPlayerAvatarIcon.className = `${avatarClass} text-emerald text-6xl`;
     }
 
     render(store.getState().player);

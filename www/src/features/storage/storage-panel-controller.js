@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n.js';
 import { renderStorageSlots } from './storage-grid-renderer.js';
 import { buildCanonicalPortraitSvg } from './storage-canonical-visual-renderer.js';
 import { sortArchiveInSnapshot } from './storage-sort-service.js';
@@ -80,6 +81,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
     let unsubscribe = null;
     let selectedCanonicalId = null;
     let activeArchiveSortKey = 'rarity';
+    let activeTab = 'team';
     let activePress = null;
     let activeDrag = null;
     let pendingSell = null;
@@ -201,11 +203,20 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             <div class="storage-panel__surface">
                 <header class="storage-panel__header" data-storage-panel-drag-handle>
                     <div>
-                        <p class="storage-panel__eyebrow">Collection</p>
-                        <h2 class="storage-panel__title">Archive</h2>
+                        <p class="storage-panel__eyebrow">${t('storage.collection')}</p>
+                        <h2 class="storage-panel__title">${t('storage.archive_title')}</h2>
                     </div>
-                    <button type="button" class="storage-panel__close" data-storage-close aria-label="Fermer l'archive">×</button>
+                    <button type="button" class="storage-panel__close" data-storage-close aria-label="${t('storage.close_aria')}">×</button>
                 </header>
+
+                <nav class="storage-tab-nav" role="tablist" aria-label="Sections de l'archive">
+                    <button type="button" class="storage-tab-nav__btn is-active" data-storage-tab="team" role="tab" aria-selected="true">
+                        <span class="storage-tab-nav__dot"></span>${t('storage.team_tab')}
+                    </button>
+                    <button type="button" class="storage-tab-nav__btn" data-storage-tab="archive" role="tab" aria-selected="false">
+                        ${t('storage.archive_tab')}
+                    </button>
+                </nav>
 
                 <div class="storage-panel__body" data-storage-scroll-body>
 
@@ -213,7 +224,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
                     <div class="storage-team-showcase">
                         <div class="storage-team-showcase__label">
                             <span class="storage-team-showcase__dot"></span>
-                            Équipe active
+                            ${t('storage.team_active')}
                         </div>
                         <div class="storage-team-showcase__slots storage-team-grid" data-storage-team-grid></div>
                     </div>
@@ -222,12 +233,12 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
                     <div class="storage-pc-box">
 
                         <!-- Nav row : prev · box name · next · sort -->
-                        <div class="storage-pc-box__nav-row" role="toolbar" aria-label="Navigation et tri">
-                            <button type="button" class="storage-pc-box__nav-btn" data-storage-prev aria-label="Boîte précédente">
+                        <div class="storage-pc-box__nav-row" role="toolbar" aria-label="${t('storage.nav_aria')}">
+                            <button type="button" class="storage-pc-box__nav-btn" data-storage-prev aria-label="${t('storage.prev_aria')}">
                                 <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true"><path d="M6.5 1.5L1.5 7L6.5 12.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             </button>
                             <div class="storage-pc-box__box-title">
-                                <span class="storage-pc-box__box-word">Boîte</span>
+                                <span class="storage-pc-box__box-word">${t('storage.box')}</span>
                                 <span class="storage-pc-box__box-num" data-storage-page-number>1</span>
                                 <span class="storage-pc-box__box-label" data-storage-page-label style="display:none"></span>
                                 <div class="storage-pc-box__fill">
@@ -237,13 +248,13 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
                                     <span class="storage-pc-box__fill-count" data-storage-fill-count>0/16</span>
                                 </div>
                             </div>
-                            <button type="button" class="storage-pc-box__nav-btn" data-storage-next aria-label="Boîte suivante">
+                            <button type="button" class="storage-pc-box__nav-btn" data-storage-next aria-label="${t('storage.next_aria')}">
                                 <svg width="8" height="14" viewBox="0 0 8 14" fill="none" aria-hidden="true"><path d="M1.5 1.5L6.5 7L1.5 12.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                             </button>
                             <div class="storage-pc-box__sort-chips">
-                                <button type="button" class="storage-pc-box__sort-btn is-active" data-storage-sort-key="rarity">Rareté</button>
-                                <button type="button" class="storage-pc-box__sort-btn" data-storage-sort-key="level">Niv.</button>
-                                <button type="button" class="storage-pc-box__sort-btn" data-storage-sort-key="type">Type</button>
+                                <button type="button" class="storage-pc-box__sort-btn is-active" data-storage-sort-key="rarity">${t('storage.rarity')}</button>
+                                <button type="button" class="storage-pc-box__sort-btn" data-storage-sort-key="level">${t('storage.level')}</button>
+                                <button type="button" class="storage-pc-box__sort-btn" data-storage-sort-key="type">${t('storage.type')}</button>
                             </div>
                         </div>
 
@@ -263,12 +274,12 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
 
                 </div>
 
-                ${floatingPanel ? '<button type="button" class="storage-panel__resize-handle" data-storage-panel-resize aria-label="Redimensionner le storage"></button>' : ''}
+                ${floatingPanel ? `<button type="button" class="storage-panel__resize-handle" data-storage-panel-resize aria-label="${t('storage.resize_aria')}"></button>` : ''}
             </div>
 
-            <button type="button" class="storage-sell-zone" data-storage-sell-zone aria-label="Panier de revente">
+            <button type="button" class="storage-sell-zone" data-storage-sell-zone aria-label="${t('storage.sell_zone_aria')}">
                 <span class="storage-sell-zone__icon" aria-hidden="true">🛒</span>
-                <span class="storage-sell-zone__label">Revendre</span>
+                <span class="storage-sell-zone__label">${t('storage.sell_label')}</span>
             </button>
 
             <div class="storage-confirm-modal" data-storage-sell-modal hidden aria-hidden="true">
@@ -276,13 +287,13 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
                 <section class="storage-confirm-modal__dialog" aria-label="Confirmer la revente">
                     <div class="storage-confirm-modal__modal-header">
                         <span class="storage-confirm-modal__warn-icon" aria-hidden="true">⚠</span>
-                        <h3 class="storage-confirm-modal__title">Revente</h3>
+                        <h3 class="storage-confirm-modal__title">${t('storage.sell_modal_title')}</h3>
                     </div>
                     <div class="storage-confirm-modal__subject" data-storage-sell-subject></div>
-                    <p class="storage-confirm-modal__copy" data-storage-sell-copy>Cette action est irréversible.</p>
+                    <p class="storage-confirm-modal__copy" data-storage-sell-copy>${t('storage.irreversible')}</p>
                     <div class="storage-confirm-modal__actions">
-                        <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--secondary" data-storage-sell-cancel>Annuler</button>
-                        <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--danger" data-storage-sell-confirm>Revendre</button>
+                        <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--secondary" data-storage-sell-cancel>${t('storage.cancel')}</button>
+                        <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--danger" data-storage-sell-confirm>${t('storage.sell_confirm')}</button>
                     </div>
                 </section>
             </div>
@@ -292,10 +303,10 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
                 <section class="storage-detail-modal__dialog" aria-label="Dossier du slime">
                     <header class="storage-detail-modal__header">
                         <div>
-                            <p class="storage-detail-modal__eyebrow">Profil</p>
-                            <h3 class="storage-detail-modal__title" data-storage-detail-title>Specimen</h3>
+                            <p class="storage-detail-modal__eyebrow">${t('storage.profile_eyebrow')}</p>
+                            <h3 class="storage-detail-modal__title" data-storage-detail-title>${t('storage.specimen')}</h3>
                         </div>
-                        <button type="button" class="storage-detail-modal__close" data-storage-detail-close aria-label="Fermer le dossier">×</button>
+                        <button type="button" class="storage-detail-modal__close" data-storage-detail-close aria-label="${t('storage.close_detail_aria')}">×</button>
                     </header>
                     <div class="storage-detail-modal__content" data-storage-detail-content></div>
                 </section>
@@ -322,6 +333,9 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             sellCopy: root.querySelector('[data-storage-sell-copy]'),
             sellSubject: root.querySelector('[data-storage-sell-subject]'),
             sortChips: [...root.querySelectorAll('[data-storage-sort-key]')],
+            tabBtns: [...root.querySelectorAll('[data-storage-tab]')],
+            teamShowcase: root.querySelector('.storage-team-showcase'),
+            pcBox: root.querySelector('.storage-pc-box'),
             dragHandle: root.querySelector('[data-storage-panel-drag-handle]'),
             resizeHandle: root.querySelector('[data-storage-panel-resize]'),
         };
@@ -337,6 +351,8 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         root.addEventListener('pointerdown', onPointerDown);
 
         mountTarget.appendChild(root);
+        // Init tab state : équipe visible, archive cachée
+        setTab('team');
     }
 
     function ensureRoot() {
@@ -415,12 +431,26 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         render();
     }
 
+    function setTab(tab) {
+        activeTab = tab;
+        const onTeam = tab === 'team';
+        if (refs.teamShowcase) refs.teamShowcase.hidden = !onTeam;
+        if (refs.pcBox) refs.pcBox.hidden = onTeam;
+        refs.tabBtns?.forEach(btn => {
+            const isActive = btn.dataset.storageTab === tab;
+            btn.classList.toggle('is-active', isActive);
+            btn.setAttribute('aria-selected', String(isActive));
+        });
+    }
+
     function open() {
         ensureRoot();
         isOpen = true;
         root.hidden = false;
         root.classList.add('is-open');
         root.setAttribute('aria-hidden', 'false');
+        // Toujours s'ouvrir sur l'onglet Équipe — c'est l'info prioritaire
+        setTab('team');
         // Re-normalize every time the panel opens — catches stale
         // localStorage offsets from a different viewport size
         panelLayout = normalizePanelLayout(panelLayout || {});
@@ -487,6 +517,12 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
     }
 
     function onRootClick(event) {
+        const tabTrigger = event.target.closest?.('[data-storage-tab]');
+        if (tabTrigger) {
+            setTab(tabTrigger.dataset.storageTab);
+            return;
+        }
+
         const closeTrigger = event.target.closest?.('[data-storage-detail-close]');
         if (closeTrigger) {
             closeDetail();

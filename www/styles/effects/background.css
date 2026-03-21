@@ -78,3 +78,20 @@
     33% { transform: translate(2%, -1%) rotate(0.5deg); }
     66% { transform: translate(-1%, 2%) rotate(-0.5deg); }
 }
+
+/* ── Adaptations par palier de performance ──────────────────────────────── */
+
+/* Milieu de gamme : animation plus lente et plus légère */
+[data-perf-tier="medium"] .bg-industrial::before {
+    animation-duration: 40s;
+    opacity: 0.6;
+}
+
+/* Bas de gamme : suppression des effets animés et du bruit */
+[data-perf-tier="low"] .bg-industrial::before {
+    animation: none;
+}
+
+[data-perf-tier="low"] .bg-industrial::after {
+    display: none;
+}

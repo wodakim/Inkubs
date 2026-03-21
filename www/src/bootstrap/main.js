@@ -11,6 +11,13 @@
 
 import { createTitleScreen } from './title-screen.js';
 import { createGameMenuApp }  from './create-game-menu-app.js';
+import { initPerformanceProfile } from '../utils/device-performance-profile.js';
+
+/* ── 0. Détecter les performances du device dès que possible ────────── */
+// Lance la détection (benchmark inclus) pendant le title screen, en tâche
+// de fond. Le tier est mis en cache dans localStorage pour les prochaines
+// sessions. Le CSS data-perf-tier est appliqué dès que le résultat est prêt.
+initPerformanceProfile();
 
 /* ── 1. Créer l'app du jeu (sans l'initialiser encore) ──────────────── */
 const app = createGameMenuApp(document);
@@ -38,6 +45,14 @@ function _bootGame() {
 
 function _initialize() {
     app.initialize();
+
+    // Verrouillage orientation portrait (API native)
+    // Fonctionne sur PWA installée et la majorité des navigateurs mobiles.
+    if (typeof screen !== 'undefined' && screen.orientation?.lock) {
+        screen.orientation.lock('portrait').catch(() => {
+            // Non supporté sur certains navigateurs (ex. iOS Safari standalone) — fallback CSS actif
+        });
+    }
 
     // Synchronisation layout sur les événements environnementaux
     function requestLayoutSync() {
