@@ -156,13 +156,12 @@ function injectStyles() {
 
 /* ── Overlay ──────────────────────────────────────────────── */
 .tuto-overlay{
-    position:fixed;inset:0;z-index:9999;
+    position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;
     display:flex;align-items:flex-end;justify-content:center;
     background:linear-gradient(180deg,rgba(2,8,18,0.6) 0%,rgba(2,8,18,0.82) 55%);
     backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
     animation:tutoFadeIn 0.28s ease;
     touch-action:none;
-    /* Cards need bottom safe-area on the card itself, not the overlay */
 }
 @keyframes tutoFadeIn{from{opacity:0}to{opacity:1}}
 
@@ -397,44 +396,31 @@ function injectStyles() {
     100%{box-shadow:0 0 0 0 rgba(52,211,153,0),0 0 12px rgba(52,211,153,0.3);opacity:1}
 }
 
-/* ── Overlay passthrough (navigate steps) ─────────────────── */
-.tuto-overlay--passthrough{
-    pointer-events:none;
-    /* Blur only the lower portion — currency widget (top ~70px) stays crisp */
-    background:linear-gradient(180deg,rgba(2,8,18,0.0) 0%,rgba(2,8,18,0.0) 68px,rgba(2,8,18,0.55) 120px,rgba(2,8,18,0.72) 100%);
-    backdrop-filter:none;-webkit-backdrop-filter:none;
-    /* Frosted glass from 120px down only */
-    -webkit-mask-image:linear-gradient(180deg,transparent 0,transparent 100px,black 160px,black 100%);
-    mask-image:linear-gradient(180deg,transparent 0,transparent 100px,black 160px,black 100%);
+/* ── Navigate overlay — stops above the nav bar ───────────── */
+/* Inherits position:fixed from .tuto-overlay; override bottom only */
+.tuto-overlay--navigate{
+    bottom:calc(72px + env(safe-area-inset-bottom,0px)) !important;
+    background:linear-gradient(180deg,rgba(2,8,18,0.52) 0%,rgba(2,8,18,0.76) 100%);
+    backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
+    touch-action:none;
 }
-/* Restore blur only below currency zone via pseudo-element */
-.tuto-overlay--passthrough::after{
-    content:'';
-    position:absolute;inset:0;
-    backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
-    -webkit-mask-image:linear-gradient(180deg,transparent 0,transparent 100px,black 160px,black 100%);
-    mask-image:linear-gradient(180deg,transparent 0,transparent 100px,black 160px,black 100%);
-    pointer-events:none;z-index:-1;
-}
-/* Navigate steps: card must not cover the nav bar (~72px) */
-.tuto-overlay--passthrough .tuto-card{
-    pointer-events:auto;
-    margin-bottom:calc(72px + env(safe-area-inset-bottom,0px));
-    border-radius:28px;
+/* Compact card: full border-radius, side margins, no hero */
+.tuto-overlay--navigate .tuto-card{
     border-bottom:1px solid rgba(52,211,153,0.22);
-    /* compact: remove hero to reduce height */
+    border-radius:20px;
+    margin:0 10px 10px;
+    width:calc(100% - 20px);
+    max-width:448px;
+    padding-bottom:4px;
 }
-.tuto-overlay--passthrough .tuto-card__hero{display:none;}
 
 /* ── Interactive spotlight (navigate steps) ───────────────── */
 .tuto-spotlight{
     position:fixed;z-index:10002;pointer-events:auto;cursor:pointer;
-    border:2.5px solid rgba(52,211,153,0.9);
+    border:2.5px solid rgba(52,211,153,0.9);border-radius:50%;
     box-shadow:0 0 0 4px rgba(52,211,153,0.18),0 0 24px rgba(52,211,153,0.35);
     animation:tutoBeaconPulse 1.4s ease-out infinite;
 }
-
-/* .tuto-tap-hint removed — spotlight alone guides the user */
 
 /* ── Skip toast ───────────────────────────────────────────── */
 .tuto-skip-toast{
@@ -450,63 +436,6 @@ function injectStyles() {
     transition:opacity 0.4s;
     white-space:nowrap;
 }
-
-/* ── Floating bubble ──────────────────────────────────────── */
-.tuto-bubble{
-    position:fixed;z-index:10000;pointer-events:auto;
-    max-width:280px;
-    background:
-        repeating-linear-gradient(120deg,rgba(52,211,153,0.018) 0px,rgba(52,211,153,0.018) 1px,transparent 1px,transparent 22px),
-        repeating-linear-gradient(60deg,rgba(52,211,153,0.018) 0px,rgba(52,211,153,0.018) 1px,transparent 1px,transparent 22px),
-        linear-gradient(175deg,rgba(6,18,34,0.98),rgba(2,10,20,0.99));
-    border:1px solid rgba(52,211,153,0.28);
-    border-radius:20px;
-    box-shadow:0 8px 40px rgba(0,0,0,0.7),0 0 0 1px rgba(52,211,153,0.07),inset 0 1px 0 rgba(52,211,153,0.12);
-    animation:tutoBubbleIn 0.32s cubic-bezier(0.16,1,0.3,1);
-    overflow:visible;
-}
-@keyframes tutoBubbleIn{from{transform:scale(0.82);opacity:0}to{transform:scale(1);opacity:1}}
-@keyframes tutoBubbleOut{from{transform:scale(1);opacity:1}to{transform:scale(0.82);opacity:0}}
-.tuto-bubble__arrow-up,.tuto-bubble__arrow-down{
-    position:absolute;left:50%;transform:translateX(-50%);
-    width:0;height:0;pointer-events:none;
-}
-.tuto-bubble__arrow-up{
-    top:-9px;
-    border-left:9px solid transparent;border-right:9px solid transparent;
-    border-bottom:9px solid rgba(52,211,153,0.28);
-}
-.tuto-bubble__arrow-up::after{
-    content:'';position:absolute;top:2px;left:-8px;
-    width:0;height:0;
-    border-left:8px solid transparent;border-right:8px solid transparent;
-    border-bottom:8px solid rgba(2,10,20,0.99);
-}
-.tuto-bubble__arrow-down{
-    bottom:-9px;
-    border-left:9px solid transparent;border-right:9px solid transparent;
-    border-top:9px solid rgba(52,211,153,0.28);
-}
-.tuto-bubble__arrow-down::after{
-    content:'';position:absolute;bottom:2px;left:-8px;
-    width:0;height:0;
-    border-left:8px solid transparent;border-right:8px solid transparent;
-    border-top:8px solid rgba(2,10,20,0.99);
-}
-.tuto-bubble__body-wrap{padding:18px 16px 14px;}
-.tuto-bubble__icon{font-size:1.6rem;line-height:1;margin-bottom:8px;filter:drop-shadow(0 0 8px rgba(52,211,153,0.6));}
-.tuto-bubble__title{font-size:0.98rem;font-weight:800;color:#e2f8ee;margin-bottom:6px;line-height:1.22;}
-.tuto-bubble__body{font-size:0.78rem;color:rgba(186,220,200,0.82);line-height:1.55;margin-bottom:12px;white-space:pre-line;}
-.tuto-bubble__body strong{color:#34d399;font-weight:700;}
-.tuto-bubble__ok{
-    width:100%;min-height:42px;border-radius:12px;
-    background:linear-gradient(135deg,#059669,#34d399);
-    color:#fff;font-size:0.88rem;font-weight:800;
-    border:none;cursor:pointer;touch-action:manipulation;
-    box-shadow:0 3px 12px rgba(52,211,153,0.3);
-    transition:opacity 0.12s,transform 0.12s;
-}
-.tuto-bubble__ok:active{opacity:0.82;transform:scale(0.96);}
 `;
     document.head.appendChild(style);
 }
@@ -521,100 +450,30 @@ function animateCardOut(card, overlay, callback) {
     setTimeout(done, 280); // safety fallback
 }
 
-/* ─── Bulle flottante (steps mode:'bubble') ──────────────────────────── */
-function renderBubbleStep(stepIndex, { onNext, onSkip }) {
-    const data = getStepData(stepIndex);
-    if (!data) return null;
-
-    const beacon = data.targetSelector ? spawnBeacon(data.targetSelector) : null;
-    function cleanupHelpers() { beacon?.remove(); }
-
-    const isLast = stepIndex >= TOTAL_STEPS;
-    const target = data.targetSelector ? document.querySelector(data.targetSelector) : null;
-
-    // Position the bubble near the target, clamped to viewport safe zones.
-    const vw = window.innerWidth;
-    const vh = window.innerHeight;
-    const SAFE_T = 52, SAFE_B = 96, SIDE = 14;
-    const W = Math.min(272, vw - SIDE * 2);
-    const EST_H = 220; // estimated bubble height
-
-    let posTop = vh * 0.32, posLeft = (vw - W) * 0.5;
-    let arrowDir = null, arrowLeft = W * 0.5;
-
-    if (target) {
-        const r = target.getBoundingClientRect();
-        const cx = r.left + r.width * 0.5;
-        const rawL = Math.max(SIDE, Math.min(cx - W * 0.5, vw - W - SIDE));
-        arrowLeft = Math.max(16, Math.min(cx - rawL - 8, W - 28));
-
-        if (r.bottom + 12 + EST_H < vh - SAFE_B) {
-            posTop = r.bottom + 12; arrowDir = 'up';
-        } else if (r.top - 12 - EST_H > SAFE_T) {
-            posTop = r.top - 12 - EST_H; arrowDir = 'down';
-        } else {
-            posTop = Math.max(SAFE_T, Math.min(r.bottom + 8, vh - SAFE_B - EST_H));
-        }
-        posLeft = rawL;
-    }
-
-    const arrowUpHtml  = arrowDir === 'up'
-        ? `<div class="tuto-bubble__arrow-up" style="left:${arrowLeft}px"></div>` : '';
-    const arrowDownHtml = arrowDir === 'down'
-        ? `<div class="tuto-bubble__arrow-down" style="left:${arrowLeft}px"></div>` : '';
-
-    const overlay = document.createElement('div');
-    overlay.className = 'tuto-overlay tuto-overlay--passthrough';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-
-    const bubble = document.createElement('div');
-    bubble.className = 'tuto-bubble';
-    bubble.style.cssText = `left:${posLeft}px;top:${posTop}px;width:${W}px;`;
-    bubble.innerHTML = `
-${arrowUpHtml}
-<button class="tuto-card__close" aria-label="${tr('tuto.skip')}">✕</button>
-<div class="tuto-bubble__body-wrap">
-    <div class="tuto-bubble__icon">${data.icon}</div>
-    <div class="tuto-bubble__title">${tr(data.titleKey)}</div>
-    <div class="tuto-bubble__body">${tr(data.bodyKey)}</div>
-    <button class="tuto-bubble__ok">${isLast ? tr('tuto.start') : tr('tuto.next')}</button>
-</div>
-${arrowDownHtml}`;
-
-    overlay.appendChild(bubble);
-
-    bubble.querySelector('.tuto-card__close').addEventListener('click', () => {
-        cleanupHelpers(); overlay.remove(); onSkip?.();
-    }, { once: true });
-    bubble.querySelector('.tuto-bubble__ok').addEventListener('click', () => {
-        cleanupHelpers();
-        bubble.style.animation = 'tutoBubbleOut 0.2s ease forwards';
-        setTimeout(() => { overlay.remove(); onNext?.(); }, 200);
-    }, { once: true });
-
-    return overlay;
-}
-
-/* ─── Rendu d'une étape de contenu (sheet, indices 1..5) ────────────── */
+/* ─── Rendu d'une étape de contenu (indices 1..TOTAL_STEPS) ─────────── */
+/**
+ * Unique renderer for all content steps.
+ *
+ * Read steps  (interaction:'read')     → full overlay + hero icon + Next button
+ * Navigate steps (interaction:'navigate') → overlay clipped above nav bar +
+ *   compact card (no hero) + spotlight on target that advances the tutorial
+ */
 function renderContentStep(stepIndex, { onNext, onSkip }) {
     const data = getStepData(stepIndex);
     if (!data) return null;
 
-    const beacon = data.targetSelector ? spawnBeacon(data.targetSelector) : null;
-    let spotlight = null;
-
-    function cleanupHelpers() {
-        beacon?.remove();
-        spotlight?.remove();
-    }
-
     const isNavigate = data.interaction === 'navigate';
-    const isLast = stepIndex >= TOTAL_STEPS;
+    const isLast     = stepIndex >= TOTAL_STEPS;
 
+    // Visual helpers
+    const beacon = data.targetSelector && !isNavigate
+        ? spawnBeacon(data.targetSelector) : null;
+    let spotlight = null;
+    const cleanupHelpers = () => { beacon?.remove(); spotlight?.remove(); };
+
+    // Overlay — navigate steps stop above the nav bar (no CSS tricks needed)
     const overlay = document.createElement('div');
-    // Navigate steps: overlay is passthrough so the target nav button stays tappable.
-    overlay.className = `tuto-overlay${isNavigate ? ' tuto-overlay--passthrough' : ''}`;
+    overlay.className = `tuto-overlay${isNavigate ? ' tuto-overlay--navigate' : ''}`;
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
     overlay.setAttribute('aria-label', tr(data.titleKey));
@@ -637,35 +496,37 @@ function renderContentStep(stepIndex, { onNext, onSkip }) {
         affordHtml = `<div class="tuto-afford ${ok ? 'tuto-afford--ok' : 'tuto-afford--ko'}">${ok ? '✓' : '✕'} ⬡ ${balance.toLocaleString()} Inkübits</div>`;
     }
 
-    // Navigate steps show a tap-hint instead of a primary button.
-    // Navigate steps: no button — the spotlight on the nav bar is the only CTA.
+    // Navigate steps: no Next button — the spotlight advances automatically
     const actionsHtml = isNavigate
         ? ''
         : `<div class="tuto-card__actions"><button class="tuto-btn-primary">${isLast ? tr('tuto.start') : tr('tuto.next')}</button></div>`;
 
-    overlay.innerHTML = `
-<div class="tuto-card">
-    <button class="tuto-card__close" aria-label="${tr('tuto.skip')}">✕</button>
+    // Hero only on read steps
+    const heroHtml = isNavigate ? '' : `
     <div class="tuto-card__hero">
         <div class="tuto-card__icon-wrap">
             <span class="tuto-card__icon-glyph">${data.icon}</span>
         </div>
-    </div>
+    </div>`;
+
+    overlay.innerHTML = `
+<div class="tuto-card">
+    <button class="tuto-card__close" aria-label="${tr('tuto.skip')}">✕</button>
+    ${heroHtml}
     <div class="tuto-card__content">
         <div class="tuto-card__step-label">
             <span class="tuto-card__step-dot"></span>${stepLabel}
         </div>
-        <h2 class="tuto-card__title">${tr(data.titleKey)}</h2>
+        <h2 class="tuto-card__title">${data.icon} ${tr(data.titleKey)}</h2>
         ${affordHtml}
         <div class="tuto-card__body">${tr(data.bodyKey)}</div>
     </div>
     <div class="tuto-progress">${progressHtml}</div>
     ${actionsHtml}
-    <div style="height:calc(env(safe-area-inset-bottom,0px) + 8px)"></div>
+    <div style="height:calc(env(safe-area-inset-bottom,0px) + 4px)"></div>
 </div>`;
 
     const card = overlay.querySelector('.tuto-card');
-
     const doSkip = () => { cleanupHelpers(); overlay.remove(); onSkip?.(); };
     const doNext = () => {
         cleanupHelpers();
@@ -677,10 +538,8 @@ function renderContentStep(stepIndex, { onNext, onSkip }) {
 
     if (!isNavigate) {
         overlay.querySelector('.tuto-btn-primary')?.addEventListener('click', doNext, { once: true });
-        // Background tap = skip only for read steps
-        overlay.addEventListener('click', (e) => { if (e.target === overlay) doSkip(); });
     } else {
-        // Spawn spotlight AFTER overlay is added to DOM (needs layout).
+        // Spawn spotlight after DOM insertion (needs layout for getBoundingClientRect)
         requestAnimationFrame(() => {
             if (!data.targetSelector) return;
             spotlight = spawnInteractiveSpotlight(data.targetSelector, doNext);
@@ -759,16 +618,12 @@ export function createTutorialController() {
 
         setTutorialStep(stepIndex);
 
-        const data = getStepData(stepIndex);
         const callbacks = {
             onNext: () => { if (active) runContentStep(stepIndex + 1); },
             onSkip: () => { skip(); },
         };
 
-        const overlay = data?.mode === 'bubble'
-            ? renderBubbleStep(stepIndex, callbacks)
-            : renderContentStep(stepIndex, callbacks);
-
+        const overlay = renderContentStep(stepIndex, callbacks);
         if (overlay) document.body.appendChild(overlay);
     }
 
