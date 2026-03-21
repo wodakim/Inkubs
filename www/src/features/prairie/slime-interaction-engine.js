@@ -258,6 +258,117 @@ function writeConflictMemoryPair(attacker, attackerId, attackerName, victim, vic
     }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  PHASE 2 — COMBAT SYSTEM
+//  Real physical fights: fight_clash behavior, physics knockback,
+//  stat consequences, canonical memories for winner and loser.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Applies a velocity impulse to every Verlet node of a slime (knockback). */
+function applyKnockbackToSlime(slime, vx, vy) {
+    if (!slime?.nodes?.length) return;
+    for (const node of slime.nodes) {
+        if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) continue;
+        node.oldX = node.x - vx;
+        node.oldY = node.y - vy;
+    }
+}
+
+/** Deterministic fight score (random jitter added separately at fight start). */
+function computeFightScore(slime) {
+    const s = slime.stats || {};
+    return (s.ferocity || 50) * 0.5 + (s.vitality || 50) * 0.3 + (s.stability || 50) * 0.2;
+}
+
+/** Applies stat consequences to one fighter and writes the canonical memory. */
+function applyFightStatChanges(slime, brain, won, opponentId, opponentName) {
+    if (!slime?.stats) return;
+    const s = slime.stats;
+    if (won) {
+        const ferocityGain = randRange(1, 3);
+        const vitalityLoss = randRange(0, 1.5);
+        const oldFer = s.ferocity;
+        const oldVit = s.vitality;
+        s.ferocity = Math.min(99, s.ferocity + ferocityGain);
+        s.vitality = Math.max(1,  s.vitality - vitalityLoss);
+        brain.logStatChange('ferocity', oldFer, s.ferocity, 'fight_won');
+        if (vitalityLoss > 0.1) brain.logStatChange('vitality', oldVit, s.vitality, 'fight_won');
+        // Very combative slimes enjoy the fight — slight positive bias toward opponent
+        if (s.ferocity > 68) brain.addBias(opponentId, 0.05);
+        writeRelMemory(slime, opponentId, opponentName, 'fight_won',
+            `A vaincu ${opponentName} au combat`);
+    } else {
+        const vitalityLoss  = randRange(2, 5);
+        const stabilityLoss = randRange(0.5, 3);
+        const oldVit  = s.vitality;
+        const oldStab = s.stability;
+        s.vitality  = Math.max(1, s.vitality  - vitalityLoss);
+        s.stability = Math.max(1, s.stability - stabilityLoss);
+        brain.logStatChange('vitality',  oldVit,  s.vitality,  'fight_lost');
+        brain.logStatChange('stability', oldStab, s.stability, 'fight_lost');
+        brain.addBias(opponentId, -0.12);
+        writeRelMemory(slime, opponentId, opponentName, 'fight_lost',
+            `A été vaincu par ${opponentName}`);
+    }
+}
+
+/**
+ * Resolves a fight_clash between two slimes.
+ * Called once when slimeA's fight_clash expires (brainA._fightTargetId set).
+ * Prevents double-resolution: nulls _fightTargetId on BOTH brains immediately.
+ */
+function resolveFightClash(brainA, slimeA, slimeB, now) {
+    if (!brainA._fightTargetId) return; // already resolved by the other side
+    const brainB = slimeB._prairieBrain;
+
+    // Roll scores (deterministic base + per-fight random jitter stored at start)
+    const scoreA = (brainA._fightScore ?? computeFightScore(slimeA)) + Math.random() * 8;
+    const scoreB = brainB ? ((brainB._fightScore ?? computeFightScore(slimeB)) + Math.random() * 8)
+                          : computeFightScore(slimeB);
+    const aWon = scoreA >= scoreB;
+
+    const winner      = aWon ? slimeA : slimeB;
+    const loser       = aWon ? slimeB : slimeA;
+    const winnerBrain = aWon ? brainA : brainB;
+    const loserBrain  = aWon ? brainB : brainA;
+
+    const idA   = brainA.selfId;
+    const idB   = brainB?.selfId || brainA.targetId;
+    const nameA = getSlimeName(slimeA);
+    const nameB = getSlimeName(slimeB);
+
+    // Null out fight state on BOTH sides FIRST (prevents double-resolution)
+    brainA._fightTargetId = null;
+    brainA._fightScore    = null;
+    if (brainB) { brainB._fightTargetId = null; brainB._fightScore = null; }
+
+    // Stat changes + canonical memories
+    applyFightStatChanges(slimeA, brainA, aWon,  idB, nameB);
+    applyFightStatChanges(slimeB, brainB ?? { logStatChange(){}, addBias(){} }, !aWon, idA, nameA);
+
+    // Interaction log
+    brainA.logInteraction(aWon ? 'fight_won' : 'fight_lost', idB,
+        aWon ? `Victoire contre ${nameB}` : `Défaite contre ${nameB}`);
+    if (brainB) brainB.logInteraction(!aWon ? 'fight_won' : 'fight_lost', idA,
+        !aWon ? `Victoire contre ${nameA}` : `Défaite contre ${nameA}`);
+
+    // Physics: big knockback to loser
+    const loserCenter  = getCenter(loser);
+    const winnerCenter = getCenter(winner);
+    const kDir = Math.sign(loserCenter.x - winnerCenter.x) || 1;
+    applyKnockbackToSlime(loser, kDir * 6, -4);
+
+    // Force loser into recoil
+    if (loserBrain) {
+        startBehavior(loserBrain, 'recoil', winnerBrain ? winnerBrain.selfId : idA, now);
+        loser.triggerAction('hurt', 900, 1.2);
+    }
+    // Winner: brief triumph flash
+    if (winnerBrain) {
+        winner.triggerAction('attack', 600, 1.0);
+    }
+}
+
 // ── Movement primitives ──────────────────────────────────────────────────────
 function moveToward(slime, brain, tx, speedMul) {
   const cx = getCenter(slime).x;
@@ -447,6 +558,7 @@ const DUR = {
   sniff_object:  [2500, 5500],
   play_ball:     [3000, 7000],
   sit_stump:     [3000, 8000],
+  fight_clash:   [3000, 7000],
 };
 
 function startBehavior(brain, name, targetId, now, targetObj) {
@@ -471,8 +583,9 @@ const CHAINS = {
   bond:        ['romance', 'follow', 'observe', 'wander'],
   romance:     ['bond', 'follow', 'wander'],
   investigate: ['approach', 'observe', 'orbit', 'wander'],
-  challenge:   ['intimidate', 'wander'],
+  challenge:   ['fight_clash', 'intimidate', 'wander'],
   intimidate:  ['challenge', 'wander'],
+  fight_clash: ['wander', 'idle_look'],
   flee:        ['wander', 'idle_look'],
   recoil:      ['flee', 'wander'],
   calm:        ['bond', 'observe', 'wander'],
@@ -645,6 +758,52 @@ function execBehavior(brain, slime, others, world, now) {
             target, brain.targetId, getSlimeName(target),
             now
           );
+        }
+      }
+      // ── Escalation to full fight_clash ──
+      if (dist < 72 && Math.random() < 0.007 &&
+          ((s.ferocity || 50) > 52 || brain.getBias(brain.targetId) < -0.35)) {
+        const ob = target?._prairieBrain;
+        if (ob && ob.behavior !== 'flee') {
+          const fightScoreA = computeFightScore(slime)  + Math.random() * 20;
+          const fightScoreB = computeFightScore(target) + Math.random() * 20;
+          startBehavior(brain, 'fight_clash', brain.targetId, now);
+          startBehavior(ob,    'fight_clash', brain.selfId,   now);
+          brain._fightScore    = fightScoreA;
+          brain._fightTargetId = brain.targetId;
+          ob._fightScore       = fightScoreB;
+          ob._fightTargetId    = brain.selfId;
+        }
+      }
+      break;
+    }
+
+    case 'fight_clash': {
+      if (!tc) break;
+      const elapsed = now - brain.startedAt;
+      // Alternate attack (0) / hurt (1) phases every 480ms
+      const fightPhase = Math.floor(elapsed / 480) % 2;
+
+      if (dist > 65) {
+        // Close in fast
+        moveToward(slime, brain, tc.x, 1.0 * energy);
+        if (Math.random() < 0.015 * energy) tryJump(slime, brain, now);
+      } else {
+        faceTo(slime, target);
+        if (fightPhase === 0) {
+          // Attack phase: lunge forward, deliver hit
+          moveToward(slime, brain, tc.x, 0.55 * energy);
+          keepAction(slime, 'attack', 1.0);
+          // Physical impact: knockback to target only at very close range, once per phase
+          if (dist < 48 && (elapsed % 480) < 100) {
+            const kDir = Math.sign(tc.x - sc.x) || 1;
+            applyKnockbackToSlime(target, kDir * 3.5, -2.0);
+            target.triggerAction('hurt', 600, 1.0);
+          }
+        } else {
+          // Hurt phase: brief recoil
+          moveAway(slime, brain, tc.x, 0.3, world);
+          keepAction(slime, 'hurt', 0.9);
         }
       }
       break;
@@ -846,6 +1005,26 @@ export class SlimeInteractionEngine {
       const brain = slime._prairieBrain;
       brain.decayBias();
 
+      // ── Fight resolution: runs when fight_clash expires ──
+      if (brain.behavior === 'fight_clash' && brain._fightTargetId && now >= brain.endsAt) {
+        const ft = entries.find(e => e.id === brain._fightTargetId);
+        if (ft?.slime) {
+          resolveFightClash(brain, slime, ft.slime, now);
+        } else {
+          brain._fightTargetId = null;
+          brain._fightScore    = null;
+        }
+        // If this slime won, resolveFightClash left behavior as fight_clash;
+        // fall through so normal chain selection picks wander/idle_look.
+        // If this slime lost, startBehavior('recoil') was called inside
+        // resolveFightClash and endsAt is in the future — skip chain.
+        if (brain.behavior !== 'fight_clash') {
+          execBehavior(brain, slime, entries, world, now);
+          if (brain.targetId) updateSocialRelationship(brain, slime, entries, now);
+          continue;
+        }
+      }
+
       // Behavior expired → pick next
       if (now >= brain.endsAt) {
         const chain = CHAINS[brain.behavior];
@@ -883,6 +1062,17 @@ export class SlimeInteractionEngine {
         }
 
         startBehavior(brain, next.name, next.target, now, next.obj);
+        // Store fight score when entering fight_clash via chain/re-pick
+        if (next.name === 'fight_clash' && next.target && !brain._fightTargetId) {
+          brain._fightScore    = computeFightScore(slime) + Math.random() * 20;
+          brain._fightTargetId = next.target;
+          const ft = entries.find(e => e.id === next.target);
+          if (ft?.slime?._prairieBrain && !ft.slime._prairieBrain._fightTargetId) {
+            ft.slime._prairieBrain._fightScore    = computeFightScore(ft.slime) + Math.random() * 20;
+            ft.slime._prairieBrain._fightTargetId = brain.selfId;
+            startBehavior(ft.slime._prairieBrain, 'fight_clash', brain.selfId, now);
+          }
+        }
         // Log behavior transition
         brain.logInteraction(next.name, next.target, next.obj ? next.obj.type : '');
       }

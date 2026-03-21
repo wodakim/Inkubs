@@ -1015,6 +1015,7 @@ export function createPrairieFeature() {
         wander: '🌿 Balade', idle_look: '👀 Regarde', explore_jump: '🦘 Explore',
         sniff_object: '🌸 Renifle', play_ball: '⚽ Joue', sit_stump: '🪵 Se pose',
         flee_short: '💨 Esquive',
+        fight_clash: '⚔️ Combat', fight_won: '🏆 Victoire', fight_lost: '💔 Défaite',
     };
 
     const STAT_LABELS = {
@@ -1818,6 +1819,7 @@ export function createPrairieFeature() {
         thinking: ['mm...', 'nrr..', 'huu~', 'zzz..', 'hmm~', 'fuu..', 'nn~'],
         pain:     ['ow!', 'itai!', 'gah!', 'ngh!', 'ouch!', 'kuh!'],
         playful:  ['yay!', 'wee!', 'hehe~', 'pya!', 'boing!', 'wheee!', 'yipee!'],
+        combat:   ['RAGH!', 'krakh!', 'YAKH!', 'HRR!', 'BRAK!', 'kuh-HA!', 'GHK!', 'SRAK!'],
     };
 
     function getEmotionForBehavior(behavior) {
@@ -1829,6 +1831,7 @@ export function createPrairieFeature() {
             flee: 'scared', recoil: 'pain', flee_short: 'scared',
             wander: 'happy', explore_jump: 'playful',
             sniff_object: 'curious', play_ball: 'playful', sit_stump: 'thinking',
+            fight_clash: 'combat',
         };
         return map[behavior] || 'thinking';
     }
@@ -1843,6 +1846,7 @@ export function createPrairieFeature() {
             thinking: 'rgba(220, 225, 240, 0.88)',
             pain: 'rgba(255, 190, 170, 0.92)',
             playful: 'rgba(255, 240, 180, 0.92)',
+            combat: 'rgba(255, 100, 80, 0.95)',
         };
         return colors[emotion] || 'rgba(220, 230, 240, 0.9)';
     }
@@ -1857,6 +1861,7 @@ export function createPrairieFeature() {
             thinking: 'rgba(140, 150, 180, 0.4)',
             pain: 'rgba(200, 90, 70, 0.5)',
             playful: 'rgba(220, 180, 60, 0.5)',
+            combat: 'rgba(200, 40, 20, 0.7)',
         };
         return colors[emotion] || 'rgba(150, 160, 180, 0.4)';
     }
