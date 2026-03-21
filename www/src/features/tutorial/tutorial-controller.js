@@ -1,14 +1,13 @@
 /**
  * tutorial-controller.js
  *
- * Orchestre le tutoriel pas-à-pas.
- * Usage :
- *   const tuto = createTutorialController();
- *   tuto.run(() => { /* appelé quand terminé ou ignoré *\/ });
- *
- * Le tutoriel s'affiche en overlay sur document.body.
- * Il est skippable à tout moment via la croix rouge.
- * L'état est persisté (tutorial-state.js) pour reprendre en cas d'interruption.
+ * Architecture nette :
+ * - Étapes "read"     → carte flottante (4 coins arrondis) en bas d'écran,
+ *                       pas d'overlay bloquant, beacon décoratif sur la cible.
+ * - Étapes "navigate" → spotlight isolé (box-shadow = dim + trou) sur le bouton
+ *                       de nav, carte flottante au-dessus de la nav.
+ * - Aucun backdrop-filter blur (perf + DA).
+ * - Respect strict des safe-zones iOS/Android.
  */
 
 import { getLang, setLang, applyTranslations } from '../../i18n/i18n.js';
@@ -22,91 +21,108 @@ import {
     detectDeviceLang,
 } from './tutorial-state.js';
 
-/* ─── nombre total d'étapes (hors étape 0 langue) ──────────────────── */
-const CONTENT_STEPS = 5; // étapes 1-5 (money, buy, storage, prairie, level)
-const TOTAL_STEPS   = CONTENT_STEPS; // displayed to user (langue = step 0, invisible)
+/* ─── Constantes ─────────────────────────────────────────────────────── */
+const CONTENT_STEPS = 5;
+const TOTAL_STEPS   = CONTENT_STEPS;
 
-/* ─── Helpers visuels ────────────────────────────────────────────────── */
-
-/** Crée un anneau pulsant autour d'un élément DOM. Retourne un handle {remove}. */
-function spawnBeacon(selector) {
-    const target = document.querySelector(selector);
-    if (!target) return null;
-    const r = target.getBoundingClientRect();
-    const size = Math.max(r.width, r.height, 28) + 18;
-    const el = document.createElement('div');
-    el.className = 'tuto-beacon';
-    el.style.left  = `${r.left + r.width  * 0.5}px`;
-    el.style.top   = `${r.top  + r.height * 0.5}px`;
-    el.style.width  = `${size}px`;
-    el.style.height = `${size}px`;
-    document.body.appendChild(el);
-    return { remove: () => el.remove() };
-}
-
-/** Affiche une flèche animée pointant vers un onglet de nav. */
-function spawnNavArrow(navSelector, labelText) {
-    const target = document.querySelector(navSelector);
-    if (!target) return null;
-    const r = target.getBoundingClientRect();
-    const el = document.createElement('div');
-    el.className = 'tuto-nav-arrow';
-    el.innerHTML = `<div class="tuto-nav-arrow__icon">↓</div><div class="tuto-nav-arrow__label">${labelText}</div>`;
-    el.style.left = `${r.left + r.width * 0.5}px`;
-    el.style.transform = 'translateX(-50%)';
-    document.body.appendChild(el);
-    return { remove: () => el.remove() };
-}
-
-/** Lit le solde d'Inkübits courant depuis le HUD DOM. */
-function readBalance() {
-    const el = document.querySelector('[data-currency-value="hexagon"]');
-    return parseInt((el?.textContent || '0').replace(/[^0-9]/g, ''), 10) || 0;
-}
-
-/* ─── i18n helper local ─────────────────────────────────────────────── */
+/* ─── i18n helper ────────────────────────────────────────────────────── */
 function tr(key) {
     const lang = getLang();
     const dict = TRANSLATIONS[lang] ?? TRANSLATIONS.fr;
     return dict[key] ?? TRANSLATIONS.fr[key] ?? key;
 }
 
-/* ─── Données des étapes de contenu (indices 1..5) ──────────────────── */
-// mode: 'sheet' (bottom sheet) | 'bubble' (floating tooltip near target)
-// interaction: 'read' (Next button) | 'navigate' (must tap target to advance)
+/* ─── Données des étapes ─────────────────────────────────────────────── */
 function getStepData(index) {
     const steps = [
-        null, // index 0 = langue (cas spécial)
+        null,
         {
-            icon: '⬡',  titleKey: 'tuto.money.title',   bodyKey: 'tuto.money.body',
-            targetSelector: '[data-currency-value="hexagon"]',
-            mode: 'bubble', interaction: 'read',
+            icon: '⬡',
+            titleKey: 'tuto.money.title',
+            bodyKey:  'tuto.money.body',
+            targetSelector: '[data-currency="hexagon"]',
+            interaction: 'read',
         },
         {
-            icon: '🧪', titleKey: 'tuto.buy.title',     bodyKey: 'tuto.buy.body',
+            icon: '🧪',
+            titleKey: 'tuto.buy.title',
+            bodyKey:  'tuto.buy.body',
             targetSelector: '[data-nav-index="2"]',
-            navLabelKey: 'tuto.nav.labo',
+            interaction: 'navigate',
             showAffordability: true,
-            mode: 'sheet', interaction: 'navigate',
+            tapLabelKey: 'tuto.nav.labo',
         },
         {
-            icon: '📦', titleKey: 'tuto.storage.title', bodyKey: 'tuto.storage.body',
-            targetSelector: null, // no beacon — user is already in the lab
-            mode: 'sheet', interaction: 'read',
+            icon: '📦',
+            titleKey: 'tuto.storage.title',
+            bodyKey:  'tuto.storage.body',
+            targetSelector: null,
+            interaction: 'read',
         },
         {
-            icon: '🌿', titleKey: 'tuto.prairie.title', bodyKey: 'tuto.prairie.body',
+            icon: '🌿',
+            titleKey: 'tuto.prairie.title',
+            bodyKey:  'tuto.prairie.body',
             targetSelector: '[data-nav-index="0"]',
-            navLabelKey: 'tuto.nav.prairie',
-            mode: 'sheet', interaction: 'navigate',
+            interaction: 'navigate',
+            tapLabelKey: 'tuto.nav.prairie',
         },
         {
-            icon: '⭐', titleKey: 'tuto.level.title',   bodyKey: 'tuto.level.body',
-            targetSelector: null, // loupe not yet visible at this point
-            mode: 'sheet', interaction: 'read',
+            icon: '⭐',
+            titleKey: 'tuto.level.title',
+            bodyKey:  'tuto.level.body',
+            targetSelector: null,
+            interaction: 'read',
         },
     ];
     return steps[index] ?? null;
+}
+
+/* ─── Lecture solde ──────────────────────────────────────────────────── */
+function readBalance() {
+    const el = document.querySelector('[data-currency-value="hexagon"]');
+    return parseInt((el?.textContent || '0').replace(/[^0-9]/g, ''), 10) || 0;
+}
+
+/* ─── Beacon décoratif (anneau pulsant, pas de pointer-events) ────────── */
+function spawnBeacon(selector) {
+    const target = document.querySelector(selector);
+    if (!target) return null;
+    const r = target.getBoundingClientRect();
+    const size = Math.max(r.width, r.height, 28) + 20;
+    const el = document.createElement('div');
+    el.className = 'tuto-beacon';
+    el.style.cssText = `
+        left:${r.left + r.width * 0.5}px;
+        top:${r.top + r.height * 0.5}px;
+        width:${size}px;height:${size}px;
+    `;
+    document.body.appendChild(el);
+    return { remove: () => el.remove() };
+}
+
+/* ─── Spotlight interactif (box-shadow = dim + trou cliquable) ────────── */
+function spawnSpotlight(selector, onTap) {
+    const target = document.querySelector(selector);
+    if (!target) return null;
+    const r = target.getBoundingClientRect();
+    const pad = 10;
+    const el = document.createElement('div');
+    el.className = 'tuto-spotlight';
+    el.style.cssText = `
+        left:${r.left - pad}px;
+        top:${r.top - pad}px;
+        width:${r.width + pad * 2}px;
+        height:${r.height + pad * 2}px;
+        border-radius:${Math.min(r.width, r.height) * 0.5 + pad}px;
+    `;
+    el.addEventListener('pointerup', (e) => {
+        e.stopPropagation();
+        el.remove();
+        onTap();
+    }, { once: true });
+    document.body.appendChild(el);
+    return { remove: () => el.remove() };
 }
 
 /* ─── Skip toast ─────────────────────────────────────────────────────── */
@@ -115,340 +131,262 @@ function showSkipToast() {
     el.className = 'tuto-skip-toast';
     el.textContent = tr('tuto.skipped_msg');
     document.body.appendChild(el);
-    setTimeout(() => {
-        el.style.opacity = '0';
-        setTimeout(() => el.remove(), 400);
-    }, 3200);
+    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }, 3000);
 }
 
-/* ─── Spotlight interactif sur la cible ──────────────────────────────── */
-/** Zone transparente et cliquable posée au-dessus de l'élément cible.
- *  Avance le tutoriel quand l'utilisateur la tape. */
-function spawnInteractiveSpotlight(selector, onTap) {
-    const target = document.querySelector(selector);
-    if (!target) return null;
-    const r = target.getBoundingClientRect();
-    const pad = 14;
-    const el = document.createElement('div');
-    el.className = 'tuto-spotlight';
-    el.style.left   = `${r.left   - pad}px`;
-    el.style.top    = `${r.top    - pad}px`;
-    el.style.width  = `${r.width  + pad * 2}px`;
-    el.style.height = `${r.height + pad * 2}px`;
-    el.style.borderRadius = `${Math.min(r.width, r.height) * 0.4 + pad}px`;
-    const handler = (e) => { e.stopPropagation(); el.remove(); onTap(); };
-    el.addEventListener('pointerup', handler, { once: true });
-    document.body.appendChild(el);
-    return { remove: () => el.remove() };
-}
-
-/* ─── Styles injectés une seule fois ────────────────────────────────── */
+/* ─── Styles (injectés une seule fois) ───────────────────────────────── */
 let stylesInjected = false;
 function injectStyles() {
     if (stylesInjected) return;
     stylesInjected = true;
-    const style = document.createElement('style');
-    style.textContent = `
-/* ════════════════════════════════════════════════════════════
-   INKU TUTORIAL — Design System
-   Dark sci-fi lab aesthetic, touch-first, safe-zone aware
-   ════════════════════════════════════════════════════════════ */
+    const s = document.createElement('style');
+    s.textContent = `
+/* ═══════════════════════════════════════════════
+   INKU TUTORIAL — v3 clean
+   Floating cards · Spotlight dim · No blur
+   ═══════════════════════════════════════════════ */
 
-/* ── Overlay ──────────────────────────────────────────────── */
-.tuto-overlay{
-    position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;
-    display:flex;align-items:flex-end;justify-content:center;
-    background:linear-gradient(180deg,rgba(2,8,18,0.6) 0%,rgba(2,8,18,0.82) 55%);
-    backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
-    animation:tutoFadeIn 0.28s ease;
-    touch-action:none;
+/* ── Carte flottante ───────────────────────────── */
+@keyframes tutoCardIn{
+    from{opacity:0;transform:translateX(-50%) translateY(16px) scale(0.97)}
+    to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
 }
-@keyframes tutoFadeIn{from{opacity:0}to{opacity:1}}
-
-/* ── Card slide animations ────────────────────────────────── */
-@keyframes tutoSlideUp{
-    from{transform:translateY(48px) scale(0.97);opacity:0}
-    to{transform:translateY(0) scale(1);opacity:1}
-}
-@keyframes tutoSlideOut{
-    from{transform:translateY(0) scale(1);opacity:1}
-    to{transform:translateY(48px) scale(0.96);opacity:0}
-}
-@keyframes tutoIconBounce{
-    0%{transform:scale(0.3);opacity:0}
-    60%{transform:scale(1.12);opacity:1}
-    80%{transform:scale(0.92)}
-    100%{transform:scale(1)}
-}
-@keyframes tutoIconRing{
-    0%{opacity:0.65;transform:scale(1)}
-    100%{opacity:0;transform:scale(1.8)}
-}
-@keyframes tutoBtnShimmer{
-    0%{left:-90%}
-    100%{left:130%}
-}
-@keyframes tutoPulseGlow{
-    0%,100%{box-shadow:0 4px 18px rgba(52,211,153,0.32),0 0 0 0 rgba(52,211,153,0.3)}
-    50%{box-shadow:0 6px 28px rgba(52,211,153,0.52),0 0 0 7px rgba(52,211,153,0)}
+@keyframes tutoCardOut{
+    from{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+    to{opacity:0;transform:translateX(-50%) translateY(16px) scale(0.96)}
 }
 
-/* ── Card ─────────────────────────────────────────────────── */
 .tuto-card{
-    width:100%;max-width:460px;
-    /* Dark glass with subtle hex-grid texture */
+    position:fixed;
+    left:50%;
+    transform:translateX(-50%);
+    width:calc(100% - 32px);
+    max-width:420px;
+    bottom:calc(20px + env(safe-area-inset-bottom,0px));
+    z-index:10000;
+    border-radius:24px;
     background:
-        repeating-linear-gradient(
-            120deg,
-            rgba(52,211,153,0.018) 0px,rgba(52,211,153,0.018) 1px,
-            transparent 1px,transparent 22px
-        ),
-        repeating-linear-gradient(
-            60deg,
-            rgba(52,211,153,0.018) 0px,rgba(52,211,153,0.018) 1px,
-            transparent 1px,transparent 22px
-        ),
-        linear-gradient(175deg,rgba(6,18,34,0.98) 0%,rgba(2,10,20,0.99) 100%);
+        linear-gradient(175deg,rgba(6,18,36,0.97) 0%,rgba(2,10,22,0.98) 100%);
     border:1px solid rgba(52,211,153,0.22);
-    border-bottom:none;
-    border-radius:28px 28px 0 0;
-    padding:0 0 calc(20px + env(safe-area-inset-bottom,0px)) 0;
     box-shadow:
-        0 -12px 60px rgba(0,0,0,0.7),
-        0 0 0 1px rgba(52,211,153,0.06),
-        inset 0 1px 0 rgba(52,211,153,0.1);
-    animation:tutoSlideUp 0.38s cubic-bezier(0.16,1,0.3,1);
-    position:relative;overflow:hidden;
+        0 8px 40px rgba(0,0,0,0.72),
+        0 0 0 1px rgba(52,211,153,0.05),
+        inset 0 1px 0 rgba(52,211,153,0.09);
+    padding:22px 20px calc(18px + env(safe-area-inset-bottom,0px));
+    animation:tutoCardIn 0.32s cubic-bezier(0.16,1,0.3,1) both;
+    /* accent line */
+    overflow:hidden;
 }
-/* Accent bar at top */
 .tuto-card::before{
     content:'';
-    position:absolute;top:0;left:10%;right:10%;height:2px;
-    background:linear-gradient(90deg,transparent,rgba(52,211,153,0.7) 30%,rgba(5,150,105,0.9) 70%,transparent);
+    position:absolute;top:0;left:12%;right:12%;height:2px;
+    background:linear-gradient(90deg,transparent,rgba(52,211,153,0.65) 30%,rgba(5,150,105,0.85) 70%,transparent);
     border-radius:0 0 4px 4px;
 }
-/* Glow bleed at top */
-.tuto-card::after{
-    content:'';
-    position:absolute;top:0;left:0;right:0;height:80px;
-    background:radial-gradient(ellipse 70% 60% at 50% 0%,rgba(52,211,153,0.07),transparent 80%);
-    pointer-events:none;
-}
-/* Exiting animation */
 .tuto-card.is-exiting{
-    animation:tutoSlideOut 0.22s cubic-bezier(0.4,0,1,1) forwards;
+    animation:tutoCardOut 0.2s cubic-bezier(0.4,0,1,1) forwards;
 }
 
-/* ── Close button ─────────────────────────────────────────── */
+/* Variante navigate : carte au-dessus de la nav */
+.tuto-card--navigate{
+    bottom:calc(104px + env(safe-area-inset-bottom,0px));
+}
+
+/* ── Bouton fermer ─────────────────────────────── */
 .tuto-card__close{
-    position:absolute;top:14px;right:14px;
-    width:40px;height:40px;border-radius:50%;z-index:2;
-    background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);
-    color:rgba(239,68,68,0.85);font-size:1rem;line-height:1;
+    position:absolute;top:12px;right:12px;
+    width:36px;height:36px;border-radius:50%;
+    background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);
+    color:rgba(239,68,68,0.75);font-size:0.9rem;
     display:flex;align-items:center;justify-content:center;
     cursor:pointer;touch-action:manipulation;
-    transition:background 0.15s,transform 0.12s,border-color 0.15s;
+    transition:background 0.12s,transform 0.1s;
+    z-index:1;
 }
-.tuto-card__close:active{background:rgba(239,68,68,0.25);transform:scale(0.88);border-color:rgba(239,68,68,0.45);}
+.tuto-card__close:active{background:rgba(239,68,68,0.22);transform:scale(0.88);}
 
-/* ── Hero icon zone ───────────────────────────────────────── */
+/* ── Hero icon ─────────────────────────────────── */
+@keyframes tutoIconIn{
+    from{transform:scale(0.4);opacity:0}
+    60%{transform:scale(1.1);opacity:1}
+    to{transform:scale(1);opacity:1}
+}
+@keyframes tutoRingPulse{
+    from{opacity:0.5;transform:scale(1)}
+    to{opacity:0;transform:scale(1.75)}
+}
 .tuto-card__hero{
     display:flex;justify-content:center;
-    padding-top:28px;margin-bottom:16px;
+    margin-bottom:14px;
 }
 .tuto-card__icon-wrap{
-    width:76px;height:76px;border-radius:50%;
+    width:68px;height:68px;border-radius:50%;
     display:flex;align-items:center;justify-content:center;
-    background:radial-gradient(circle,rgba(52,211,153,0.14) 0%,rgba(52,211,153,0.04) 60%,transparent 100%);
-    border:1.5px solid rgba(52,211,153,0.28);
-    box-shadow:0 0 24px rgba(52,211,153,0.12),inset 0 0 14px rgba(52,211,153,0.06);
+    background:radial-gradient(circle,rgba(52,211,153,0.12) 0%,rgba(52,211,153,0.03) 60%,transparent);
+    border:1.5px solid rgba(52,211,153,0.25);
+    box-shadow:0 0 20px rgba(52,211,153,0.1);
     position:relative;
-    animation:tutoIconBounce 0.52s cubic-bezier(0.16,1.4,0.4,1) 0.14s both;
+    animation:tutoIconIn 0.48s cubic-bezier(0.16,1.4,0.4,1) 0.12s both;
 }
 .tuto-card__icon-wrap::before{
     content:'';
     position:absolute;inset:-8px;border-radius:50%;
-    border:1px solid rgba(52,211,153,0.15);
-    animation:tutoIconRing 2.2s ease-out 0.3s infinite;
+    border:1px solid rgba(52,211,153,0.14);
+    animation:tutoRingPulse 2s ease-out 0.3s infinite;
 }
 .tuto-card__icon-glyph{
-    font-size:2.2rem;line-height:1;
-    filter:drop-shadow(0 0 10px rgba(52,211,153,0.65));
+    font-size:2rem;line-height:1;
+    filter:drop-shadow(0 0 8px rgba(52,211,153,0.6));
 }
 
-/* ── Content ──────────────────────────────────────────────── */
-.tuto-card__content{
-    padding:0 22px;
-}
+/* ── Contenu ───────────────────────────────────── */
 .tuto-card__step-label{
-    display:flex;align-items:center;gap:8px;
-    font-size:0.62rem;letter-spacing:0.14em;text-transform:uppercase;
-    color:rgba(52,211,153,0.5);margin-bottom:8px;font-weight:700;
+    display:flex;align-items:center;gap:6px;
+    font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;
+    color:rgba(52,211,153,0.48);margin-bottom:6px;font-weight:700;
 }
 .tuto-card__step-dot{
     width:5px;height:5px;border-radius:50%;
-    background:#34d399;
-    box-shadow:0 0 6px #34d399;
-    animation:tutoPulseGlowDot 1.6s ease-in-out infinite;
-    flex-shrink:0;
+    background:#34d399;box-shadow:0 0 6px #34d399;
+    animation:tutoStepDot 1.6s ease-in-out infinite;flex-shrink:0;
 }
-@keyframes tutoPulseGlowDot{
-    0%,100%{opacity:1;transform:scale(1)}
-    50%{opacity:0.55;transform:scale(0.7)}
-}
+@keyframes tutoStepDot{0%,100%{opacity:1}50%{opacity:0.45}}
 .tuto-card__title{
-    font-size:1.22rem;font-weight:800;color:#e2f8ee;
-    margin-bottom:10px;line-height:1.22;
-    text-shadow:0 0 24px rgba(52,211,153,0.18);
+    font-size:1.15rem;font-weight:800;color:#e2f8ee;
+    margin-bottom:8px;line-height:1.2;
+    text-shadow:0 0 20px rgba(52,211,153,0.15);
+    padding-right:32px; /* évite la superposition avec le ✕ */
 }
 .tuto-card__body{
-    font-size:0.84rem;color:rgba(186,220,200,0.82);line-height:1.65;
-    margin-bottom:18px;white-space:pre-line;
+    font-size:0.83rem;color:rgba(186,220,200,0.8);
+    line-height:1.6;margin-bottom:16px;white-space:pre-line;
 }
 .tuto-card__body strong{color:#34d399;font-weight:700;}
 .tuto-card__body em{color:rgba(226,248,238,0.9);font-style:normal;font-weight:600;}
 
-/* ── Affordability pill ───────────────────────────────────── */
+/* ── Pill affordability ────────────────────────── */
 .tuto-afford{
-    display:inline-flex;align-items:center;gap:7px;
-    padding:7px 16px;border-radius:12px;font-size:0.82rem;font-weight:700;
-    margin-bottom:16px;letter-spacing:0.02em;
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 14px;border-radius:10px;
+    font-size:0.8rem;font-weight:700;margin-bottom:14px;
 }
-.tuto-afford--ok{
-    background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.28);
-    color:#4ade80;box-shadow:0 0 12px rgba(74,222,128,0.08);
-}
-.tuto-afford--ko{
-    background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.28);
-    color:#f87171;
-}
+.tuto-afford--ok{background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.25);color:#4ade80;}
+.tuto-afford--ko{background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.25);color:#f87171;}
 
-/* ── Progress track ───────────────────────────────────────── */
+/* ── Progress dots ─────────────────────────────── */
 .tuto-progress{
     display:flex;align-items:center;justify-content:center;
-    gap:5px;margin-bottom:16px;
+    gap:5px;margin-bottom:14px;
 }
 .tuto-progress__dot{
-    height:5px;border-radius:3px;
-    background:rgba(52,211,153,0.18);
-    transition:width 0.28s cubic-bezier(0.16,1,0.3,1),background 0.22s;
-    width:6px;
+    height:4px;border-radius:2px;
+    background:rgba(52,211,153,0.16);
+    transition:width 0.25s cubic-bezier(0.16,1,0.3,1),background 0.2s;
+    width:5px;
 }
-.tuto-progress__dot.is-done{
-    background:rgba(52,211,153,0.45);width:6px;
-}
-.tuto-progress__dot.is-active{
-    background:#34d399;width:24px;
-    box-shadow:0 0 8px rgba(52,211,153,0.55);
-}
+.tuto-progress__dot.is-done{background:rgba(52,211,153,0.4);width:5px;}
+.tuto-progress__dot.is-active{background:#34d399;width:20px;box-shadow:0 0 6px rgba(52,211,153,0.5);}
 
-/* ── Actions ──────────────────────────────────────────────── */
-.tuto-card__actions{
-    padding:0 22px 0;
-    margin-bottom:4px;
+/* ── Bouton principal ──────────────────────────── */
+@keyframes tutoBtnShimmer{from{left:-80%}to{left:120%}}
+@keyframes tutoBtnGlow{
+    0%,100%{box-shadow:0 4px 16px rgba(52,211,153,0.3)}
+    50%{box-shadow:0 6px 24px rgba(52,211,153,0.5)}
 }
 .tuto-btn-primary{
-    width:100%;min-height:52px;border-radius:16px;
+    width:100%;min-height:50px;border-radius:14px;
     background:linear-gradient(135deg,#059669 0%,#34d399 100%);
-    color:#fff;font-size:0.96rem;font-weight:800;letter-spacing:0.02em;
+    color:#fff;font-size:0.94rem;font-weight:800;letter-spacing:0.02em;
     border:none;cursor:pointer;touch-action:manipulation;
     position:relative;overflow:hidden;
-    box-shadow:0 4px 18px rgba(52,211,153,0.32);
-    animation:tutoPulseGlow 2.6s ease-in-out 0.6s infinite;
-    transition:opacity 0.12s,transform 0.12s;
+    box-shadow:0 4px 16px rgba(52,211,153,0.3);
+    animation:tutoBtnGlow 2.4s ease-in-out 0.5s infinite;
+    transition:opacity 0.1s,transform 0.1s;
 }
 .tuto-btn-primary::after{
     content:'';
-    position:absolute;top:0;width:55%;height:100%;
-    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);
-    animation:tutoBtnShimmer 2.8s ease-in-out 1.2s infinite;
+    position:absolute;top:0;width:50%;height:100%;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,0.16),transparent);
+    animation:tutoBtnShimmer 2.6s ease-in-out 1s infinite;
 }
-.tuto-btn-primary:active{opacity:0.82;transform:scale(0.97);}
+.tuto-btn-primary:active{opacity:0.8;transform:scale(0.97);}
 
-/* ── Language step ────────────────────────────────────────── */
-.tuto-lang-btns{
-    display:flex;gap:12px;margin-bottom:4px;
-    padding:0 22px;
+/* ── Hint tap (navigate steps) ─────────────────── */
+.tuto-tap-hint{
+    display:inline-flex;align-items:center;gap:6px;
+    font-size:0.76rem;font-weight:700;letter-spacing:0.04em;
+    color:rgba(52,211,153,0.65);margin-bottom:12px;
+    animation:tutoStepDot 1.6s ease-in-out infinite;
 }
+
+/* ── Étape langue ──────────────────────────────── */
+.tuto-lang-btns{display:flex;gap:10px;margin-top:4px;}
 .tuto-lang-btn{
-    flex:1;min-height:56px;border-radius:16px;
-    background:rgba(52,211,153,0.06);border:1.5px solid rgba(52,211,153,0.2);
-    color:#e2f8ee;font-size:1rem;font-weight:700;
+    flex:1;min-height:52px;border-radius:14px;
+    background:rgba(52,211,153,0.05);border:1.5px solid rgba(52,211,153,0.18);
+    color:#e2f8ee;font-size:0.96rem;font-weight:700;
     cursor:pointer;touch-action:manipulation;
-    transition:background 0.15s,border-color 0.15s,transform 0.12s,box-shadow 0.15s;
+    transition:background 0.14s,border-color 0.14s,transform 0.1s;
 }
-.tuto-lang-btn:active{background:rgba(52,211,153,0.16);transform:scale(0.97);}
+.tuto-lang-btn:active{background:rgba(52,211,153,0.14);transform:scale(0.97);}
 .tuto-lang-btn.is-selected{
-    background:rgba(52,211,153,0.14);border-color:#34d399;
-    box-shadow:0 0 0 2px rgba(52,211,153,0.14),0 0 16px rgba(52,211,153,0.12);
+    background:rgba(52,211,153,0.12);border-color:#34d399;
+    box-shadow:0 0 0 2px rgba(52,211,153,0.12),0 0 14px rgba(52,211,153,0.1);
 }
 
-/* ── Beacon spotlight ─────────────────────────────────────── */
+/* ── Beacon décoratif (pointer-events:none) ────── */
+@keyframes tutoBeacon{
+    0%{box-shadow:0 0 0 0 rgba(52,211,153,0.5),0 0 10px rgba(52,211,153,0.25);opacity:1}
+    70%{box-shadow:0 0 0 16px rgba(52,211,153,0),0 0 18px rgba(52,211,153,0);opacity:0.7}
+    100%{box-shadow:0 0 0 0 rgba(52,211,153,0),0 0 10px rgba(52,211,153,0.25);opacity:1}
+}
 .tuto-beacon{
-    position:fixed;border-radius:50%;pointer-events:none;z-index:10001;
-    border:2.5px solid rgba(52,211,153,0.9);
-    animation:tutoBeaconPulse 1.6s ease-out infinite;
+    position:fixed;border-radius:50%;
+    pointer-events:none;z-index:10001;
+    border:2px solid rgba(52,211,153,0.85);
+    animation:tutoBeacon 1.7s ease-out infinite;
     transform:translate(-50%,-50%);
 }
-@keyframes tutoBeaconPulse{
-    0%{box-shadow:0 0 0 0 rgba(52,211,153,0.5),0 0 12px rgba(52,211,153,0.3);opacity:1}
-    60%{box-shadow:0 0 0 18px rgba(52,211,153,0),0 0 20px rgba(52,211,153,0);opacity:0.8}
-    100%{box-shadow:0 0 0 0 rgba(52,211,153,0),0 0 12px rgba(52,211,153,0.3);opacity:1}
-}
 
-/* ── Compact card variant (navigate steps) ────────────────── */
-/* Full overlay is kept; only the card style differs */
-.tuto-card--compact{
-    /* Leave space for the nav bar so spotlight is visible */
-    margin-bottom:calc(80px + env(safe-area-inset-bottom,0px));
-    border-radius:20px;
-    border-bottom:1px solid rgba(52,211,153,0.22);
-}
-
-/* ── Interactive spotlight (navigate steps) ───────────────── */
+/* ── Spotlight (dim + trou cliquable) ──────────── */
 .tuto-spotlight{
-    position:fixed;z-index:10002;pointer-events:auto;cursor:pointer;
-    border:2.5px solid rgba(52,211,153,0.9);border-radius:50%;
-    box-shadow:0 0 0 4px rgba(52,211,153,0.18),0 0 24px rgba(52,211,153,0.35);
-    animation:tutoBeaconPulse 1.4s ease-out infinite;
+    position:fixed;z-index:10001;
+    cursor:pointer;pointer-events:auto;
+    border:2px solid rgba(52,211,153,0.9);
+    /* box-shadow crée le dim autour du trou */
+    box-shadow:
+        0 0 0 9999px rgba(2,8,20,0.72),
+        0 0 0 4px rgba(52,211,153,0.15),
+        0 0 20px rgba(52,211,153,0.3);
+    animation:tutoBeacon 1.5s ease-out infinite;
 }
 
-/* ── Skip toast ───────────────────────────────────────────── */
+/* ── Skip toast ────────────────────────────────── */
 .tuto-skip-toast{
     position:fixed;z-index:99999;pointer-events:none;
-    bottom:calc(88px + env(safe-area-inset-bottom,0px));
+    bottom:calc(92px + env(safe-area-inset-bottom,0px));
     left:50%;transform:translateX(-50%);
-    background:rgba(6,16,30,0.96);
-    border:1px solid rgba(52,211,153,0.28);
-    border-radius:14px;padding:11px 20px;
-    font-size:0.81rem;font-weight:600;color:#e2f8ee;
-    text-align:center;max-width:calc(100vw - 48px);
-    box-shadow:0 4px 24px rgba(0,0,0,0.55);
-    transition:opacity 0.4s;
-    white-space:nowrap;
+    background:rgba(4,10,24,0.95);
+    border:1px solid rgba(52,211,153,0.25);
+    border-radius:12px;padding:10px 18px;
+    font-size:0.8rem;font-weight:600;color:#e2f8ee;
+    text-align:center;max-width:calc(100vw - 40px);
+    box-shadow:0 4px 20px rgba(0,0,0,0.5);
+    transition:opacity 0.4s;white-space:nowrap;
 }
 `;
-    document.head.appendChild(style);
+    document.head.appendChild(s);
 }
 
-/* ─── Transition sortie d'une carte vers la suivante ────────────────── */
-function animateCardOut(card, overlay, callback) {
+/* ─── Transition sortie ──────────────────────────────────────────────── */
+function animateCardOut(card, callback) {
     card.classList.add('is-exiting');
-    const done = () => { overlay.remove(); callback?.(); };
-    // Use animation end for reliability, with a fallback timeout.
-    const onEnd = () => { card.removeEventListener('animationend', onEnd); done(); };
-    card.addEventListener('animationend', onEnd);
-    setTimeout(done, 280); // safety fallback
+    const done = () => { card.removeEventListener('animationend', done); callback?.(); };
+    card.addEventListener('animationend', done);
+    setTimeout(callback, 250); // fallback
 }
 
-/* ─── Rendu d'une étape de contenu (indices 1..TOTAL_STEPS) ─────────── */
-/**
- * Unique renderer for all content steps.
- *
- * Read steps  (interaction:'read')     → full overlay + hero icon + Next button
- * Navigate steps (interaction:'navigate') → overlay clipped above nav bar +
- *   compact card (no hero) + spotlight on target that advances the tutorial
- */
+/* ─── Rendu étape de contenu ─────────────────────────────────────────── */
 function renderContentStep(stepIndex, { onNext, onSkip }) {
     const data = getStepData(stepIndex);
     if (!data) return null;
@@ -456,44 +394,29 @@ function renderContentStep(stepIndex, { onNext, onSkip }) {
     const isNavigate = data.interaction === 'navigate';
     const isLast     = stepIndex >= TOTAL_STEPS;
 
-    // Beacon only on read steps with a visible non-nav target
-    const beacon = data.targetSelector && !isNavigate
-        ? spawnBeacon(data.targetSelector) : null;
+    // Helpers visuels
+    let beacon    = null;
     let spotlight = null;
-    const cleanupHelpers = () => { beacon?.remove(); spotlight?.remove(); };
+    const cleanup = () => { beacon?.remove(); spotlight?.remove(); };
 
-    // All steps: full-screen overlay. Navigate steps use spotlight (z:10002)
-    // above the overlay to expose only the target button — no partial overlay.
-    const overlay = document.createElement('div');
-    overlay.className = 'tuto-overlay';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-label', tr(data.titleKey));
-
-    const stepLabel = tr('tuto.step_of')
-        .replace('{n}', stepIndex).replace('{total}', TOTAL_STEPS);
-
-    // Progress dots
+    // Progress dots HTML
     let progressHtml = '';
     for (let i = 1; i <= TOTAL_STEPS; i++) {
         const cls = i === stepIndex ? ' is-active' : i < stepIndex ? ' is-done' : '';
         progressHtml += `<div class="tuto-progress__dot${cls}"></div>`;
     }
 
-    // Affordability pill (step 2)
+    // Pill affordability (étape 2)
     let affordHtml = '';
     if (data.showAffordability) {
-        const balance = readBalance();
-        const ok = balance > 0;
-        affordHtml = `<div class="tuto-afford ${ok ? 'tuto-afford--ok' : 'tuto-afford--ko'}">${ok ? '✓' : '✕'} ⬡ ${balance.toLocaleString()} Inkübits</div>`;
+        const bal = readBalance();
+        const ok  = bal > 0;
+        affordHtml = `<div class="tuto-afford ${ok ? 'tuto-afford--ok' : 'tuto-afford--ko'}">${ok ? '✓' : '✕'} ⬡ ${bal.toLocaleString()} Inkübits</div>`;
     }
 
-    // Navigate steps: no Next button — the spotlight advances automatically
-    const actionsHtml = isNavigate
-        ? ''
-        : `<div class="tuto-card__actions"><button class="tuto-btn-primary">${isLast ? tr('tuto.start') : tr('tuto.next')}</button></div>`;
+    const stepLabel = tr('tuto.step_of').replace('{n}', stepIndex).replace('{total}', TOTAL_STEPS);
 
-    // Hero only on read steps
+    // Hero (lecture uniquement)
     const heroHtml = isNavigate ? '' : `
     <div class="tuto-card__hero">
         <div class="tuto-card__icon-wrap">
@@ -501,85 +424,97 @@ function renderContentStep(stepIndex, { onNext, onSkip }) {
         </div>
     </div>`;
 
-    overlay.innerHTML = `
-<div class="tuto-card${isNavigate ? ' tuto-card--compact' : ''}">
-    <button class="tuto-card__close" aria-label="${tr('tuto.skip')}">✕</button>
-    ${heroHtml}
-    <div class="tuto-card__content">
+    // Actions
+    const actionsHtml = isNavigate
+        ? '' // spotlight avance le tuto
+        : `<button class="tuto-btn-primary">${isLast ? tr('tuto.start') : tr('tuto.next')}</button>`;
+
+    // Instruction tap (navigate) — label traduit du bouton cible
+    const tapHintHtml = isNavigate && data.tapLabelKey
+        ? `<div class="tuto-tap-hint">↓ ${tr(data.tapLabelKey)}</div>`
+        : '';
+
+    // Création de la carte (fixed, flottante)
+    const card = document.createElement('div');
+    card.className = `tuto-card${isNavigate ? ' tuto-card--navigate' : ''}`;
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    card.setAttribute('aria-label', tr(data.titleKey));
+
+    card.innerHTML = `
+        <button class="tuto-card__close" aria-label="${tr('tuto.skip')}">✕</button>
+        ${heroHtml}
         <div class="tuto-card__step-label">
             <span class="tuto-card__step-dot"></span>${stepLabel}
         </div>
-        <h2 class="tuto-card__title">${data.icon} ${tr(data.titleKey)}</h2>
+        <div class="tuto-card__title">${data.icon} ${tr(data.titleKey)}</div>
         ${affordHtml}
         <div class="tuto-card__body">${tr(data.bodyKey)}</div>
-    </div>
-    <div class="tuto-progress">${progressHtml}</div>
-    ${actionsHtml}
-    <div style="height:calc(env(safe-area-inset-bottom,0px) + 4px)"></div>
-</div>`;
+        ${tapHintHtml}
+        <div class="tuto-progress">${progressHtml}</div>
+        ${actionsHtml}
+    `;
 
-    const card = overlay.querySelector('.tuto-card');
-    const doSkip = () => { cleanupHelpers(); overlay.remove(); onSkip?.(); };
+    const doSkip = () => { cleanup(); card.remove(); onSkip?.(); };
     const doNext = () => {
-        cleanupHelpers();
-        if (isLast) { overlay.remove(); onNext?.(); }
-        else { animateCardOut(card, overlay, onNext); }
+        cleanup();
+        if (isLast) { card.remove(); onNext?.(); }
+        else { animateCardOut(card, () => { card.remove(); onNext?.(); }); }
     };
 
-    overlay.querySelector('.tuto-card__close').addEventListener('click', doSkip, { once: true });
+    card.querySelector('.tuto-card__close').addEventListener('click', doSkip, { once: true });
+    card.querySelector('.tuto-btn-primary')?.addEventListener('click', doNext, { once: true });
 
-    if (!isNavigate) {
-        overlay.querySelector('.tuto-btn-primary')?.addEventListener('click', doNext, { once: true });
-    } else {
-        // Spawn spotlight after DOM insertion (needs layout for getBoundingClientRect)
-        requestAnimationFrame(() => {
-            if (!data.targetSelector) return;
-            spotlight = spawnInteractiveSpotlight(data.targetSelector, doNext);
-        });
-    }
+    document.body.appendChild(card);
 
-    return overlay;
+    // Helpers post-insertion (besoin du layout)
+    requestAnimationFrame(() => {
+        if (isNavigate && data.targetSelector) {
+            spotlight = spawnSpotlight(data.targetSelector, doNext);
+        } else if (data.targetSelector) {
+            beacon = spawnBeacon(data.targetSelector);
+        }
+    });
+
+    return card;
 }
 
-/* ─── Rendu de l'étape langue (étape 0) ─────────────────────────────── */
+/* ─── Rendu étape langue ─────────────────────────────────────────────── */
 function renderLangStep({ onChose }) {
-    const overlay = document.createElement('div');
-    overlay.className = 'tuto-overlay';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-label', tr('tuto.lang.title'));
-
     const currentLang = getLang();
 
-    overlay.innerHTML = `
-<div class="tuto-card">
-    <div class="tuto-card__hero">
-        <div class="tuto-card__icon-wrap">
-            <span class="tuto-card__icon-glyph">🌍</span>
-        </div>
-    </div>
-    <div class="tuto-card__content">
-        <h2 class="tuto-card__title">${tr('tuto.lang.title')}</h2>
-        <div class="tuto-card__body">${tr('tuto.lang.body')}</div>
-    </div>
-    <div class="tuto-lang-btns">
-        <button class="tuto-lang-btn${currentLang === 'fr' ? ' is-selected' : ''}" data-lang="fr">${tr('tuto.lang.fr')}</button>
-        <button class="tuto-lang-btn${currentLang === 'en' ? ' is-selected' : ''}" data-lang="en">${tr('tuto.lang.en')}</button>
-    </div>
-    <div style="height:calc(env(safe-area-inset-bottom,0px))"></div>
-</div>`;
+    const card = document.createElement('div');
+    card.className = 'tuto-card';
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    card.setAttribute('aria-label', tr('tuto.lang.title'));
 
-    overlay.querySelectorAll('.tuto-lang-btn').forEach(btn => {
+    card.innerHTML = `
+        <div class="tuto-card__hero">
+            <div class="tuto-card__icon-wrap">
+                <span class="tuto-card__icon-glyph">🌍</span>
+            </div>
+        </div>
+        <div class="tuto-card__title">${tr('tuto.lang.title')}</div>
+        <div class="tuto-card__body">${tr('tuto.lang.body')}</div>
+        <div class="tuto-lang-btns">
+            <button class="tuto-lang-btn${currentLang === 'fr' ? ' is-selected' : ''}" data-lang="fr">${tr('tuto.lang.fr')}</button>
+            <button class="tuto-lang-btn${currentLang === 'en' ? ' is-selected' : ''}" data-lang="en">${tr('tuto.lang.en')}</button>
+        </div>
+    `;
+
+    card.querySelectorAll('.tuto-lang-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const lang = btn.dataset.lang;
             setLang(lang);
             markLangChosen();
-            overlay.remove();
+            card.remove();
             onChose?.(lang);
         });
     });
 
-    return overlay;
+    document.body.appendChild(card);
+    return card;
 }
 
 /* ─── Contrôleur principal ───────────────────────────────────────────── */
@@ -600,29 +535,18 @@ export function createTutorialController() {
         onCompleteCallback?.();
     }
 
-    /**
-     * Lance l'étape de contenu stepIndex (1..TOTAL_STEPS).
-     * Dispatche vers renderBubbleStep (mode:'bubble') ou renderContentStep (mode:'sheet').
-     */
     function runContentStep(stepIndex) {
         if (!active) return;
         if (stepIndex > TOTAL_STEPS) { finish(); return; }
 
         setTutorialStep(stepIndex);
 
-        const callbacks = {
+        renderContentStep(stepIndex, {
             onNext: () => { if (active) runContentStep(stepIndex + 1); },
             onSkip: () => { skip(); },
-        };
-
-        const overlay = renderContentStep(stepIndex, callbacks);
-        if (overlay) document.body.appendChild(overlay);
+        });
     }
 
-    /**
-     * Lance le tuto depuis le début.
-     * Passe par l'étape langue si la langue n'a pas encore été choisie.
-     */
     function run(onComplete) {
         if (isTutorialDone()) { onComplete?.(); return; }
         if (active) return;
@@ -634,25 +558,18 @@ export function createTutorialController() {
         const state = getTutorialState();
 
         if (!state.langChosen) {
-            // Auto-détecter et pré-appliquer la langue avant de montrer le picker.
             const detected = detectDeviceLang();
             setLang(detected);
             applyTranslations(document);
 
-            const overlay = renderLangStep({
+            renderLangStep({
                 onChose: (lang) => {
-                    // Re-apply translations in case language changed
                     applyTranslations(document);
-                    // Start from step 1 (or resume)
-                    const resumeFrom = Math.max(1, (state.step ?? 0) + 1 > 1 ? state.step + 1 : 1);
-                    runContentStep(resumeFrom);
+                    runContentStep(Math.max(1, state.step > 0 ? state.step + 1 : 1));
                 },
             });
-            document.body.appendChild(overlay);
         } else {
-            // Langue déjà choisie — reprendre à la dernière étape non terminée.
-            const resumeFrom = Math.max(1, (state.step ?? 0) + 1);
-            runContentStep(resumeFrom);
+            runContentStep(Math.max(1, (state.step ?? 0) + 1));
         }
     }
 
