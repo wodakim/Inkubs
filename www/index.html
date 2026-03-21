@@ -27,6 +27,11 @@
     <link rel="stylesheet" href="./styles/features/rarity-notifications.css">
 </head>
 <body class="relative flex flex-col items-center justify-between max-w-md mx-auto w-full shadow-2xl overflow-hidden">
+    <!-- Overlay paysage : affiché si l'API orientation.lock() échoue (ex. iOS Safari) -->
+    <div id="rotate-prompt" aria-live="polite" role="alert">
+        <i class="ph-bold ph-device-mobile-camera rotate-prompt__icon"></i>
+        <p class="rotate-prompt__text">Tourne ton téléphone<br>pour jouer</p>
+    </div>
     <!-- data-menu-active="false" masque le shell pendant l'écran titre.
          Il passe à "true" via app.initialize() au clic sur PLAY. -->
     <div id="app-shell" class="app-shell relative flex flex-col items-center justify-between max-w-md mx-auto w-full h-full overflow-hidden" data-app-shell data-menu-active="false">

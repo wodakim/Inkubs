@@ -46,6 +46,14 @@ function _bootGame() {
 function _initialize() {
     app.initialize();
 
+    // Verrouillage orientation portrait (API native)
+    // Fonctionne sur PWA installée et la majorité des navigateurs mobiles.
+    if (typeof screen !== 'undefined' && screen.orientation?.lock) {
+        screen.orientation.lock('portrait').catch(() => {
+            // Non supporté sur certains navigateurs (ex. iOS Safari standalone) — fallback CSS actif
+        });
+    }
+
     // Synchronisation layout sur les événements environnementaux
     function requestLayoutSync() {
         app.requestLayoutSync();

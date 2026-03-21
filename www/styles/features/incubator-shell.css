@@ -190,3 +190,52 @@
     opacity: 0.4;
     cursor: not-allowed;
 }
+
+/* ═══════ OVERLAY ORIENTATION PAYSAGE ════════════════════════════════ */
+/* Fallback CSS quand screen.orientation.lock() n'est pas supporté     */
+
+#rotate-prompt {
+    display: none; /* caché par défaut (portrait) */
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #050c18;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    text-align: center;
+    padding: 2rem;
+}
+
+.rotate-prompt__icon {
+    font-size: 3.5rem;
+    color: rgba(16, 185, 129, 0.85);
+    animation: rotate-hint 1.8s ease-in-out infinite;
+}
+
+.rotate-prompt__text {
+    font-family: var(--font-body, sans-serif);
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+}
+
+@keyframes rotate-hint {
+    0%, 100% { transform: rotate(0deg); }
+    40%       { transform: rotate(-90deg); }
+    60%       { transform: rotate(-90deg); }
+}
+
+/* Activer l'overlay uniquement en paysage sur écrans mobiles */
+@media screen and (orientation: landscape) and (max-height: 540px) {
+    #rotate-prompt {
+        display: flex;
+    }
+
+    /* Masquer le reste de l'app en paysage */
+    body > *:not(#rotate-prompt) {
+        visibility: hidden;
+    }
+}
