@@ -27,7 +27,7 @@ import {
 
 const TAP_MAX_MS      = 220;
 const TAP_MAX_MOVE    = 10;
-const PINCH_SENS      = 0.08;
+const PINCH_SENS      = 0.04; // was 0.08 – halved to prevent over-aggressive pinch deformation
 
 /* ─── blueprint builder ──────────────────────────────────────────────── */
 
@@ -278,6 +278,20 @@ export function createCanonicalInspectionSandbox() {
                 return;
             }
             if (!activeSinglePointer || activeSinglePointer.pointerId !== e.pointerId) return;
+
+            // Natural detach: release the slime when the finger leaves the canvas area.
+            if (slime?.draggedNode) {
+                const r = canvas?.getBoundingClientRect?.();
+                const margin = 20;
+                if (r && (e.clientX < r.left - margin || e.clientX > r.right + margin ||
+                          e.clientY < r.top - margin  || e.clientY > r.bottom + margin)) {
+                    slime.releaseGrab?.();
+                    activeSinglePointer = null;
+                    canvas.releasePointerCapture?.(e.pointerId);
+                    return;
+                }
+            }
+
             const pt = toXY(e);
             if (pt) slime?.updateGrab?.(pt.x, pt.y);
         };
@@ -335,7 +349,7 @@ export function createCanonicalInspectionSandbox() {
 
     function applyPinch(center, delta) {
         if (!slime || !center || !Number.isFinite(delta) || Math.abs(delta) < 0.02) return;
-        const s   = Math.max(-1.8, Math.min(1.8, delta));
+        const s   = Math.max(-1.0, Math.min(1.0, delta)); // was ±1.8 – clamped tighter to prevent explosive deformation
         const dir = s < 0 ? -1 : 1;
         for (const n of slime.nodes || []) {
             const dx = n.x - center.x, dy = n.y - center.y;
