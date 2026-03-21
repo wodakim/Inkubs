@@ -419,6 +419,10 @@ const stylesheetText = `
 
 .glass-column {
   isolation: isolate;
+  /* Containment paint : isole le compositing GPU de l'animation du slime
+     pour éviter que la promotion de couches internes (willChange, canvas)
+     ne déclenche une réévaluation de l'arbre compositor externe. */
+  contain: layout paint;
 }
 
 .glass-reflection {

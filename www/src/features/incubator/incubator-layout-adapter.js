@@ -33,10 +33,16 @@ export function syncIncubatorLayout({ frame, stage, overlapPx = DEFAULT_OVERLAP_
     frame.style.setProperty('--inku-incubator-scale',   String(scale));
     frame.style.setProperty('--inku-incubator-overlap', `${overlapPx}px`);
 
-    // Rétablir la transition au prochain frame pour que les interactions
-    // utilisateur (ouverture storage) restent animées.
+    // Double rAF : le premier rAF tire AVANT le paint (même cycle que le
+    // changement de transform) → la transition serait réactivée AVANT que
+    // le browser ait peint la nouvelle valeur → il interpolerait depuis
+    // l'ancienne valeur = saut visible.
+    // Le second rAF s'exécute après que le browser a peint une fois avec
+    // transition:'none', donc la valeur est "committée" sans animation.
     requestAnimationFrame(() => {
-        frame.style.transition = hadTransition;
+        requestAnimationFrame(() => {
+            frame.style.transition = hadTransition;
+        });
     });
 
     return { scale, overlapPx, vesselShiftPx: VESSEL_CENTER_SHIFT_PX };
