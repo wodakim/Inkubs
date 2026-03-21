@@ -323,6 +323,12 @@ export function createIncubatorSlimePreview() {
         cleanupInteraction?.();
         if (!frontGlass) return;
 
+        // Prevent the browser from stealing the gesture for scroll/pan.
+        // Without this, the browser fires pointercancel the moment it
+        // detects a drag, immediately dropping the slime grab.
+        const prevTouchAction = frontGlass.style.touchAction;
+        frontGlass.style.touchAction = 'none';
+
         let dragPointerId = null;
 
         const onPointerDown = (event) => {
@@ -394,6 +400,8 @@ export function createIncubatorSlimePreview() {
             frontGlass?.removeEventListener('pointerup',         onPointerUp);
             frontGlass?.removeEventListener('pointercancel',     onPointerCancel);
             frontGlass?.removeEventListener('lostpointercapture', onPointerCancel);
+            // Restore touch-action to what it was before we set it.
+            if (frontGlass) frontGlass.style.touchAction = prevTouchAction;
             dragPointerId = null;
             cleanupInteraction = null;
         };
