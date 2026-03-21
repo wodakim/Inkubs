@@ -1,4 +1,4 @@
-export function createIncubatorTemplate(documentRef) {
+export function createIncubatorTemplate(documentRef, t = (k) => k) {
   const template = documentRef.createElement('template');
   template.innerHTML = `
     <section class="inku-incubator" aria-label="Inkü incubator runtime">
@@ -23,17 +23,17 @@ export function createIncubatorTemplate(documentRef) {
                 <span class="display-panel__candidate-pattern js-dp-pattern"></span>
               </div>
               <div class="display-panel__candidate-price">
-                <span class="display-panel__price-label">PRIX</span>
+                <span class="display-panel__price-label">${t('incubator.price_label')}</span>
                 <span class="display-panel__price-value js-dp-price">—</span>
               </div>
             </div>
-            <div class="display-panel__idle-hint js-dp-idle-hint">AUCUNE ENTITÉ</div>
+            <div class="display-panel__idle-hint js-dp-idle-hint">${t('incubator.no_entity')}</div>
           </div>
         </header>
 
         <div class="chassis">
           <aside class="aux-panel aux-panel--left" part="aux-panel-left">
-            <button class="storage-console-trigger js-storage-trigger" type="button" aria-label="Ouvrir l'archive d'entités"></button>
+            <button class="storage-console-trigger js-storage-trigger" type="button" aria-label="${t('incubator.open_archive_aria')}"></button>
             <div class="console console--radar">
               <div class="radar">
                 <div class="radar__ring"></div>
@@ -44,8 +44,8 @@ export function createIncubatorTemplate(documentRef) {
             </div>
             <div class="console-body">
               <div class="storage-console-readout" aria-hidden="true">
-                <span class="storage-console-readout__label">ARCHIVE</span>
-                <span class="storage-console-readout__value">ENTITÉS</span>
+                <span class="storage-console-readout__label">${t('incubator.archive_label')}</span>
+                <span class="storage-console-readout__value">${t('incubator.entities_label')}</span>
               </div>
             </div>
           </aside>

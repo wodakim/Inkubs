@@ -1,5 +1,6 @@
 import { MODAL_IDS } from '../../core/constants.js';
 import { createListenerRegistry } from '../../core/listener-registry.js';
+import { t } from '../../i18n/i18n.js';
 import {
     getPerformanceTier,
     setPerformanceTier,
@@ -39,10 +40,10 @@ export function createProfileModalController({ refs, store }) {
         perfSection?.toggleAttribute('hidden', section !== 'perf');
 
         if (section === 'profile') {
-            settingsTitle.textContent = 'Mon Profil';
+            settingsTitle.textContent = t('profile.my_profile_title');
             _initProfileSection();
         } else {
-            settingsTitle.textContent = 'Performances';
+            settingsTitle.textContent = t('profile.performance_title');
             _initPerfSection();
         }
 

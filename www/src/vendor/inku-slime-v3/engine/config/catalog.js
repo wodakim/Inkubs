@@ -1,4 +1,5 @@
 export const SLIME_TYPES = ['cute', 'normal', 'scary'];
+import { t } from '../../../../i18n/i18n.js';
 
 // ─── BODY SHAPES ─────────────────────────────────────────────────────────────
 export const BODY_SHAPES = [
@@ -150,11 +151,11 @@ export const COLOR_PATTERNS = [
 
 // ─── RARITY TIERS ────────────────────────────────────────────────────────────
 export const RARITY_TIERS = {
-  common:   {label:'Commun',    color:'#a0a0a0',scoreMin:0,  scoreMax:29},
-  uncommon: {label:'Peu commun',color:'#4caf50',scoreMin:30, scoreMax:54},
-  rare:     {label:'Rare',      color:'#2196f3',scoreMin:55, scoreMax:74},
-  epic:     {label:'Épique',    color:'#9c27b0',scoreMin:75, scoreMax:89},
-  legendary:{label:'Légendaire',color:'#ff9800',scoreMin:90, scoreMax:100}
+  common:   { get label() { return t('rarity.common');    }, color:'#a0a0a0', scoreMin:0,  scoreMax:29  },
+  uncommon: { get label() { return t('rarity.uncommon');  }, color:'#4caf50', scoreMin:30, scoreMax:54  },
+  rare:     { get label() { return t('rarity.rare');      }, color:'#2196f3', scoreMin:55, scoreMax:74  },
+  epic:     { get label() { return t('rarity.epic');      }, color:'#9c27b0', scoreMin:75, scoreMax:89  },
+  legendary:{ get label() { return t('rarity.legendary'); }, color:'#ff9800', scoreMin:90, scoreMax:100 },
 };
 
 // ─── ACTIONS ──────────────────────────────────────────────────────────────────

@@ -140,21 +140,46 @@ function runCanvasBenchmark() {
         const ctx = c.getContext('2d');
         if (!ctx) { resolve(Infinity); return; }
 
-        const FRAMES = 30;
+        const FRAMES = 40;
         let   frame  = 0;
         const start  = performance.now();
 
+        // Positions pré-calculées pour 4 slimes simulés
+        const slimePos = [
+            { x: 64,  y: 64  },
+            { x: 192, y: 64  },
+            { x: 64,  y: 192 },
+            { x: 192, y: 192 },
+        ];
+
         function tick() {
-            // Simule le coût d'un draw de slime : plusieurs createRadialGradient + path
             ctx.clearRect(0, 0, 256, 256);
-            for (let i = 0; i < 5; i++) {
-                const g = ctx.createRadialGradient(128, 100, 0, 128, 128, 110);
-                g.addColorStop(0,   'rgba(16,185,129,0.6)');
-                g.addColorStop(0.5, 'rgba(59,130,246,0.3)');
+            // Simule 4 slimes visibles : body + subsurface + highlight + rimlight chacun
+            for (const p of slimePos) {
+                // Body gradient
+                const g = ctx.createRadialGradient(p.x, p.y - 8, 0, p.x, p.y, 48);
+                g.addColorStop(0,   'rgba(16,185,129,0.85)');
+                g.addColorStop(0.6, 'rgba(59,130,246,0.5)');
                 g.addColorStop(1,   'rgba(0,0,0,0)');
                 ctx.fillStyle = g;
                 ctx.beginPath();
-                ctx.arc(128, 128, 110, 0, Math.PI * 2);
+                ctx.arc(p.x, p.y, 48, 0, Math.PI * 2);
+                ctx.fill();
+                // Subsurface scatter
+                const gs = ctx.createRadialGradient(p.x + 6, p.y - 6, 0, p.x, p.y, 40);
+                gs.addColorStop(0,   'rgba(255,255,200,0.25)');
+                gs.addColorStop(1,   'rgba(0,0,0,0)');
+                ctx.fillStyle = gs;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 40, 0, Math.PI * 2);
+                ctx.fill();
+                // Highlight
+                const gh = ctx.createRadialGradient(p.x - 14, p.y - 18, 0, p.x - 14, p.y - 18, 16);
+                gh.addColorStop(0,   'rgba(255,255,255,0.55)');
+                gh.addColorStop(1,   'rgba(255,255,255,0)');
+                ctx.fillStyle = gh;
+                ctx.beginPath();
+                ctx.ellipse(p.x - 14, p.y - 18, 14, 10, -0.4, 0, Math.PI * 2);
                 ctx.fill();
             }
 
@@ -172,11 +197,11 @@ function runCanvasBenchmark() {
 }
 
 function benchmarkToScore(avgFrameMs) {
-    // < 4 ms/frame → très fluide → +2
-    // 4-10 ms      → correct    → +1
-    // > 10 ms      → lent       → 0
-    if (avgFrameMs < 4)  return 2;
-    if (avgFrameMs < 10) return 1;
+    // < 2 ms/frame  → très fluide (high-end)    → +2
+    // 2-8 ms        → correct   (mid-range)      → +1
+    // > 8 ms        → lent      (low-end)         → 0
+    if (avgFrameMs < 2)  return 2;
+    if (avgFrameMs < 8)  return 1;
     return 0;
 }
 
@@ -204,9 +229,26 @@ export function setPerformanceTier(tier) {
         localStorage.setItem(CACHE_KEY, JSON.stringify({ tier, ts: Date.now(), manual: true }));
     } catch (_) {}
     applyTierToDOM(tier);
+    // Notify listeners (e.g. prairie canvas resize)
+    try {
+        window.dispatchEvent(new CustomEvent('inku:perf-tier-changed', { detail: { tier } }));
+    } catch (_) {}
 }
 
 export async function detectAndApplyPerformanceProfile() {
+    // Don't overwrite a manual user choice with auto-detection
+    try {
+        const raw = localStorage.getItem(CACHE_KEY);
+        if (raw) {
+            const saved = JSON.parse(raw);
+            if (saved?.manual && Date.now() - (saved.ts || 0) < CACHE_TTL) {
+                _cachedTier = saved.tier;
+                applyTierToDOM(saved.tier);
+                return saved.tier;
+            }
+        }
+    } catch (_) {}
+
     const hwScore    = getHardwareScore();
     const benchScore = await runCanvasBenchmark();
     const total      = hwScore + benchmarkToScore(benchScore);
@@ -219,6 +261,9 @@ export async function detectAndApplyPerformanceProfile() {
     } catch (_) {}
 
     applyTierToDOM(tier);
+    try {
+        window.dispatchEvent(new CustomEvent('inku:perf-tier-changed', { detail: { tier } }));
+    } catch (_) {}
     return tier;
 }
 

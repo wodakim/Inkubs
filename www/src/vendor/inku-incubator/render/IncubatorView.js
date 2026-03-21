@@ -1,5 +1,6 @@
 import { createIncubatorTemplate } from './IncubatorTemplate.js';
 import { applyPhaseVisuals, pulseAction, setAccentHue, setLiquidLevel } from './IncubatorAnimations.js';
+import { t } from '../../../i18n/i18n.js';
 
 export class IncubatorView {
   constructor({ documentRef, hostElement, stylesheetText, config }) {
@@ -18,7 +19,7 @@ export class IncubatorView {
     styleTag.textContent = this.stylesheetText;
     this.shadowRoot.appendChild(styleTag);
 
-    const template = createIncubatorTemplate(this.documentRef);
+    const template = createIncubatorTemplate(this.documentRef, t);
     this.shadowRoot.appendChild(template.content.cloneNode(true));
 
     this.refs.root = this.shadowRoot.querySelector('.inku-incubator');
@@ -111,12 +112,18 @@ export class IncubatorView {
     const tier       = candidate?.metadata?.previewBlueprint?.genome?.rarityTier || 'common';
     const score      = candidate?.metadata?.previewBlueprint?.genome?.rarityScore ?? 0;
     const pattern    = candidate?.metadata?.previewBlueprint?.genome?.colorPattern || 'solid';
-    const tierLabels = { common:'Commun', uncommon:'Peu commun', rare:'Rare', epic:'Épique', legendary:'Légendaire' };
+    const tierLabels = {
+      common:    t('rarity.common'),
+      uncommon:  t('rarity.uncommon'),
+      rare:      t('rarity.rare'),
+      epic:      t('rarity.epic'),
+      legendary: t('rarity.legendary'),
+    };
     const tierColors = { common:'#94a3b8', uncommon:'#4caf50', rare:'#42a5f5', epic:'#ba68c8', legendary:'#ffb300' };
     const tierHues   = { common:190, uncommon:140, rare:210, epic:280, legendary:38 };
 
     if (this.refs.rarityBadge) {
-      const label = tierLabels[tier] || 'Commun';
+      const label = tierLabels[tier] || t('rarity.common');
       const color = tierColors[tier] || '';
       this.refs.rarityBadge.textContent = candidate ? label : '';
       this.refs.rarityBadge.style.color  = color;
@@ -125,10 +132,19 @@ export class IncubatorView {
     }
     if (this.refs.patternBadge) {
       const patternNames = {
-        solid:'Uni', radial_glow:'Lueur', gradient_v:'Dégradé ↕', gradient_h:'Dégradé ↔',
-        gradient_diag:'Dégradé ↗', duo_tone:'Duo', soft_spots:'Taches', stripe_v:'Rayures',
-        galaxy_swirl:'Galaxie', aurora:'Aurore', crystal_facets:'Cristal',
-        prismatic:'Prismatique', void_rift:'Rift'
+        solid:          t('pattern.solid'),
+        radial_glow:    t('pattern.radial_glow'),
+        gradient_v:     t('pattern.gradient_v'),
+        gradient_h:     t('pattern.gradient_h'),
+        gradient_diag:  t('pattern.gradient_diag'),
+        duo_tone:       t('pattern.duo_tone'),
+        soft_spots:     t('pattern.soft_spots'),
+        stripe_v:       t('pattern.stripe_v'),
+        galaxy_swirl:   t('pattern.galaxy_swirl'),
+        aurora:         t('pattern.aurora'),
+        crystal_facets: t('pattern.crystal_facets'),
+        prismatic:      t('pattern.prismatic'),
+        void_rift:      t('pattern.void_rift'),
       };
       this.refs.patternBadge.textContent = candidate ? (patternNames[pattern] || pattern) : '';
       this.refs.patternBadge.dataset.pattern = pattern;
@@ -138,14 +154,23 @@ export class IncubatorView {
     if (this.refs.dpCandidateRow) {
       if (candidate) {
         const patternNames = {
-          solid:'UNI', radial_glow:'LUEUR', gradient_v:'DÉGRADÉ ↕', gradient_h:'DÉGRADÉ ↔',
-          gradient_diag:'DÉGRADÉ ↗', duo_tone:'DUO', soft_spots:'TACHES', stripe_v:'RAYURES',
-          galaxy_swirl:'GALAXIE', aurora:'AURORE', crystal_facets:'CRISTAL',
-          prismatic:'PRISMATIQUE', void_rift:'RIFT'
+          solid:          t('pattern.solid').toUpperCase(),
+          radial_glow:    t('pattern.radial_glow').toUpperCase(),
+          gradient_v:     t('pattern.gradient_v').toUpperCase(),
+          gradient_h:     t('pattern.gradient_h').toUpperCase(),
+          gradient_diag:  t('pattern.gradient_diag').toUpperCase(),
+          duo_tone:       t('pattern.duo_tone').toUpperCase(),
+          soft_spots:     t('pattern.soft_spots').toUpperCase(),
+          stripe_v:       t('pattern.stripe_v').toUpperCase(),
+          galaxy_swirl:   t('pattern.galaxy_swirl').toUpperCase(),
+          aurora:         t('pattern.aurora').toUpperCase(),
+          crystal_facets: t('pattern.crystal_facets').toUpperCase(),
+          prismatic:      t('pattern.prismatic').toUpperCase(),
+          void_rift:      t('pattern.void_rift').toUpperCase(),
         };
         const rarityIcons = { common:'◆', uncommon:'◆◆', rare:'◆◆◆', epic:'★', legendary:'★★' };
-        this.refs.dpName.textContent = (candidate.displayName || 'ENTITÉ').toUpperCase();
-        this.refs.dpRarity.textContent = `${rarityIcons[tier] || '◆'} ${(tierLabels[tier] || 'Commun').toUpperCase()}`;
+        this.refs.dpName.textContent = (candidate.displayName || t('incubator.entity_fallback')).toUpperCase();
+        this.refs.dpRarity.textContent = `${rarityIcons[tier] || '◆'} ${(tierLabels[tier] || t('rarity.common')).toUpperCase()}`;
         this.refs.dpRarity.style.color = tierColors[tier] || '#94a3b8';
         this.refs.dpPattern.textContent = patternNames[pattern] || pattern.toUpperCase();
         this.refs.dpCandidateRow.hidden = false;

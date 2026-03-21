@@ -209,7 +209,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
                     <button type="button" class="storage-panel__close" data-storage-close aria-label="${t('storage.close_aria')}">×</button>
                 </header>
 
-                <nav class="storage-tab-nav" role="tablist" aria-label="Sections de l'archive">
+                <nav class="storage-tab-nav" role="tablist" aria-label="${t('storage.sections_aria')}">
                     <button type="button" class="storage-tab-nav__btn is-active" data-storage-tab="team" role="tab" aria-selected="true">
                         <span class="storage-tab-nav__dot"></span>${t('storage.team_tab')}
                     </button>
@@ -284,7 +284,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
 
             <div class="storage-confirm-modal" data-storage-sell-modal hidden aria-hidden="true">
                 <div class="storage-confirm-modal__backdrop" data-storage-sell-cancel></div>
-                <section class="storage-confirm-modal__dialog" aria-label="Confirmer la revente">
+                <section class="storage-confirm-modal__dialog" aria-label="${t('storage.confirm_sell_aria')}">
                     <div class="storage-confirm-modal__modal-header">
                         <span class="storage-confirm-modal__warn-icon" aria-hidden="true">⚠</span>
                         <h3 class="storage-confirm-modal__title">${t('storage.sell_modal_title')}</h3>
@@ -300,7 +300,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
 
             <div class="storage-detail-modal" data-storage-detail-modal hidden aria-hidden="true">
                 <div class="storage-detail-modal__backdrop" data-storage-detail-close></div>
-                <section class="storage-detail-modal__dialog" aria-label="Dossier du slime">
+                <section class="storage-detail-modal__dialog" aria-label="${t('storage.slime_file_aria')}">
                     <header class="storage-detail-modal__header">
                         <div>
                             <p class="storage-detail-modal__eyebrow">${t('storage.profile_eyebrow')}</p>
@@ -391,7 +391,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         renderStorageSlots({ container: refs.teamGrid, records: teamEntries, slotClassName: 'storage-slot storage-slot--team' });
         renderStorageSlots({ container: refs.archiveGrid, records: archiveEntries, slotClassName: 'storage-slot storage-slot--archive' });
 
-        refs.pageLabel.textContent = `Page ${currentPage}`;
+        refs.pageLabel.textContent = `${t('storage.page')} ${currentPage}`;
         refs.pageNumber.textContent = String(currentPage);
         refs.pageAccess.textContent = `${snapshot.meta.devUnlockAllPages ? snapshot.meta.maxPages : snapshot.meta.unlockedPages} / ${snapshot.meta.maxPages}`;
         refs.prevButton.disabled = currentPage <= 1;
@@ -900,8 +900,8 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
                     </div>
                 </div>
                 <div class="storage-detail-modal__rename-row">
-                    <input class="storage-detail-modal__name-input" type="text" maxlength="32" placeholder="Nom du spécimen…" value="${escapeHtml(record.displayName || '')}" data-storage-detail-name-input>
-                    <button type="button" class="storage-detail-modal__save" data-storage-detail-save-name aria-label="Sauvegarder le nom">
+                    <input class="storage-detail-modal__name-input" type="text" maxlength="32" placeholder="${t('storage.specimen_name_ph')}" value="${escapeHtml(record.displayName || '')}" data-storage-detail-name-input>
+                    <button type="button" class="storage-detail-modal__save" data-storage-detail-save-name aria-label="${t('storage.save_name_aria')}">
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2,7 5.5,10.5 12,3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
                 </div>
@@ -970,7 +970,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             `;
         }
 
-        refs.sellCopy.textContent = 'Cette action est irréversible.';
+        refs.sellCopy.textContent = t('storage.irreversible');
         refs.sellModal.hidden = false;
         refs.sellModal.setAttribute('aria-hidden', 'false');
     }

@@ -1,3 +1,5 @@
+import { t } from '../../../i18n/i18n.js';
+
 export const DEFAULT_INCUBATOR_CONFIG = Object.freeze({
   theme: {
     accentHue: 190,
@@ -29,16 +31,18 @@ export const DEFAULT_INCUBATOR_CONFIG = Object.freeze({
     diagnosticLabel: 'CANONICAL PREVIEW',
     buyButtonLabel: 'Acquire',
     purgeButtonLabel: 'Purge',
-    statusLabels: {
-      idle: 'EN ATTENTE...',
-      staging: 'SIGNAL DÉTECTÉ',
-      intake: 'ANALYSE EN COURS',
-      suspended: 'ENTITÉ STABILISÉE',
-      purchasePending: 'TRANSFERT...',
-      purchased: 'ADOPTÉ !',
-      purging: 'LIBÉRATION...',
-      purged: 'CHAMBRE VIDE',
-      error: 'ANOMALIE CRITIQUE'
+    get statusLabels() {
+      return {
+        idle:            t('incubator.status.idle'),
+        staging:         t('incubator.status.staging'),
+        intake:          t('incubator.status.intake'),
+        suspended:       t('incubator.status.suspended'),
+        purchasePending: t('incubator.status.purchasePending'),
+        purchased:       t('incubator.status.purchased'),
+        purging:         t('incubator.status.purging'),
+        purged:          t('incubator.status.purged'),
+        error:           t('incubator.status.error'),
+      };
     }
   },
   hooks: {

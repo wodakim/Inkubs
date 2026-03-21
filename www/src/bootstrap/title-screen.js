@@ -75,7 +75,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
 .title-glow{text-shadow:0 0 20px rgba(16,185,129,0.8),0 0 40px rgba(16,185,129,0.4);}
 .safe-area-pb{padding-bottom:max(2.5rem,calc(env(safe-area-inset-bottom) + 1.2rem));}
 
-/* PLAY CARD */
+/* Bouton paramètres — accessible encoche/Dynamic Island */\n#ts-settings-btn-wrap{position:fixed;top:0;right:0;z-index:200;padding-top:max(0.6rem,env(safe-area-inset-top,0px));padding-right:max(0.75rem,env(safe-area-inset-right,0px));}\n#ts-open-settings{width:3rem;height:3rem;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,0.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1.5px solid rgba(255,255,255,0.14);box-shadow:0 4px 18px rgba(0,0,0,0.5);color:rgba(200,210,220,0.9);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background 0.15s,transform 0.1s;appearance:none;}\n#ts-open-settings:active{transform:scale(0.91);background:rgba(16,185,129,0.18);}\n#ts-open-settings i{font-size:1.25rem;pointer-events:none;}\n\n/* PLAY CARD */
 .login-card-aaa{background:linear-gradient(180deg,rgba(11,17,32,0.7) 0%,rgba(2,6,23,0.85) 100%);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(16,185,129,0.15);box-shadow:0 15px 35px -10px rgba(0,0,0,0.9),inset 0 1px 1px rgba(255,255,255,0.05),inset 0 0 20px rgba(16,185,129,0.05);border-radius:20px;height:auto;padding:1.5rem 1.25rem;width:100%;max-width:320px;margin:0 auto;}
 .login-card-aaa::before{content:'';position:absolute;top:0;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,rgba(52,211,153,0.6),transparent);opacity:0.8;}
 .btn-aaa{background:linear-gradient(90deg,#047857 0%,#10b981 50%,#047857 100%);background-size:200% auto;border:1px solid rgba(52,211,153,0.4);box-shadow:0 6px 15px -4px rgba(16,185,129,0.4),inset 0 1px 0 rgba(255,255,255,0.2),inset 0 -2px 0 rgba(0,0,0,0.2);text-shadow:0 1px 2px rgba(0,0,0,0.3);transition:all 0.2s cubic-bezier(0.4,0,0.2,1);animation:shine-bg 3s linear infinite;padding:0.75rem;border-radius:12px;cursor:pointer;color:white;font-weight:900;font-family:'Nunito',sans-serif;font-size:0.95rem;letter-spacing:0.08em;width:100%;display:flex;align-items:center;justify-content:center;gap:0.5rem;}
@@ -195,11 +195,10 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
 </div>
 
 <div id="ts-screen" class="relative z-20 flex flex-col h-full w-full max-w-md mx-auto">
-    <!-- Topbar -->
-    <div class="p-2 sm:p-4 flex justify-between items-center flex-shrink-0">
-        <div></div>
-        <button id="ts-open-settings" class="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-gray-300 hover:text-white transition active:scale-95" style="background:rgba(15,23,42,0.75);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.1);">
-            <i class="ph ph-gear" style="font-size:1rem;"></i>
+    <!-- Bouton paramètres fixe — safe-area encoche/Dynamic Island -->
+    <div id="ts-settings-btn-wrap">
+        <button id="ts-open-settings" aria-label="Paramètres">
+            <i class="ph ph-gear"></i>
         </button>
     </div>
     <!-- Title -->
@@ -407,6 +406,24 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
         const bubbles = [], taps = [];
         let locked = false, raf = null;
 
+        // ── Drag state ────────────────────────────────────────────────────
+        let dragging = false;   // doigt actuellement sur le slime
+        let dragOffX = 0, dragOffY = 0; // offset entre centre slime et point de contact
+
+        function toCanvas(clientX, clientY) {
+            const r = canvasEl.getBoundingClientRect();
+            return { x: clientX - r.left, y: clientY - r.top };
+        }
+        function isInsideGlass(clientX, clientY) {
+            const r = glassEl.getBoundingClientRect();
+            return clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom;
+        }
+        function distToSlime(cx, cy) {
+            const R = Math.max(20, width * 0.25);
+            const p = toCanvas(cx, cy);
+            return Math.hypot(p.x - slime.x, p.y - (slime.y - R));
+        }
+
         function initLayout() {
             if (locked) return;
             width = glassEl.clientWidth; height = glassEl.clientHeight;
@@ -423,16 +440,72 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
         }
         initLayout();
 
-        const hit = e => {
+        // ── Pointer events (unifiés souris + touch) ───────────────────────
+        function getPoint(e) {
+            return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+                             : { x: e.clientX,            y: e.clientY            };
+        }
+
+        const onDown = e => {
             if(e.cancelable) e.preventDefault();
-            let cx=e.touches?e.touches[0].clientX:e.clientX, cy=e.touches?e.touches[0].clientY:e.clientY;
-            const r=canvasEl.getBoundingClientRect(); targetX=cx-r.left; targetY=cy-r.top;
-            taps.push({x:targetX,y:targetY,radius:0,alpha:1}); surprisedTimer=40; isBlinking=false;
-            if(slime.y>=slime.baseY-5){slime.vy=slime.jumpForce*0.7;slime.squishX=0.8;slime.squishY=1.3;}
+            const pt = getPoint(e);
+            const R  = Math.max(20, width * 0.25);
+            // Ripple exactement là où le doigt touche (coords canvas)
+            const cp = toCanvas(pt.x, pt.y);
+            taps.push({x: cp.x, y: cp.y, radius:0, alpha:1});
+            surprisedTimer = 40; isBlinking = false;
+            // Grab si proche du centre du slime
+            if (distToSlime(pt.x, pt.y) < R * 1.3) {
+                dragging = true;
+                dragOffX = slime.x - cp.x;
+                dragOffY = (slime.y - R) - cp.y;
+                slime.vy = 0;
+                slime.squishX = 0.85; slime.squishY = 1.2;
+            } else {
+                // Clic dans le vide → saut
+                if(slime.y >= slime.baseY - 5){ slime.vy = slime.jumpForce * 0.7; slime.squishX = 0.8; slime.squishY = 1.3; }
+            }
+            // Update mouse target
+            targetX = cp.x; targetY = cp.y;
         };
-        glassEl.addEventListener('mousedown',hit);
-        glassEl.addEventListener('touchstart',hit,{passive:false});
-        glassEl.addEventListener('mousemove',e=>{const r=canvasEl.getBoundingClientRect();targetX=e.clientX-r.left;targetY=e.clientY-r.top;});
+
+        const onMove = e => {
+            if(e.cancelable) e.preventDefault();
+            const pt = getPoint(e);
+            const cp = toCanvas(pt.x, pt.y);
+            targetX = cp.x; targetY = cp.y;
+            if (!dragging) return;
+            const R = Math.max(20, width * 0.25);
+            if (!isInsideGlass(pt.x, pt.y)) {
+                // Doigt sorti → relâche naturellement
+                dragging = false;
+                // Donne une vélocité de flottaison vers le haut
+                slime.vy = -2.5;
+                slime.squishX = 1.1; slime.squishY = 0.9;
+                return;
+            }
+            // Déplace le slime avec le doigt
+            slime.x = Math.max(R, Math.min(width - R, cp.x + dragOffX));
+            const centerY = cp.y + dragOffY;
+            slime.y = Math.max(R + 5, Math.min(slime.baseY, centerY + R));
+            slime.vy = 0;
+        };
+
+        const onUp = e => {
+            if (!dragging) return;
+            dragging = false;
+            // Petite impulsion vers le haut au relâcher
+            slime.vy = -3;
+            slime.squishX = 0.9; slime.squishY = 1.15;
+        };
+
+        // Écoute sur window pour capturer les moves/up hors du canvas
+        glassEl.addEventListener('mousedown',  onDown);
+        glassEl.addEventListener('touchstart', onDown, {passive:false});
+        window.addEventListener('mousemove',   onMove);
+        window.addEventListener('touchmove',   onMove, {passive:false});
+        window.addEventListener('mouseup',     onUp);
+        window.addEventListener('touchend',    onUp);
 
         function drawEye(x,y,radius,pupilRadius,offsetX,offsetY){
             ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fillStyle='white';ctx.fill();
@@ -447,12 +520,39 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
 
         function draw(){
             if(!width||!height){raf=requestAnimationFrame(draw);return;}
-            ctx.clearRect(0,0,width,height);time+=0.05;mouseX+=(targetX-mouseX)*0.1;mouseY+=(targetY-mouseY)*0.1;
+            ctx.clearRect(0,0,width,height);time+=0.05;
+            mouseX+=(targetX-mouseX)*0.1;mouseY+=(targetY-mouseY)*0.1;
             ctx.fillStyle='rgba(16,185,129,0.3)';
             bubbles.forEach(b=>{b.y-=b.speed;if(b.y<-10){b.y=height+10;b.x=Math.random()*width;}const w=Math.sin(time*b.wobbleSpeed+b.wobbleOffset)*2;ctx.beginPath();ctx.arc(b.x+w,b.y,b.size,0,Math.PI*2);ctx.fill();});
-            for(let i=taps.length-1;i>=0;i--){const t=taps[i];t.radius+=2;t.alpha-=0.05;ctx.beginPath();ctx.arc(t.x,t.y,t.radius,0,Math.PI*2);ctx.strokeStyle=`rgba(255,255,255,${t.alpha*0.5})`;ctx.lineWidth=2;ctx.stroke();ctx.beginPath();ctx.arc(t.x,t.y,t.radius*0.6,0,Math.PI*2);ctx.strokeStyle=`rgba(16,185,129,${t.alpha*0.3})`;ctx.lineWidth=4;ctx.stroke();if(t.alpha<=0)taps.splice(i,1);}
-            slime.vy+=slime.gravity;slime.y+=slime.vy;
-            if(slime.y>slime.baseY){slime.y=slime.baseY;if(slime.vy>2){slime.squishX=1+(slime.vy*0.04);slime.squishY=1-(slime.vy*0.04);}slime.vy=0;slime.idleTimer--;if(slime.idleTimer<=0){slime.vy=slime.jumpForce*(0.6+Math.random()*0.4);slime.squishX=0.8;slime.squishY=1.2;slime.idleTimer=150+Math.random()*200;}}
+            // Ripples (poc) — coords directement en espace canvas, pas de correction nécessaire
+            for(let i=taps.length-1;i>=0;i--){
+                const t=taps[i];t.radius+=2;t.alpha-=0.05;
+                ctx.beginPath();ctx.arc(t.x,t.y,t.radius,0,Math.PI*2);
+                ctx.strokeStyle=`rgba(255,255,255,${t.alpha*0.5})`;ctx.lineWidth=2;ctx.stroke();
+                ctx.beginPath();ctx.arc(t.x,t.y,t.radius*0.6,0,Math.PI*2);
+                ctx.strokeStyle=`rgba(16,185,129,${t.alpha*0.3})`;ctx.lineWidth=4;ctx.stroke();
+                if(t.alpha<=0)taps.splice(i,1);
+            }
+            // Physique — désactivée pendant le drag
+            if (!dragging) {
+                slime.vy+=slime.gravity;slime.y+=slime.vy;
+                if(slime.y>slime.baseY){
+                    slime.y=slime.baseY;
+                    if(slime.vy>2){slime.squishX=1+(slime.vy*0.04);slime.squishY=1-(slime.vy*0.04);}
+                    slime.vy=0;
+                    slime.idleTimer--;
+                    if(slime.idleTimer<=0){slime.vy=slime.jumpForce*(0.6+Math.random()*0.4);slime.squishX=0.8;slime.squishY=1.2;slime.idleTimer=150+Math.random()*200;}
+                }
+                // Flottaison douce en haut si le slime est lâché en l'air
+                if(slime.y < slime.baseY && slime.vy < 0) {
+                    // léger frein fluidique (eau)
+                    slime.vy *= 0.97;
+                }
+            } else {
+                // Squish subtil pendant le drag
+                slime.squishX += (0.88 - slime.squishX) * 0.12;
+                slime.squishY += (1.14 - slime.squishY) * 0.12;
+            }
             slime.squishX+=(1-slime.squishX)*0.1;slime.squishY+=(1-slime.squishY)*0.1;
             const R=Math.max(20,width*0.25),bx=slime.squishX-Math.sin(time*0.5)*0.02,by=slime.squishY+Math.sin(time*0.5)*0.02;
             ctx.save();ctx.translate(slime.x,slime.y);ctx.translate(0,-R);ctx.scale(bx,by);
@@ -472,7 +572,15 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
             ctx.restore();raf=requestAnimationFrame(draw);
         }
         draw();
-        return ()=>{if(raf)cancelAnimationFrame(raf);glassEl.removeEventListener('mousedown',hit);glassEl.removeEventListener('touchstart',hit);};
+        return ()=>{
+            if(raf)cancelAnimationFrame(raf);
+            glassEl.removeEventListener('mousedown',  onDown);
+            glassEl.removeEventListener('touchstart', onDown);
+            window.removeEventListener('mousemove',   onMove);
+            window.removeEventListener('touchmove',   onMove);
+            window.removeEventListener('mouseup',     onUp);
+            window.removeEventListener('touchend',    onUp);
+        };
     }
 
     /* ── Settings modal ── */

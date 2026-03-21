@@ -9,6 +9,7 @@
  * intact when its gameLoop runs — no cross-corruption.
  */
 
+import { t } from '../../i18n/i18n.js';
 import { deepClone } from '../../vendor/inku-slime-v3/shared/object.js';
 import { Slime }    from '../../vendor/inku-slime-v3/engine/entities/Slime.js';
 import { Particle } from '../../vendor/inku-slime-v3/engine/entities/Particle.js';
@@ -80,14 +81,14 @@ export function createCanonicalInspectionSandbox() {
         if (!mountTarget) return;
 
         if (!currentBlueprint) {
-            mountTarget.innerHTML = '<div class="storage-live-sandbox storage-live-sandbox--fallback"><p>Aperçu indisponible</p></div>';
+            mountTarget.innerHTML = `<div class="storage-live-sandbox storage-live-sandbox--fallback"><p>${t('sandbox.unavailable')}</p></div>`;
             return;
         }
 
         root = document.createElement('div');
         root.className = 'storage-live-sandbox';
         root.innerHTML = `<div class="storage-live-sandbox__viewport">
-            <canvas class="storage-live-sandbox__canvas" aria-label="Aperçu interactif du slime"></canvas>
+            <canvas class="storage-live-sandbox__canvas" aria-label="${t('sandbox.canvas_aria')}"></canvas>
             <span class="storage-live-sandbox__live-dot" aria-hidden="true"></span>
         </div>`;
         mountTarget.replaceChildren(root);

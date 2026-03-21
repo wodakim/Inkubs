@@ -1,4 +1,5 @@
 import { createIncubator } from '../../vendor/inku-incubator/index.js';
+import { t } from '../../i18n/i18n.js';
 import { syncIncubatorLayout } from './incubator-layout-adapter.js';
 import { createIncubatorSlimePreview } from './incubator-slime-preview.js';
 import { createIncubatorCycleOrchestrator } from './incubator-cycle-orchestrator.js';
@@ -165,7 +166,7 @@ export function createLaboIncubatorFeature({ store } = {}) {
 
                             if (price > balance) {
                                 const { showToast } = await import('../../utils/toast.js');
-                                showToast(`Solde insuffisant — il te faut ${price.toLocaleString('fr-FR')} ⬡`, { type: 'error' });
+                                showToast(t('incubator.toast.insufficient_funds').replace('{price}', price.toLocaleString()), { type: 'error' });
                                 // Return without throwing to avoid putting the controller in error state
                                 return;
                             }
@@ -185,7 +186,7 @@ export function createLaboIncubatorFeature({ store } = {}) {
                             } catch (error) {
                                 if (error?.message?.includes('No storage slot')) {
                                     const { showToast } = await import('../../utils/toast.js');
-                                    showToast('Toutes les boîtes sont pleines !', { type: 'warning' });
+                                    showToast(t('incubator.toast.storage_full'), { type: 'warning' });
                                 } else {
                                     throw error;
                                 }

@@ -10,7 +10,15 @@
 //  6. Slimes move, stop, look at each other, approach, orbit, flee, bond
 // ═══════════════════════════════════════════════════════════════════════════
 
-const TICK_MS = 50;
+import { getPerformanceTier } from '../../utils/device-performance-profile.js';
+
+// TICK_MS adapts to the active performance tier
+function getTickMs() {
+    const tier = getPerformanceTier();
+    if (tier === 'low')    return 120; // ~8 AI ticks/s
+    if (tier === 'medium') return 75;  // ~13 AI ticks/s
+    return 50;                          // ~20 AI ticks/s (high)
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function clamp01(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
@@ -638,7 +646,7 @@ export class SlimeInteractionEngine {
 
   tick(entries, world, prairieObjects) {
     const now = performance.now();
-    if (now - this._lastTick < TICK_MS) return;
+    if (now - this._lastTick < getTickMs()) return;
     this._lastTick = now;
 
     const pObjects = prairieObjects || [];

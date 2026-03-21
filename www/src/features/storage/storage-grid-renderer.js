@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n.js';
 import { buildCanonicalPortraitSvg } from './storage-canonical-visual-renderer.js';
 
 export function renderStorageSlots({ container, records = [], slotClassName = 'storage-slot' }) {
@@ -46,10 +47,10 @@ export function renderStorageSlots({ container, records = [], slotClassName = 's
             ? 'storage-slot__rarity storage-slot__rarity--' + rarityLabel.toLowerCase().replace(/\s+/g, '-').replace(/é/g, 'e').replace(/è/g, 'e')
             : '';
         const rarityBadge = rarityLabel
-            ? `<span class="${escapeHtml(rarityClass)}" aria-label="Rareté : ${escapeHtml(rarityLabel)}">${escapeHtml(rarityLabel)}</span>`
+            ? `<span class="${escapeHtml(rarityClass)}" aria-label="${t('storage.rarity')} : ${escapeHtml(rarityLabel)}">${escapeHtml(rarityLabel)}</span>`
             : '';
 
-        slot.setAttribute('aria-label', `${label}, niveau ${display.level ?? 1}, ${rarityLabel || 'Commun'}`);
+        slot.setAttribute('aria-label', `${label}, ${t('storage.slot_level')} ${display.level ?? 1}, ${rarityLabel || t('rarity.common')}`);
         slot.dataset.rarityTier = (entry.record.proceduralCore?.genome?.rarityTier || entry.record.storageDisplay?.rarityTier || 'common');
         slot.innerHTML = `
             <span class="storage-slot__badge">LVL ${display.level ?? 1}</span>

@@ -1,6 +1,7 @@
 import { deepClone, stableStringify } from '../../vendor/inku-slime-v3/shared/object.js';
 import { hashString } from '../../vendor/inku-slime-v3/shared/random.js';
 import { computeIncomeRate } from '../economy/economy-calculator.js';
+import { t } from '../../i18n/i18n.js';
 
 export const CANONICAL_STORAGE_SCHEMA_VERSION = 1;
 
@@ -90,18 +91,18 @@ function deriveDisplayLevel(stats = {}) {
 function deriveDisplayRarity(metrics = {}) {
     // Prefer the rarityTier string from genome when present
     const tier = String(metrics?.rarityTier || '').trim().toLowerCase();
-    if (tier === 'legendary') return 'Légendaire';
-    if (tier === 'epic')      return 'Épique';
-    if (tier === 'rare')      return 'Rare';
-    if (tier === 'uncommon')  return 'Peu commun';
-    if (tier === 'common')    return 'Commun';
+    if (tier === 'legendary') return t('rarity.legendary');
+    if (tier === 'epic')      return t('rarity.epic');
+    if (tier === 'rare')      return t('rarity.rare');
+    if (tier === 'uncommon')  return t('rarity.uncommon');
+    if (tier === 'common')    return t('rarity.common');
 
     // Fallback: derive from numeric rarityIndex (1-5)
     const rarityIndex = Number(metrics?.rarityIndex);
-    if (!Number.isFinite(rarityIndex)) return 'Commun';
-    if (rarityIndex >= 5) return 'Légendaire';
-    if (rarityIndex >= 4) return 'Épique';
-    if (rarityIndex >= 3) return 'Rare';
-    if (rarityIndex >= 2) return 'Peu commun';
-    return 'Commun';
+    if (!Number.isFinite(rarityIndex)) return t('rarity.common');
+    if (rarityIndex >= 5) return t('rarity.legendary');
+    if (rarityIndex >= 4) return t('rarity.epic');
+    if (rarityIndex >= 3) return t('rarity.rare');
+    if (rarityIndex >= 2) return t('rarity.uncommon');
+    return t('rarity.common');
 }

@@ -1,3 +1,4 @@
+import { t } from '../../i18n/i18n.js';
 import { Slime } from '../../vendor/inku-slime-v3/engine/entities/Slime.js';
 import { Particle } from '../../vendor/inku-slime-v3/engine/entities/Particle.js';
 import {
@@ -13,6 +14,7 @@ import { buildCanonicalBlueprintFromRecord } from '../storage/storage-canonical-
 import { renderStorageSlots } from '../storage/storage-grid-renderer.js';
 import { getStorageRuntimeContext } from '../storage/storage-runtime-context.js';
 import { SlimeInteractionEngine } from './slime-interaction-engine.js';
+import { getPerfSettings, getPerformanceTier } from '../../utils/device-performance-profile.js';
 
 const PRAIRIE_SESSION_KEY = 'inku.prairie.session.v3';
 const MAX_ACTIVE_TRUE_ENGINE = 4;
@@ -198,18 +200,18 @@ export function createPrairieFeature() {
                 <div class="prairie-feature__scene" data-prairie-scene>
                     <div class="prairie-feature__sky-glow prairie-feature__sky-glow--left"></div>
                     <div class="prairie-feature__sky-glow prairie-feature__sky-glow--right"></div>
-                    <div class="prairie-feature__ground-band"></div>
-                    <div class="prairie-feature__ground-line"></div>
                 </div>
-                <canvas class="prairie-feature__engine" data-prairie-canvas aria-label="Prairie des slimes"></canvas>
+                <div class="prairie-feature__ground-band" data-prairie-ground-band></div>
+                <div class="prairie-feature__ground-line" data-prairie-ground-line></div>
+                <canvas class="prairie-feature__engine" data-prairie-canvas aria-label="${t('prairie.canvas_aria')}"></canvas>
             </div>
             <div class="prairie-feature__overlay">
                 <div class="prairie-feature__topbar">
                     <div class="prairie-minimap glass-panel">
-                        <canvas class="prairie-minimap__canvas" data-prairie-minimap width="152" height="86" aria-label="Minimap prairie"></canvas>
+                        <canvas class="prairie-minimap__canvas" data-prairie-minimap width="152" height="86" aria-label="${t('prairie.minimap_aria')}"></canvas>
                     </div>
                     <div class="prairie-drone">
-                        <button type="button" class="prairie-drone__toggle glass-panel" data-prairie-drone-toggle aria-expanded="false" aria-controls="prairie-drone-panel" aria-label="Ouvrir le storage">
+                        <button type="button" class="prairie-drone__toggle glass-panel" data-prairie-drone-toggle aria-expanded="false" aria-controls="prairie-drone-panel" aria-label="${t('prairie.open_storage_aria')}">
                             <span class="prairie-drone__icon" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.9"/><rect x="9" y="1" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="1" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="9" y="9" width="6" height="6" rx="1.5" fill="currentColor" opacity="0.3"/></svg></span>
                             <span class="prairie-drone__cap-pill" data-prairie-cap-pill aria-hidden="true">·</span>
                         </button>
@@ -220,7 +222,7 @@ export function createPrairieFeature() {
                                         <h2 class="storage-panel__title">Slimes</h2>
                                         <p class="prairie-drone__header-meta"><span data-prairie-cap>0</span><span class="prairie-drone__header-sep">/</span><span>${MAX_ACTIVE_TRUE_ENGINE}</span></p>
                                     </div>
-                                    <button type="button" class="storage-panel__close" data-prairie-drone-close aria-label="Fermer le storage">×</button>
+                                    <button type="button" class="storage-panel__close" data-prairie-drone-close aria-label="${t('prairie.close_storage_aria')}">×</button>
                                 </header>
                                 <div class="storage-panel__body prairie-drone__storage-body">
                                     <section class="storage-panel__section storage-panel__section--team">
@@ -242,13 +244,13 @@ export function createPrairieFeature() {
                                         </div>
                                     </section>
                                 </div>
-                                <button type="button" class="prairie-drone__resize-handle" data-prairie-panel-resize aria-label="Redimensionner le storage"></button>
+                                <button type="button" class="prairie-drone__resize-handle" data-prairie-panel-resize aria-label="${t('prairie.resize_storage_aria')}"></button>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="prairie-feature__help glass-panel" data-prairie-help>Glisse · Pince pour zoomer</div>
-                <button type="button" class="prairie-loupe glass-panel" data-prairie-loupe aria-label="Observer les Inkübus">
+                <button type="button" class="prairie-loupe glass-panel" data-prairie-loupe aria-label="${t('prairie.observe_aria')}">
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="7.5" cy="7.5" r="5.5" stroke="currentColor" stroke-width="1.8"/><line x1="11.5" y1="11.5" x2="16" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                 </button>
                 <div class="prairie-obs" data-prairie-obs hidden>
@@ -321,10 +323,15 @@ export function createPrairieFeature() {
         if (!canvas || !viewport) {
             return;
         }
-        const nextWidth = Math.max(1, Math.round(viewport.clientWidth || canvas.clientWidth || 390));
-        const nextHeight = Math.max(1, Math.round(viewport.clientHeight || canvas.clientHeight || 720));
-        canvas.width = nextWidth;
+        const dpr = Math.min(window.devicePixelRatio || 1, getPerfSettings().dprCap);
+        const cssWidth  = Math.max(1, Math.round(viewport.clientWidth  || canvas.clientWidth  || 390));
+        const cssHeight = Math.max(1, Math.round(viewport.clientHeight || canvas.clientHeight || 720));
+        const nextWidth  = Math.round(cssWidth  * dpr);
+        const nextHeight = Math.round(cssHeight * dpr);
+        canvas.width  = nextWidth;
         canvas.height = nextHeight;
+        canvas.style.width  = cssWidth  + 'px';
+        canvas.style.height = cssHeight + 'px';
         setViewport(nextWidth, nextHeight);
     }
 
@@ -443,6 +450,10 @@ export function createPrairieFeature() {
         const translateX = (viewport.clientWidth * 0.5) - (camera.x * camera.zoom);
         const translateY = (viewport.clientHeight * 0.5) - (camera.y * camera.zoom);
         scene.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(${camera.zoom})`;
+
+        // Ground elements live outside the scene so they stay fixed in screen space.
+        const screenGroundY = translateY + world.groundY * camera.zoom;
+        viewport.style.setProperty('--prairie-screen-ground-y', `${Math.round(screenGroundY)}px`);
     }
 
     function scheduleSessionSave(reason = 'session_save') {
@@ -840,7 +851,7 @@ export function createPrairieFeature() {
                 action.innerHTML = mode === 'team'
     ? '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><line x1="1.5" y1="1.5" x2="8.5" y2="8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="8.5" y1="1.5" x2="1.5" y2="8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>'
     : '<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><polyline points="1.5,5.5 4,8 8.5,2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-                action.setAttribute('aria-label', mode === 'team' ? 'Retirer le slime de la prairie' : 'Déployer le slime dans la prairie');
+                action.setAttribute('aria-label', mode === 'team' ? t('prairie.remove_slime_aria') : t('prairie.deploy_slime_aria'));
                 if (mode === 'archive' && activeCanonicalIds.length >= MAX_ACTIVE_TRUE_ENGINE) {
                     action.disabled = true;
                     action.dataset.prairieSlotAction = 'blocked';
@@ -1064,7 +1075,7 @@ export function createPrairieFeature() {
         if (!obsPageLog) return;
         const log = brain.interactionLog;
         if (!log.length) {
-            obsPageLog.innerHTML = '<p class="prairie-obs__empty-msg">Aucune interaction pour le moment...</p>';
+            obsPageLog.innerHTML = `<p class="prairie-obs__empty-msg">${t('prairie.no_interaction')}</p>`;
             return;
         }
         // Show latest first, max 20
@@ -1972,6 +1983,18 @@ export function createPrairieFeature() {
 
     function step() {
         rafId = window.requestAnimationFrame(step);
+
+        // ── Frame throttling based on performance tier ──────────────────────
+        const tier = getPerformanceTier();
+        if (tier !== 'high') {
+            const now60 = performance.now();
+            const targetFps = tier === 'low' ? 24 : 40;
+            const minInterval = 1000 / targetFps;
+            if (!step._lastFrameTime) step._lastFrameTime = 0;
+            if (now60 - step._lastFrameTime < minInterval) return;
+            step._lastFrameTime = now60;
+        }
+
         if (pointerMode === 'slime-drag' && edgeScrollPointer) {
             applyEdgeScroll(edgeScrollPointer.clientX, edgeScrollPointer.clientY);
         }
@@ -2061,6 +2084,7 @@ export function createPrairieFeature() {
             window.cancelAnimationFrame(rafId);
         }
         document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('inku:perf-tier-changed', handlePerfTierChanged);
         rafId = window.requestAnimationFrame(step);
     }
 
@@ -2070,6 +2094,16 @@ export function createPrairieFeature() {
             rafId = 0;
         }
         document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('inku:perf-tier-changed', handlePerfTierChanged);
+    }
+
+    function handlePerfTierChanged() {
+        // Resize canvas to apply new DPR cap immediately
+        resizeCanvas();
+        computeWorld();
+        syncSceneTransform();
+        // Reset frame throttle so the new FPS takes effect right away
+        if (step._lastFrameTime !== undefined) step._lastFrameTime = 0;
     }
 
     function resize() {

@@ -131,6 +131,74 @@ export const TRANSLATIONS = {
         'rarity.rare':      'Rare',
         'rarity.epic':      'Épique',
         'rarity.legendary': 'Légendaire',
+
+        // Storage — textes en dur restants
+        'storage.sections_aria':        "Sections de l'archive",
+        'storage.confirm_sell_aria':    'Confirmer la revente',
+        'storage.slime_file_aria':      'Dossier du slime',
+        'storage.specimen_name_ph':     'Nom du spécimen…',
+        'storage.save_name_aria':       'Sauvegarder le nom',
+        'storage.page':                 'Page',
+        'storage.slot_level':           'niveau',
+
+        // Storage — sandbox aperçu
+        'sandbox.unavailable':          'Aperçu indisponible',
+        'sandbox.canvas_aria':          'Aperçu interactif du slime',
+
+        // Prairie
+        'prairie.canvas_aria':          'Prairie des slimes',
+        'prairie.minimap_aria':         'Minimap prairie',
+        'prairie.open_storage_aria':    'Ouvrir le storage',
+        'prairie.close_storage_aria':   'Fermer le storage',
+        'prairie.resize_storage_aria':  'Redimensionner le storage',
+        'prairie.observe_aria':         'Observer les Inkübus',
+        'prairie.remove_slime_aria':    'Retirer le slime de la prairie',
+        'prairie.deploy_slime_aria':    'Déployer le slime dans la prairie',
+        'prairie.no_interaction':       'Aucune interaction pour le moment...',
+
+        // Profile modal (textes en dur)
+        'profile.my_profile_title':     'Mon Profil',
+        'profile.performance_title':    'Performances',
+
+        // Incubator template
+        'incubator.open_archive_aria':  "Ouvrir l'archive d'entités",
+
+        // Incubator — labels d'état
+        'incubator.status.idle':            'EN ATTENTE...',
+        'incubator.status.staging':         'SIGNAL DÉTECTÉ',
+        'incubator.status.intake':          'ANALYSE EN COURS',
+        'incubator.status.suspended':       'ENTITÉ STABILISÉE',
+        'incubator.status.purchasePending': 'TRANSFERT...',
+        'incubator.status.purchased':       'ADOPTÉ !',
+        'incubator.status.purging':         'LIBÉRATION...',
+        'incubator.status.purged':          'CHAMBRE VIDE',
+        'incubator.status.error':           'ANOMALIE CRITIQUE',
+
+        // Incubator — toasts
+        'incubator.toast.insufficient_funds': 'Solde insuffisant — il te faut {price} ⬡',
+        'incubator.toast.storage_full':       'Toutes les boîtes sont pleines !',
+
+        // Incubator — nom d'entité par défaut
+        'incubator.entity_fallback':        'ENTITÉ',
+        'incubator.no_entity':              'AUCUNE ENTITÉ',
+        'incubator.price_label':            'PRIX',
+        'incubator.archive_label':          'ARCHIVE',
+        'incubator.entities_label':         'ENTITÉS',
+
+        // Incubator — noms de pattern (badge, casse mixte)
+        'pattern.solid':          'Uni',
+        'pattern.radial_glow':    'Lueur',
+        'pattern.gradient_v':     'Dégradé ↕',
+        'pattern.gradient_h':     'Dégradé ↔',
+        'pattern.gradient_diag':  'Dégradé ↗',
+        'pattern.duo_tone':       'Duo',
+        'pattern.soft_spots':     'Taches',
+        'pattern.stripe_v':       'Rayures',
+        'pattern.galaxy_swirl':   'Galaxie',
+        'pattern.aurora':         'Aurore',
+        'pattern.crystal_facets': 'Cristal',
+        'pattern.prismatic':      'Prismatique',
+        'pattern.void_rift':      'Rift',
     },
 
     en: {
@@ -260,5 +328,73 @@ export const TRANSLATIONS = {
         'rarity.rare':      'Rare',
         'rarity.epic':      'Epic',
         'rarity.legendary': 'Legendary',
+
+        // Storage — remaining hardcoded strings
+        'storage.sections_aria':        'Archive sections',
+        'storage.confirm_sell_aria':    'Confirm sale',
+        'storage.slime_file_aria':      'Slime file',
+        'storage.specimen_name_ph':     'Specimen name…',
+        'storage.save_name_aria':       'Save name',
+        'storage.page':                 'Page',
+        'storage.slot_level':           'level',
+
+        // Storage — sandbox preview
+        'sandbox.unavailable':          'Preview unavailable',
+        'sandbox.canvas_aria':          'Interactive slime preview',
+
+        // Prairie
+        'prairie.canvas_aria':          'Slime prairie',
+        'prairie.minimap_aria':         'Prairie minimap',
+        'prairie.open_storage_aria':    'Open storage',
+        'prairie.close_storage_aria':   'Close storage',
+        'prairie.resize_storage_aria':  'Resize storage',
+        'prairie.observe_aria':         'Observe the Inkübus',
+        'prairie.remove_slime_aria':    'Remove slime from prairie',
+        'prairie.deploy_slime_aria':    'Deploy slime to prairie',
+        'prairie.no_interaction':       'No interaction yet...',
+
+        // Profile modal (hardcoded)
+        'profile.my_profile_title':     'My Profile',
+        'profile.performance_title':    'Performance',
+
+        // Incubator template
+        'incubator.open_archive_aria':  'Open entity archive',
+
+        // Incubator — status labels
+        'incubator.status.idle':            'WAITING...',
+        'incubator.status.staging':         'SIGNAL DETECTED',
+        'incubator.status.intake':          'ANALYSIS IN PROGRESS',
+        'incubator.status.suspended':       'ENTITY STABILISED',
+        'incubator.status.purchasePending': 'TRANSFER...',
+        'incubator.status.purchased':       'ADOPTED!',
+        'incubator.status.purging':         'RELEASING...',
+        'incubator.status.purged':          'CHAMBER EMPTY',
+        'incubator.status.error':           'CRITICAL ANOMALY',
+
+        // Incubator — toasts
+        'incubator.toast.insufficient_funds': 'Insufficient funds — you need {price} ⬡',
+        'incubator.toast.storage_full':       'All boxes are full!',
+
+        // Incubator — entity fallback name
+        'incubator.entity_fallback':    'ENTITY',
+        'incubator.no_entity':          'NO ENTITY',
+        'incubator.price_label':        'PRICE',
+        'incubator.archive_label':      'ARCHIVE',
+        'incubator.entities_label':     'ENTITIES',
+
+        // Incubator — pattern names (badge, mixed case)
+        'pattern.solid':          'Solid',
+        'pattern.radial_glow':    'Glow',
+        'pattern.gradient_v':     'Gradient ↕',
+        'pattern.gradient_h':     'Gradient ↔',
+        'pattern.gradient_diag':  'Gradient ↗',
+        'pattern.duo_tone':       'Duo',
+        'pattern.soft_spots':     'Spots',
+        'pattern.stripe_v':       'Stripes',
+        'pattern.galaxy_swirl':   'Galaxy',
+        'pattern.aurora':         'Aurora',
+        'pattern.crystal_facets': 'Crystal',
+        'pattern.prismatic':      'Prismatic',
+        'pattern.void_rift':      'Rift',
     },
 };
