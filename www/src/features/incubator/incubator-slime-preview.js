@@ -638,7 +638,7 @@ export function createIncubatorSlimePreview() {
             return false;
         }
 
-        mountPreviewRuntime({ startMotion: 'idle', spawnImpulseY: -6.8 });
+        mountPreviewRuntime({ startMotion: 'extruding', spawnImpulseY: -13.2 });
         return Boolean(engine?.getCurrentSlime?.());
     }
 
@@ -722,7 +722,7 @@ export function createIncubatorSlimePreview() {
                     if (canvas && currentBlueprint) {
                         ensureFrontLayers();
                         bindGlassInteractions();
-                        mountPreviewRuntime({ startMotion: 'idle', spawnImpulseY: -6.8 });
+                        mountPreviewRuntime({ startMotion: 'extruding', spawnImpulseY: -13.2 });
                     }
                 });
                 return;
