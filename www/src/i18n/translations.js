@@ -209,6 +209,8 @@ export const TRANSLATIONS = {
         'tuto.step_of':                 'Étape {n} sur {total}',
         'tuto.nav.labo':                'Labo',
         'tuto.nav.prairie':             'Prairie',
+        'tuto.tap_to_nav':              'Tapez sur <strong>{label}</strong> pour continuer',
+        'tuto.skipped_msg':             'Tu peux rejouer le tutoriel depuis les Paramètres !',
 
         // Étape 0 — Langue
         'tuto.lang.title':              'Choisissez votre langue',
@@ -442,6 +444,8 @@ export const TRANSLATIONS = {
         'tuto.step_of':                 'Step {n} of {total}',
         'tuto.nav.labo':                'Lab',
         'tuto.nav.prairie':             'Prairie',
+        'tuto.tap_to_nav':              'Tap <strong>{label}</strong> to continue',
+        'tuto.skipped_msg':             'You can replay the tutorial from Settings!',
 
         // Step 0 — Language
         'tuto.lang.title':              'Choose your language',

@@ -72,37 +72,74 @@ function tr(key) {
 }
 
 /* ─── Données des étapes de contenu (indices 1..5) ──────────────────── */
+// mode: 'sheet' (bottom sheet) | 'bubble' (floating tooltip near target)
+// interaction: 'read' (Next button) | 'navigate' (must tap target to advance)
 function getStepData(index) {
     const steps = [
         null, // index 0 = langue (cas spécial)
         {
             icon: '⬡',  titleKey: 'tuto.money.title',   bodyKey: 'tuto.money.body',
             targetSelector: '[data-currency-value="hexagon"]',
-            navSelector: null, navLabelKey: null,
+            mode: 'bubble', interaction: 'read',
         },
         {
             icon: '🧪', titleKey: 'tuto.buy.title',     bodyKey: 'tuto.buy.body',
             targetSelector: '[data-nav-index="2"]',
-            navSelector: '[data-nav-index="2"]', navLabelKey: 'tuto.nav.labo',
+            navLabelKey: 'tuto.nav.labo',
             showAffordability: true,
+            mode: 'sheet', interaction: 'navigate',
         },
         {
             icon: '📦', titleKey: 'tuto.storage.title', bodyKey: 'tuto.storage.body',
             targetSelector: '[data-nav-index="2"]',
-            navSelector: '[data-nav-index="2"]', navLabelKey: 'tuto.nav.labo',
+            mode: 'sheet', interaction: 'read',
         },
         {
             icon: '🌿', titleKey: 'tuto.prairie.title', bodyKey: 'tuto.prairie.body',
             targetSelector: '[data-nav-index="0"]',
-            navSelector: '[data-nav-index="0"]', navLabelKey: 'tuto.nav.prairie',
+            navLabelKey: 'tuto.nav.prairie',
+            mode: 'sheet', interaction: 'navigate',
         },
         {
             icon: '⭐', titleKey: 'tuto.level.title',   bodyKey: 'tuto.level.body',
             targetSelector: '[data-prairie-loupe]',
-            navSelector: '[data-nav-index="0"]', navLabelKey: 'tuto.nav.prairie',
+            mode: 'bubble', interaction: 'read',
         },
     ];
     return steps[index] ?? null;
+}
+
+/* ─── Skip toast ─────────────────────────────────────────────────────── */
+function showSkipToast() {
+    const el = document.createElement('div');
+    el.className = 'tuto-skip-toast';
+    el.textContent = tr('tuto.skipped_msg');
+    document.body.appendChild(el);
+    setTimeout(() => {
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 400);
+    }, 3200);
+}
+
+/* ─── Spotlight interactif sur la cible ──────────────────────────────── */
+/** Zone transparente et cliquable posée au-dessus de l'élément cible.
+ *  Avance le tutoriel quand l'utilisateur la tape. */
+function spawnInteractiveSpotlight(selector, onTap) {
+    const target = document.querySelector(selector);
+    if (!target) return null;
+    const r = target.getBoundingClientRect();
+    const pad = 14;
+    const el = document.createElement('div');
+    el.className = 'tuto-spotlight';
+    el.style.left   = `${r.left   - pad}px`;
+    el.style.top    = `${r.top    - pad}px`;
+    el.style.width  = `${r.width  + pad * 2}px`;
+    el.style.height = `${r.height + pad * 2}px`;
+    el.style.borderRadius = `${Math.min(r.width, r.height) * 0.4 + pad}px`;
+    const handler = (e) => { e.stopPropagation(); el.remove(); onTap(); };
+    el.addEventListener('pointerup', handler, { once: true });
+    document.body.appendChild(el);
+    return { remove: () => el.remove() };
 }
 
 /* ─── Styles injectés une seule fois ────────────────────────────────── */
@@ -360,26 +397,109 @@ function injectStyles() {
     100%{box-shadow:0 0 0 0 rgba(52,211,153,0),0 0 12px rgba(52,211,153,0.3);opacity:1}
 }
 
-/* ── Nav arrow ────────────────────────────────────────────── */
-.tuto-nav-arrow{
-    position:fixed;bottom:calc(60px + env(safe-area-inset-bottom,0px));
-    pointer-events:none;z-index:10001;
-    display:flex;flex-direction:column;align-items:center;gap:3px;
-    animation:tutoArrowBounce 1.0s ease-in-out infinite;
+/* ── Overlay passthrough (navigate steps) ─────────────────── */
+.tuto-overlay--passthrough{
+    pointer-events:none;
+    background:linear-gradient(180deg,rgba(2,8,18,0.48) 0%,rgba(2,8,18,0.68) 100%);
+    backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
 }
-.tuto-nav-arrow__icon{
-    font-size:1.6rem;line-height:1;
-    filter:drop-shadow(0 0 6px rgba(52,211,153,0.8));
+.tuto-overlay--passthrough .tuto-card{pointer-events:auto;}
+
+/* ── Interactive spotlight (navigate steps) ───────────────── */
+.tuto-spotlight{
+    position:fixed;z-index:10002;pointer-events:auto;cursor:pointer;
+    border:2.5px solid rgba(52,211,153,0.9);
+    box-shadow:0 0 0 4px rgba(52,211,153,0.18),0 0 24px rgba(52,211,153,0.35);
+    animation:tutoBeaconPulse 1.4s ease-out infinite;
 }
-.tuto-nav-arrow__label{
-    font-size:0.62rem;font-weight:800;letter-spacing:0.1em;
-    text-transform:uppercase;color:#34d399;
-    text-shadow:0 1px 8px rgba(0,0,0,0.9);
+
+/* ── Tap-to-continue hint ─────────────────────────────────── */
+.tuto-tap-hint{
+    display:flex;align-items:center;justify-content:center;
+    gap:8px;padding:12px 22px 2px;
+    font-size:0.84rem;font-weight:700;color:rgba(52,211,153,0.9);
+    text-align:center;
 }
-@keyframes tutoArrowBounce{
-    0%,100%{transform:translateY(0)}
-    50%{transform:translateY(-8px)}
+.tuto-tap-hint__icon{
+    font-size:1.3rem;display:inline-block;
+    animation:tutoTapBounce 1.1s ease-in-out infinite;
 }
+@keyframes tutoTapBounce{
+    0%,100%{transform:translateY(0) scale(1)}
+    50%{transform:translateY(-5px) scale(1.2)}
+}
+
+/* ── Skip toast ───────────────────────────────────────────── */
+.tuto-skip-toast{
+    position:fixed;z-index:99999;pointer-events:none;
+    bottom:calc(88px + env(safe-area-inset-bottom,0px));
+    left:50%;transform:translateX(-50%);
+    background:rgba(6,16,30,0.96);
+    border:1px solid rgba(52,211,153,0.28);
+    border-radius:14px;padding:11px 20px;
+    font-size:0.81rem;font-weight:600;color:#e2f8ee;
+    text-align:center;max-width:calc(100vw - 48px);
+    box-shadow:0 4px 24px rgba(0,0,0,0.55);
+    transition:opacity 0.4s;
+    white-space:nowrap;
+}
+
+/* ── Floating bubble ──────────────────────────────────────── */
+.tuto-bubble{
+    position:fixed;z-index:10000;pointer-events:auto;
+    max-width:280px;
+    background:
+        repeating-linear-gradient(120deg,rgba(52,211,153,0.018) 0px,rgba(52,211,153,0.018) 1px,transparent 1px,transparent 22px),
+        repeating-linear-gradient(60deg,rgba(52,211,153,0.018) 0px,rgba(52,211,153,0.018) 1px,transparent 1px,transparent 22px),
+        linear-gradient(175deg,rgba(6,18,34,0.98),rgba(2,10,20,0.99));
+    border:1px solid rgba(52,211,153,0.28);
+    border-radius:20px;
+    box-shadow:0 8px 40px rgba(0,0,0,0.7),0 0 0 1px rgba(52,211,153,0.07),inset 0 1px 0 rgba(52,211,153,0.12);
+    animation:tutoBubbleIn 0.32s cubic-bezier(0.16,1,0.3,1);
+    overflow:visible;
+}
+@keyframes tutoBubbleIn{from{transform:scale(0.82);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes tutoBubbleOut{from{transform:scale(1);opacity:1}to{transform:scale(0.82);opacity:0}}
+.tuto-bubble__arrow-up,.tuto-bubble__arrow-down{
+    position:absolute;left:50%;transform:translateX(-50%);
+    width:0;height:0;pointer-events:none;
+}
+.tuto-bubble__arrow-up{
+    top:-9px;
+    border-left:9px solid transparent;border-right:9px solid transparent;
+    border-bottom:9px solid rgba(52,211,153,0.28);
+}
+.tuto-bubble__arrow-up::after{
+    content:'';position:absolute;top:2px;left:-8px;
+    width:0;height:0;
+    border-left:8px solid transparent;border-right:8px solid transparent;
+    border-bottom:8px solid rgba(2,10,20,0.99);
+}
+.tuto-bubble__arrow-down{
+    bottom:-9px;
+    border-left:9px solid transparent;border-right:9px solid transparent;
+    border-top:9px solid rgba(52,211,153,0.28);
+}
+.tuto-bubble__arrow-down::after{
+    content:'';position:absolute;bottom:2px;left:-8px;
+    width:0;height:0;
+    border-left:8px solid transparent;border-right:8px solid transparent;
+    border-top:8px solid rgba(2,10,20,0.99);
+}
+.tuto-bubble__body-wrap{padding:18px 16px 14px;}
+.tuto-bubble__icon{font-size:1.6rem;line-height:1;margin-bottom:8px;filter:drop-shadow(0 0 8px rgba(52,211,153,0.6));}
+.tuto-bubble__title{font-size:0.98rem;font-weight:800;color:#e2f8ee;margin-bottom:6px;line-height:1.22;}
+.tuto-bubble__body{font-size:0.78rem;color:rgba(186,220,200,0.82);line-height:1.55;margin-bottom:12px;white-space:pre-line;}
+.tuto-bubble__body strong{color:#34d399;font-weight:700;}
+.tuto-bubble__ok{
+    width:100%;min-height:42px;border-radius:12px;
+    background:linear-gradient(135deg,#059669,#34d399);
+    color:#fff;font-size:0.88rem;font-weight:800;
+    border:none;cursor:pointer;touch-action:manipulation;
+    box-shadow:0 3px 12px rgba(52,211,153,0.3);
+    transition:opacity 0.12s,transform 0.12s;
+}
+.tuto-bubble__ok:active{opacity:0.82;transform:scale(0.96);}
 `;
     document.head.appendChild(style);
 }
@@ -394,53 +514,127 @@ function animateCardOut(card, overlay, callback) {
     setTimeout(done, 280); // safety fallback
 }
 
-/* ─── Rendu d'une étape de contenu (indices 1..5) ───────────────────── */
+/* ─── Bulle flottante (steps mode:'bubble') ──────────────────────────── */
+function renderBubbleStep(stepIndex, { onNext, onSkip }) {
+    const data = getStepData(stepIndex);
+    if (!data) return null;
+
+    const beacon = data.targetSelector ? spawnBeacon(data.targetSelector) : null;
+    function cleanupHelpers() { beacon?.remove(); }
+
+    const isLast = stepIndex >= TOTAL_STEPS;
+    const target = data.targetSelector ? document.querySelector(data.targetSelector) : null;
+
+    // Position the bubble near the target, clamped to viewport safe zones.
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const SAFE_T = 52, SAFE_B = 96, SIDE = 14;
+    const W = Math.min(272, vw - SIDE * 2);
+    const EST_H = 220; // estimated bubble height
+
+    let posTop = vh * 0.32, posLeft = (vw - W) * 0.5;
+    let arrowDir = null, arrowLeft = W * 0.5;
+
+    if (target) {
+        const r = target.getBoundingClientRect();
+        const cx = r.left + r.width * 0.5;
+        const rawL = Math.max(SIDE, Math.min(cx - W * 0.5, vw - W - SIDE));
+        arrowLeft = Math.max(16, Math.min(cx - rawL - 8, W - 28));
+
+        if (r.bottom + 12 + EST_H < vh - SAFE_B) {
+            posTop = r.bottom + 12; arrowDir = 'up';
+        } else if (r.top - 12 - EST_H > SAFE_T) {
+            posTop = r.top - 12 - EST_H; arrowDir = 'down';
+        } else {
+            posTop = Math.max(SAFE_T, Math.min(r.bottom + 8, vh - SAFE_B - EST_H));
+        }
+        posLeft = rawL;
+    }
+
+    const arrowUpHtml  = arrowDir === 'up'
+        ? `<div class="tuto-bubble__arrow-up" style="left:${arrowLeft}px"></div>` : '';
+    const arrowDownHtml = arrowDir === 'down'
+        ? `<div class="tuto-bubble__arrow-down" style="left:${arrowLeft}px"></div>` : '';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'tuto-overlay tuto-overlay--passthrough';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+
+    const bubble = document.createElement('div');
+    bubble.className = 'tuto-bubble';
+    bubble.style.cssText = `left:${posLeft}px;top:${posTop}px;width:${W}px;`;
+    bubble.innerHTML = `
+${arrowUpHtml}
+<button class="tuto-card__close" aria-label="${tr('tuto.skip')}">✕</button>
+<div class="tuto-bubble__body-wrap">
+    <div class="tuto-bubble__icon">${data.icon}</div>
+    <div class="tuto-bubble__title">${tr(data.titleKey)}</div>
+    <div class="tuto-bubble__body">${tr(data.bodyKey)}</div>
+    <button class="tuto-bubble__ok">${isLast ? tr('tuto.start') : tr('tuto.next')}</button>
+</div>
+${arrowDownHtml}`;
+
+    overlay.appendChild(bubble);
+
+    bubble.querySelector('.tuto-card__close').addEventListener('click', () => {
+        cleanupHelpers(); overlay.remove(); onSkip?.();
+    }, { once: true });
+    bubble.querySelector('.tuto-bubble__ok').addEventListener('click', () => {
+        cleanupHelpers();
+        bubble.style.animation = 'tutoBubbleOut 0.2s ease forwards';
+        setTimeout(() => { overlay.remove(); onNext?.(); }, 200);
+    }, { once: true });
+
+    return overlay;
+}
+
+/* ─── Rendu d'une étape de contenu (sheet, indices 1..5) ────────────── */
 function renderContentStep(stepIndex, { onNext, onSkip }) {
     const data = getStepData(stepIndex);
     if (!data) return null;
 
-    // Spawn visual helpers (beacon + nav arrow) — stored for cleanup
-    const beacon   = data.targetSelector ? spawnBeacon(data.targetSelector) : null;
-    const navArrow = data.navSelector
-        ? spawnNavArrow(data.navSelector, tr(data.navLabelKey ?? '') || '')
-        : null;
+    const beacon = data.targetSelector ? spawnBeacon(data.targetSelector) : null;
+    let spotlight = null;
 
     function cleanupHelpers() {
         beacon?.remove();
-        navArrow?.remove();
+        spotlight?.remove();
     }
 
+    const isNavigate = data.interaction === 'navigate';
+    const isLast = stepIndex >= TOTAL_STEPS;
+
     const overlay = document.createElement('div');
-    overlay.className = 'tuto-overlay';
+    // Navigate steps: overlay is passthrough so the target nav button stays tappable.
+    overlay.className = `tuto-overlay${isNavigate ? ' tuto-overlay--passthrough' : ''}`;
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
     overlay.setAttribute('aria-label', tr(data.titleKey));
 
     const stepLabel = tr('tuto.step_of')
-        .replace('{n}', stepIndex)
-        .replace('{total}', TOTAL_STEPS);
+        .replace('{n}', stepIndex).replace('{total}', TOTAL_STEPS);
 
-    const isLast = stepIndex >= TOTAL_STEPS;
-
-    // Build progress track HTML
+    // Progress dots
     let progressHtml = '';
     for (let i = 1; i <= TOTAL_STEPS; i++) {
         const cls = i === stepIndex ? ' is-active' : i < stepIndex ? ' is-done' : '';
         progressHtml += `<div class="tuto-progress__dot${cls}"></div>`;
     }
 
-    // Affordability pill (step 2 — buy)
+    // Affordability pill (step 2)
     let affordHtml = '';
     if (data.showAffordability) {
         const balance = readBalance();
-        const canAfford = balance > 0;
-        const cls = canAfford ? 'tuto-afford--ok' : 'tuto-afford--ko';
-        const icon = canAfford ? '✓' : '✕';
-        const label = canAfford
-            ? `${icon} ⬡ ${balance.toLocaleString()} Inkübits`
-            : `${icon} ⬡ 0 Inkübits`;
-        affordHtml = `<div class="tuto-afford ${cls}">${label}</div>`;
+        const ok = balance > 0;
+        affordHtml = `<div class="tuto-afford ${ok ? 'tuto-afford--ok' : 'tuto-afford--ko'}">${ok ? '✓' : '✕'} ⬡ ${balance.toLocaleString()} Inkübits</div>`;
     }
+
+    // Navigate steps show a tap-hint instead of a primary button.
+    const navLabel = data.navLabelKey ? tr(data.navLabelKey) : '';
+    const actionsHtml = isNavigate
+        ? `<div class="tuto-tap-hint"><span class="tuto-tap-hint__icon">👆</span>${tr('tuto.tap_to_nav').replace('{label}', navLabel)}</div>`
+        : `<div class="tuto-card__actions"><button class="tuto-btn-primary">${isLast ? tr('tuto.start') : tr('tuto.next')}</button></div>`;
 
     overlay.innerHTML = `
 <div class="tuto-card">
@@ -452,41 +646,39 @@ function renderContentStep(stepIndex, { onNext, onSkip }) {
     </div>
     <div class="tuto-card__content">
         <div class="tuto-card__step-label">
-            <span class="tuto-card__step-dot"></span>
-            ${stepLabel}
+            <span class="tuto-card__step-dot"></span>${stepLabel}
         </div>
         <h2 class="tuto-card__title">${tr(data.titleKey)}</h2>
         ${affordHtml}
         <div class="tuto-card__body">${tr(data.bodyKey)}</div>
     </div>
     <div class="tuto-progress">${progressHtml}</div>
-    <div class="tuto-card__actions">
-        <button class="tuto-btn-primary">${isLast ? tr('tuto.start') : tr('tuto.next')}</button>
-    </div>
+    ${actionsHtml}
+    <div style="height:calc(env(safe-area-inset-bottom,0px) + 8px)"></div>
 </div>`;
 
     const card = overlay.querySelector('.tuto-card');
 
-    overlay.querySelector('.tuto-card__close').addEventListener('click', () => {
+    const doSkip = () => { cleanupHelpers(); overlay.remove(); onSkip?.(); };
+    const doNext = () => {
         cleanupHelpers();
-        overlay.remove();
-        onSkip?.();
-    }, { once: true });
+        if (isLast) { overlay.remove(); onNext?.(); }
+        else { animateCardOut(card, overlay, onNext); }
+    };
 
-    overlay.querySelector('.tuto-btn-primary').addEventListener('click', () => {
-        cleanupHelpers();
-        if (isLast) {
-            overlay.remove();
-            onNext?.();
-        } else {
-            animateCardOut(card, overlay, onNext);
-        }
-    }, { once: true });
+    overlay.querySelector('.tuto-card__close').addEventListener('click', doSkip, { once: true });
 
-    // Tap on overlay background = skip
-    overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) { cleanupHelpers(); overlay.remove(); onSkip?.(); }
-    });
+    if (!isNavigate) {
+        overlay.querySelector('.tuto-btn-primary')?.addEventListener('click', doNext, { once: true });
+        // Background tap = skip only for read steps
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) doSkip(); });
+    } else {
+        // Spawn spotlight AFTER overlay is added to DOM (needs layout).
+        requestAnimationFrame(() => {
+            if (!data.targetSelector) return;
+            spotlight = spawnInteractiveSpotlight(data.targetSelector, doNext);
+        });
+    }
 
     return overlay;
 }
@@ -546,12 +738,13 @@ export function createTutorialController() {
     function skip() {
         active = false;
         completeTutorial();
+        showSkipToast();
         onCompleteCallback?.();
     }
 
     /**
      * Lance l'étape de contenu stepIndex (1..TOTAL_STEPS).
-     * Enchaîne automatiquement sur les suivantes.
+     * Dispatche vers renderBubbleStep (mode:'bubble') ou renderContentStep (mode:'sheet').
      */
     function runContentStep(stepIndex) {
         if (!active) return;
@@ -559,10 +752,16 @@ export function createTutorialController() {
 
         setTutorialStep(stepIndex);
 
-        const overlay = renderContentStep(stepIndex, {
+        const data = getStepData(stepIndex);
+        const callbacks = {
             onNext: () => { if (active) runContentStep(stepIndex + 1); },
             onSkip: () => { skip(); },
-        });
+        };
+
+        const overlay = data?.mode === 'bubble'
+            ? renderBubbleStep(stepIndex, callbacks)
+            : renderContentStep(stepIndex, callbacks);
+
         if (overlay) document.body.appendChild(overlay);
     }
 
