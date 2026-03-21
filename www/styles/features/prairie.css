@@ -58,7 +58,7 @@
 .prairie-feature__ground-band {
     position: absolute;
     left: 0; right: 0;
-    top: calc(var(--prairie-ground-y, 720px) + 4px);
+    top: calc(var(--prairie-screen-ground-y, 540px) + 4px);
     bottom: 0;
     background:
         radial-gradient(ellipse at 25% 8%, rgba(90, 200, 130, 0.10), transparent 18%),
@@ -74,7 +74,7 @@
 .prairie-feature__ground-line {
     position: absolute;
     left: 0; right: 0;
-    top: var(--prairie-ground-y, 720px);
+    top: var(--prairie-screen-ground-y, 540px);
     height: 3px;
     background: linear-gradient(90deg,
         rgba(120, 220, 160, 0.15),
