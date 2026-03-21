@@ -114,6 +114,7 @@ export function createLaboIncubatorFeature({ store } = {}) {
             storagePanel = createStoragePanelController({
                 mountTarget: root,
                 repository: ensureStorageContext().repository,
+                store,
                 floatingPanel: true,
                 inspectionBridge: {
                     suspendSourceRuntime: () => preview?.suspendForExternalRuntime?.(),

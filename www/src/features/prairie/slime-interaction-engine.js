@@ -11,6 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { getPerformanceTier } from '../../utils/device-performance-profile.js';
+import { recordSlimeEvent } from '../../vendor/inku-slime-v3/engine/lifecycle/livingState.js';
 
 // TICK_MS adapts to the active performance tier
 function getTickMs() {
@@ -60,6 +61,8 @@ class SlimeBrain {
     // Observable event log for the loupe panel
     this.interactionLog = [];  // { time, type, targetId, detail }
     this.statChangeLog = [];   // { time, stat, oldVal, newVal, cause }
+    // Post-fight forced speech bubble (consumed by maybeSpawnBubble in prairie-feature.js)
+    this._pendingBubble = null;
   }
   getBias(id) { return this.biasByTarget.get(id) || 0; }
   addBias(id, d) {
@@ -80,6 +83,342 @@ class SlimeBrain {
     this.statChangeLog.push({ time: Date.now(), stat, oldVal: Math.round(oldVal*10)/10, newVal: Math.round(newVal*10)/10, cause });
     if (this.statChangeLog.length > 40) this.statChangeLog.shift();
   }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  SOCIAL RELATIONSHIP SYSTEM
+//  Writes persistent memories and maintains the canonical relationship ledger
+//  (livingState.relationshipLedger.affinities) that survives withdraw/redeploy.
+// ═══════════════════════════════════════════════════════════════════════════
+
+function getSlimeName(slime) {
+    return slime?._canonicalName || 'Inkübus';
+}
+
+/** Returns (or creates) the affinity entry for a given target in a slime's ledger. */
+function getOrInitAffinity(slime, targetId, targetName) {
+    const rl = slime?.livingState?.relationshipLedger;
+    if (!rl) return null;
+    if (!rl.affinities[targetId]) {
+        rl.affinities[targetId] = {
+            displayName: targetName,
+            bias: 0,
+            type: 'neutral',
+            interactionCount: 0,
+            firstMetAt: new Date().toISOString(),
+            lastSeenAt: null,
+            significantEvents: [],
+            // One-shot threshold flags so the same milestone is never written twice
+            crossedFriendly: false,
+            crossedFriend: false,
+            crossedDeepBond: false,
+            crossedHostile: false,
+            crossedRival: false,
+            crossedCombatPartner: false,
+        };
+    }
+    return rl.affinities[targetId];
+}
+
+/** Appends a significant event to the affinity ledger AND writes to the memory ledger. */
+function writeRelMemory(slime, targetId, targetName, eventKind, note) {
+    const rel = getOrInitAffinity(slime, targetId, targetName);
+    if (!rel) return;
+    rel.significantEvents.push({ kind: eventKind, at: new Date().toISOString(), note });
+    if (rel.significantEvents.length > 10) rel.significantEvents.shift();
+    recordSlimeEvent(slime, 'social_' + eventKind, {
+        targetId, targetName, note, relType: rel.type, bias: rel.bias,
+    }, { importance: 'significant', persistLongTerm: true });
+}
+
+/** Syncs bias/type and fires one-shot milestone memories. Called every AI tick per active pair. */
+function updateSocialRelationship(brain, slime, entries, now) {
+    if (!brain.targetId || !slime?.livingState) return;
+    const targetEntry = entries.find(e => e.id === brain.targetId);
+    if (!targetEntry?.slime) return;
+    const targetSlime = targetEntry.slime;
+    const targetName = getSlimeName(targetSlime);
+    const selfName   = getSlimeName(slime);
+
+    // Per-pair runtime throttle data stored on the brain (not persisted, ephemeral)
+    if (!brain._relTrack) brain._relTrack = new Map();
+    let track = brain._relTrack.get(brain.targetId);
+    if (!track) {
+        track = { lastThresholdCheck: 0, lastRomanceMem: 0, lastConflictMem: 0 };
+        brain._relTrack.set(brain.targetId, track);
+    }
+
+    const rel = getOrInitAffinity(slime, brain.targetId, targetName);
+    if (!rel) return;
+
+    // ── First contact ──
+    if (rel.interactionCount === 0) {
+        rel.interactionCount = 1;
+        rel.lastSeenAt = new Date().toISOString();
+        rel.bias = brain.getBias(brain.targetId);
+        writeRelMemory(slime, brain.targetId, targetName, 'first_contact',
+            `Premier contact avec ${targetName}`);
+        // Mirror in target's ledger
+        if (targetSlime.livingState) {
+            const tRel = getOrInitAffinity(targetSlime, brain.selfId, selfName);
+            if (tRel && tRel.interactionCount === 0) {
+                tRel.interactionCount = 1;
+                tRel.lastSeenAt = new Date().toISOString();
+                writeRelMemory(targetSlime, brain.selfId, selfName, 'first_contact',
+                    `Premier contact avec ${selfName}`);
+            }
+        }
+        return;
+    }
+
+    // ── Throttle threshold checks to every 2 seconds ──
+    rel.bias = brain.getBias(brain.targetId);
+    rel.lastSeenAt = new Date().toISOString();
+    rel.displayName = targetName;
+    if (now - track.lastThresholdCheck < 2000) return;
+    track.lastThresholdCheck = now;
+
+    const currentBias = rel.bias;
+
+    // ── Update relationship type ──
+    if (currentBias >= 0.80)       rel.type = 'lover';
+    else if (currentBias >= 0.55)  rel.type = 'friend';
+    else if (currentBias >= 0.25)  rel.type = 'friendly';
+    else if (currentBias <= -0.55) rel.type = 'rival';
+    else if (currentBias <= -0.25) rel.type = 'hostile';
+    else                           rel.type = 'neutral';
+
+    // Combat partner override: mutual fighters with high ferocity, not pure enemies
+    const hasFightMem = rel.significantEvents?.some(
+        e => e.kind === 'fight_won' || e.kind === 'fight_lost');
+    if (hasFightMem
+        && (slime.stats?.ferocity || 50) > 62
+        && (targetSlime.stats?.ferocity || 50) > 62
+        && currentBias > -0.25 && currentBias < 0.55) {
+        rel.type = 'combat_partner';
+    }
+    if (!rel.crossedCombatPartner && rel.type === 'combat_partner') {
+        rel.crossedCombatPartner = true;
+        writeRelMemory(slime, brain.targetId, targetName, 'combat_partner',
+            `Partenaire de combat avec ${targetName}`);
+    }
+
+    // ── Update social flags ──
+    const rl = slime.livingState.relationshipLedger;
+    const affs = Object.values(rl.affinities);
+    rl.socialFlags.friendships = affs.filter(r => r.type === 'friend' || r.type === 'friendly' || r.type === 'lover').length;
+    rl.socialFlags.rivalries   = affs.filter(r => r.type === 'rival'  || r.type === 'hostile').length;
+    rl.socialFlags.bonded      = affs.some(r => r.type === 'friend' || r.type === 'lover');
+
+    // ── One-shot positive milestones ──
+    if (!rel.crossedFriendly && currentBias >= 0.25) {
+        rel.crossedFriendly = true;
+        writeRelMemory(slime, brain.targetId, targetName, 'friendly_bond',
+            `Amitié naissante avec ${targetName}`);
+    }
+    if (!rel.crossedFriend && currentBias >= 0.55) {
+        rel.crossedFriend = true;
+        writeRelMemory(slime, brain.targetId, targetName, 'true_friend',
+            `Véritable ami de ${targetName}`);
+    }
+    if (!rel.crossedDeepBond && currentBias >= 0.80) {
+        rel.crossedDeepBond = true;
+        writeRelMemory(slime, brain.targetId, targetName, 'deep_bond',
+            `Lien profond avec ${targetName}`);
+    }
+
+    // ── One-shot negative milestones ──
+    if (!rel.crossedHostile && currentBias <= -0.25) {
+        rel.crossedHostile = true;
+        writeRelMemory(slime, brain.targetId, targetName, 'hostility',
+            `Hostilité envers ${targetName}`);
+    }
+    if (!rel.crossedRival && currentBias <= -0.55) {
+        rel.crossedRival = true;
+        writeRelMemory(slime, brain.targetId, targetName, 'rivalry',
+            `Rivalité établie avec ${targetName}`);
+    }
+
+    // ── Romance memory (max once per 60 s) ──
+    if (brain.behavior === 'romance' && currentBias >= 0.25 && now - track.lastRomanceMem > 60000) {
+        track.lastRomanceMem = now;
+        writeRelMemory(slime, brain.targetId, targetName, 'romantic_moment',
+            `Moment romantique avec ${targetName}`);
+    }
+}
+
+/**
+ * Writes a conflict memory for both participants (attacker and victim).
+ * Throttled: at most once per 30 s per pair, per direction.
+ */
+function writeConflictMemoryPair(attacker, attackerId, attackerName, victim, victimId, victimName, now) {
+    const ab = attacker._prairieBrain;
+    if (ab && attacker.livingState) {
+        if (!ab._relTrack) ab._relTrack = new Map();
+        let aTrack = ab._relTrack.get(victimId);
+        if (!aTrack) { aTrack = { lastThresholdCheck: 0, lastRomanceMem: 0, lastConflictMem: 0 }; ab._relTrack.set(victimId, aTrack); }
+        if (now - aTrack.lastConflictMem > 30000) {
+            aTrack.lastConflictMem = now;
+            writeRelMemory(attacker, victimId, victimName, 'conflict',
+                `Confrontation avec ${victimName}`);
+        }
+    }
+    const vb = victim._prairieBrain;
+    if (vb && victim.livingState) {
+        if (!vb._relTrack) vb._relTrack = new Map();
+        let vTrack = vb._relTrack.get(attackerId);
+        if (!vTrack) { vTrack = { lastThresholdCheck: 0, lastRomanceMem: 0, lastConflictMem: 0 }; vb._relTrack.set(attackerId, vTrack); }
+        if (now - vTrack.lastConflictMem > 30000) {
+            vTrack.lastConflictMem = now;
+            writeRelMemory(victim, attackerId, attackerName, 'conflict_victim',
+                `Confronté par ${attackerName}`);
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  PHASE 2 — COMBAT SYSTEM
+//  Real physical fights: fight_clash behavior, physics knockback,
+//  stat consequences, canonical memories for winner and loser.
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Applies a velocity impulse to every Verlet node of a slime (knockback). */
+function applyKnockbackToSlime(slime, vx, vy) {
+    if (!slime?.nodes?.length) return;
+    for (const node of slime.nodes) {
+        if (!Number.isFinite(node.x) || !Number.isFinite(node.y)) continue;
+        node.oldX = node.x - vx;
+        node.oldY = node.y - vy;
+    }
+}
+
+/** Deterministic fight score (random jitter added separately at fight start). */
+function computeFightScore(slime) {
+    const s = slime.stats || {};
+    return (s.ferocity || 50) * 0.5 + (s.vitality || 50) * 0.3 + (s.stability || 50) * 0.2;
+}
+
+/** Applies stat consequences to one fighter and writes the canonical memory. */
+function applyFightStatChanges(slime, brain, won, opponentId, opponentName) {
+    if (!slime?.stats) return;
+    const s = slime.stats;
+    if (won) {
+        const ferocityGain = randRange(1, 3);
+        const vitalityLoss = randRange(0, 1.5);
+        const oldFer = s.ferocity;
+        const oldVit = s.vitality;
+        s.ferocity = Math.min(99, s.ferocity + ferocityGain);
+        s.vitality = Math.max(1,  s.vitality - vitalityLoss);
+        brain.logStatChange('ferocity', oldFer, s.ferocity, 'fight_won');
+        if (vitalityLoss > 0.1) brain.logStatChange('vitality', oldVit, s.vitality, 'fight_won');
+        // Very combative slimes enjoy the fight — slight positive bias toward opponent
+        if (s.ferocity > 68) brain.addBias(opponentId, 0.05);
+        writeRelMemory(slime, opponentId, opponentName, 'fight_won',
+            `A vaincu ${opponentName} au combat`);
+        // Persist combat history for temperament evolution
+        const progW = slime?.livingState?.progressionLedger;
+        if (progW) progW.combatWins = (progW.combatWins || 0) + 1;
+    } else {
+        const vitalityLoss  = randRange(2, 5);
+        const stabilityLoss = randRange(0.5, 3);
+        const oldVit  = s.vitality;
+        const oldStab = s.stability;
+        s.vitality  = Math.max(1, s.vitality  - vitalityLoss);
+        s.stability = Math.max(1, s.stability - stabilityLoss);
+        brain.logStatChange('vitality',  oldVit,  s.vitality,  'fight_lost');
+        brain.logStatChange('stability', oldStab, s.stability, 'fight_lost');
+        brain.addBias(opponentId, -0.12);
+        writeRelMemory(slime, opponentId, opponentName, 'fight_lost',
+            `A été vaincu par ${opponentName}`);
+        // Persist combat history for temperament evolution
+        const progL = slime?.livingState?.progressionLedger;
+        if (progL) progL.combatLosses = (progL.combatLosses || 0) + 1;
+        // Resilience training: tough slimes partially recover stability
+        if (oldStab > 55) {
+            s.stability = Math.min(99, s.stability + 0.5);
+        }
+    }
+}
+
+/**
+ * Resolves a fight_clash between two slimes.
+ * Called once when slimeA's fight_clash expires (brainA._fightTargetId set).
+ * Prevents double-resolution: nulls _fightTargetId on BOTH brains immediately.
+ */
+function resolveFightClash(brainA, slimeA, slimeB, now) {
+    if (!brainA._fightTargetId) return; // already resolved by the other side
+    const brainB = slimeB._prairieBrain;
+
+    // Roll scores (deterministic base + per-fight random jitter stored at start)
+    const scoreA = (brainA._fightScore ?? computeFightScore(slimeA)) + Math.random() * 8;
+    const scoreB = brainB ? ((brainB._fightScore ?? computeFightScore(slimeB)) + Math.random() * 8)
+                          : computeFightScore(slimeB);
+    const aWon = scoreA >= scoreB;
+
+    const winner      = aWon ? slimeA : slimeB;
+    const loser       = aWon ? slimeB : slimeA;
+    const winnerBrain = aWon ? brainA : brainB;
+    const loserBrain  = aWon ? brainB : brainA;
+
+    const idA   = brainA.selfId;
+    const idB   = brainB?.selfId || brainA.targetId;
+    const nameA = getSlimeName(slimeA);
+    const nameB = getSlimeName(slimeB);
+
+    // Null out fight state on BOTH sides FIRST (prevents double-resolution)
+    brainA._fightTargetId = null;
+    brainA._fightScore    = null;
+    if (brainB) { brainB._fightTargetId = null; brainB._fightScore = null; }
+
+    // Stat changes + canonical memories
+    applyFightStatChanges(slimeA, brainA, aWon,  idB, nameB);
+    applyFightStatChanges(slimeB, brainB ?? { logStatChange(){}, addBias(){} }, !aWon, idA, nameA);
+
+    // Interaction log
+    brainA.logInteraction(aWon ? 'fight_won' : 'fight_lost', idB,
+        aWon ? `Victoire contre ${nameB}` : `Défaite contre ${nameB}`);
+    if (brainB) brainB.logInteraction(!aWon ? 'fight_won' : 'fight_lost', idA,
+        !aWon ? `Victoire contre ${nameA}` : `Défaite contre ${nameA}`);
+
+    // Physics: big knockback to loser
+    const loserCenter  = getCenter(loser);
+    const winnerCenter = getCenter(winner);
+    const kDir = Math.sign(loserCenter.x - winnerCenter.x) || 1;
+    applyKnockbackToSlime(loser, kDir * 6, -4);
+
+    // Force loser into recoil
+    if (loserBrain) {
+        startBehavior(loserBrain, 'recoil', winnerBrain ? winnerBrain.selfId : idA, now);
+        loser.triggerAction('hurt', 900, 1.2);
+    }
+    // Winner: brief triumph flash
+    if (winnerBrain) {
+        winner.triggerAction('attack', 600, 1.0);
+    }
+    // Queue immediate speech bubble for both fighters
+    if (winnerBrain) winnerBrain._pendingBubble = { emotion: 'combat' };
+    if (loserBrain)  loserBrain._pendingBubble  = { emotion: 'pain' };
+}
+
+/**
+ * Derives the current temperament archetype from a slime's stats + combat history.
+ * Also persists the result to progressionLedger.temperament for the obs panel.
+ * Archetypes: 'combatant' | 'fearful' | 'resilient' | 'pacifist' | 'neutral'
+ */
+function getTemperament(slime) {
+    const s   = slime?.stats || {};
+    const prog = slime?.livingState?.progressionLedger;
+    const wins   = prog?.combatWins   || 0;
+    const losses = prog?.combatLosses || 0;
+
+    let tag = 'neutral';
+    if ((s.ferocity || 50) >= 68 && wins >= 2)            tag = 'combatant';
+    else if ((s.stability || 50) <= 35 && losses >= 2)    tag = 'fearful';
+    else if ((s.stability || 50) >= 65 && losses >= 1)    tag = 'resilient';
+    else if ((s.empathy || 50) >= 65 && (s.ferocity || 50) <= 45) tag = 'pacifist';
+
+    if (prog) prog.temperament = tag;
+    return tag;
 }
 
 // ── Movement primitives ──────────────────────────────────────────────────────
@@ -233,6 +572,19 @@ function pickBehavior(brain, slime, others, world, now, prairieObjects) {
     }
   }
 
+  // ── Temperament modifiers ──
+  const temperament = getTemperament(slime);
+  if (temperament !== 'neutral') {
+    const TEMP_MODS = {
+      combatant: { challenge: 1.6, fight_clash: 1.5, flee: 0.25, recoil: 0.4 },
+      fearful:   { flee: 2.0, recoil: 1.5, challenge: 0.15, fight_clash: 0.1, bond: 0.8 },
+      resilient: { recoil: 0.5, flee: 0.6, challenge: 1.3, bond: 1.2 },
+      pacifist:  { bond: 1.5, romance: 1.5, calm: 1.4, challenge: 0.08, fight_clash: 0.05 },
+    };
+    const mods = TEMP_MODS[temperament];
+    if (mods) for (const w of W) { if (mods[w[0]] !== undefined) w[1] *= mods[w[0]]; }
+  }
+
   // Variety penalty
   for (const w of W) {
     const count = brain.recentBehaviors.filter(b => b === w[0]).length;
@@ -271,6 +623,7 @@ const DUR = {
   sniff_object:  [2500, 5500],
   play_ball:     [3000, 7000],
   sit_stump:     [3000, 8000],
+  fight_clash:   [3000, 7000],
 };
 
 function startBehavior(brain, name, targetId, now, targetObj) {
@@ -295,8 +648,9 @@ const CHAINS = {
   bond:        ['romance', 'follow', 'observe', 'wander'],
   romance:     ['bond', 'follow', 'wander'],
   investigate: ['approach', 'observe', 'orbit', 'wander'],
-  challenge:   ['intimidate', 'wander'],
+  challenge:   ['fight_clash', 'intimidate', 'wander'],
   intimidate:  ['challenge', 'wander'],
+  fight_clash: ['wander', 'idle_look'],
   flee:        ['wander', 'idle_look'],
   recoil:      ['flee', 'wander'],
   calm:        ['bond', 'observe', 'wander'],
@@ -463,6 +817,58 @@ function execBehavior(brain, slime, others, world, now) {
           const otherStab = sigmoid(target.stats?.stability || 50);
           if (otherStab < 0.45 && ob.behavior !== 'flee' && ob.behavior !== 'recoil')
             startBehavior(ob, otherStab < 0.3 ? 'flee' : 'recoil', brain.selfId, now);
+          // Write conflict memories for both slimes
+          writeConflictMemoryPair(
+            slime, brain.selfId, getSlimeName(slime),
+            target, brain.targetId, getSlimeName(target),
+            now
+          );
+        }
+      }
+      // ── Escalation to full fight_clash ──
+      if (dist < 72 && Math.random() < 0.007 &&
+          ((s.ferocity || 50) > 52 || brain.getBias(brain.targetId) < -0.35)) {
+        const ob = target?._prairieBrain;
+        if (ob && ob.behavior !== 'flee') {
+          const fightScoreA = computeFightScore(slime)  + Math.random() * 20;
+          const fightScoreB = computeFightScore(target) + Math.random() * 20;
+          startBehavior(brain, 'fight_clash', brain.targetId, now);
+          startBehavior(ob,    'fight_clash', brain.selfId,   now);
+          brain._fightScore    = fightScoreA;
+          brain._fightTargetId = brain.targetId;
+          ob._fightScore       = fightScoreB;
+          ob._fightTargetId    = brain.selfId;
+        }
+      }
+      break;
+    }
+
+    case 'fight_clash': {
+      if (!tc) break;
+      const elapsed = now - brain.startedAt;
+      // Alternate attack (0) / hurt (1) phases every 480ms
+      const fightPhase = Math.floor(elapsed / 480) % 2;
+
+      if (dist > 65) {
+        // Close in fast
+        moveToward(slime, brain, tc.x, 1.0 * energy);
+        if (Math.random() < 0.015 * energy) tryJump(slime, brain, now);
+      } else {
+        faceTo(slime, target);
+        if (fightPhase === 0) {
+          // Attack phase: lunge forward, deliver hit
+          moveToward(slime, brain, tc.x, 0.55 * energy);
+          keepAction(slime, 'attack', 1.0);
+          // Physical impact: knockback to target only at very close range, once per phase
+          if (dist < 48 && (elapsed % 480) < 100) {
+            const kDir = Math.sign(tc.x - sc.x) || 1;
+            applyKnockbackToSlime(target, kDir * 3.5, -2.0);
+            target.triggerAction('hurt', 600, 1.0);
+          }
+        } else {
+          // Hurt phase: brief recoil
+          moveAway(slime, brain, tc.x, 0.3, world);
+          keepAction(slime, 'hurt', 0.9);
         }
       }
       break;
@@ -664,6 +1070,26 @@ export class SlimeInteractionEngine {
       const brain = slime._prairieBrain;
       brain.decayBias();
 
+      // ── Fight resolution: runs when fight_clash expires ──
+      if (brain.behavior === 'fight_clash' && brain._fightTargetId && now >= brain.endsAt) {
+        const ft = entries.find(e => e.id === brain._fightTargetId);
+        if (ft?.slime) {
+          resolveFightClash(brain, slime, ft.slime, now);
+        } else {
+          brain._fightTargetId = null;
+          brain._fightScore    = null;
+        }
+        // If this slime won, resolveFightClash left behavior as fight_clash;
+        // fall through so normal chain selection picks wander/idle_look.
+        // If this slime lost, startBehavior('recoil') was called inside
+        // resolveFightClash and endsAt is in the future — skip chain.
+        if (brain.behavior !== 'fight_clash') {
+          execBehavior(brain, slime, entries, world, now);
+          if (brain.targetId) updateSocialRelationship(brain, slime, entries, now);
+          continue;
+        }
+      }
+
       // Behavior expired → pick next
       if (now >= brain.endsAt) {
         const chain = CHAINS[brain.behavior];
@@ -701,12 +1127,28 @@ export class SlimeInteractionEngine {
         }
 
         startBehavior(brain, next.name, next.target, now, next.obj);
+        // Store fight score when entering fight_clash via chain/re-pick
+        if (next.name === 'fight_clash' && next.target && !brain._fightTargetId) {
+          brain._fightScore    = computeFightScore(slime) + Math.random() * 20;
+          brain._fightTargetId = next.target;
+          const ft = entries.find(e => e.id === next.target);
+          if (ft?.slime?._prairieBrain && !ft.slime._prairieBrain._fightTargetId) {
+            ft.slime._prairieBrain._fightScore    = computeFightScore(ft.slime) + Math.random() * 20;
+            ft.slime._prairieBrain._fightTargetId = brain.selfId;
+            startBehavior(ft.slime._prairieBrain, 'fight_clash', brain.selfId, now);
+          }
+        }
         // Log behavior transition
         brain.logInteraction(next.name, next.target, next.obj ? next.obj.type : '');
       }
 
       // Execute
       execBehavior(brain, slime, entries, world, now);
+
+      // Persistent social relationship updates (writes to livingState.relationshipLedger)
+      if (brain.targetId) {
+        updateSocialRelationship(brain, slime, entries, now);
+      }
 
       // Stat micro-learning (very rare)
       if (brain.targetId && Math.random() < 0.003) {
@@ -716,6 +1158,7 @@ export class SlimeInteractionEngine {
             observe: 'curiosity', approach: 'curiosity', investigate: 'curiosity',
             follow: 'empathy', bond: 'empathy', romance: 'empathy', calm: 'empathy',
             challenge: 'ferocity', flee: 'stability', recoil: 'stability',
+            fight_clash: 'ferocity',
           };
           const stat = learnMap[brain.behavior];
           if (stat && slime.stats[stat] !== undefined) {

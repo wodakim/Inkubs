@@ -50,6 +50,7 @@ export class SlimeEngine {
     const context = canvas.getContext('2d', { alpha: true });
     setCanvas(canvas, context);
     this.canvas = canvas;
+    this.ctx = context;
     this.windowRef = windowRef;
     this.interactive = interactive;
     this.showContainmentBox = showContainmentBox;
@@ -90,6 +91,13 @@ export class SlimeEngine {
   }
 
   resize() {
+    // Re-bind global rendering context to this engine's canvas.
+    // Multiple SlimeEngine instances (labo + prairie) share the same global ctx
+    // from runtimeState.js. When the prairie mounts it overrides ctx with its own
+    // canvas; calling resize() here ensures the correct canvas is restored before
+    // the game loop runs.
+    setCanvas(this.canvas, this.ctx);
+
     const nextWidth = Math.max(1, Math.round(
       this.viewportWidth
       || this.canvas.clientWidth
