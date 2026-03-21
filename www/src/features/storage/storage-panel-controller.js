@@ -80,6 +80,7 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
     let unsubscribe = null;
     let selectedCanonicalId = null;
     let activeArchiveSortKey = 'rarity';
+    let activeTab = 'team';
     let activePress = null;
     let activeDrag = null;
     let pendingSell = null;
@@ -207,6 +208,15 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
                     <button type="button" class="storage-panel__close" data-storage-close aria-label="Fermer l'archive">×</button>
                 </header>
 
+                <nav class="storage-tab-nav" role="tablist" aria-label="Sections de l'archive">
+                    <button type="button" class="storage-tab-nav__btn is-active" data-storage-tab="team" role="tab" aria-selected="true">
+                        <span class="storage-tab-nav__dot"></span>Équipe
+                    </button>
+                    <button type="button" class="storage-tab-nav__btn" data-storage-tab="archive" role="tab" aria-selected="false">
+                        Archive
+                    </button>
+                </nav>
+
                 <div class="storage-panel__body" data-storage-scroll-body>
 
                     <!-- ── ÉQUIPE ACTIVE ────────────────────────────── -->
@@ -322,6 +332,9 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
             sellCopy: root.querySelector('[data-storage-sell-copy]'),
             sellSubject: root.querySelector('[data-storage-sell-subject]'),
             sortChips: [...root.querySelectorAll('[data-storage-sort-key]')],
+            tabBtns: [...root.querySelectorAll('[data-storage-tab]')],
+            teamShowcase: root.querySelector('.storage-team-showcase'),
+            pcBox: root.querySelector('.storage-pc-box'),
             dragHandle: root.querySelector('[data-storage-panel-drag-handle]'),
             resizeHandle: root.querySelector('[data-storage-panel-resize]'),
         };
@@ -337,6 +350,8 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         root.addEventListener('pointerdown', onPointerDown);
 
         mountTarget.appendChild(root);
+        // Init tab state : équipe visible, archive cachée
+        setTab('team');
     }
 
     function ensureRoot() {
@@ -415,12 +430,26 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
         render();
     }
 
+    function setTab(tab) {
+        activeTab = tab;
+        const onTeam = tab === 'team';
+        if (refs.teamShowcase) refs.teamShowcase.hidden = !onTeam;
+        if (refs.pcBox) refs.pcBox.hidden = onTeam;
+        refs.tabBtns?.forEach(btn => {
+            const isActive = btn.dataset.storageTab === tab;
+            btn.classList.toggle('is-active', isActive);
+            btn.setAttribute('aria-selected', String(isActive));
+        });
+    }
+
     function open() {
         ensureRoot();
         isOpen = true;
         root.hidden = false;
         root.classList.add('is-open');
         root.setAttribute('aria-hidden', 'false');
+        // Toujours s'ouvrir sur l'onglet Équipe — c'est l'info prioritaire
+        setTab('team');
         // Re-normalize every time the panel opens — catches stale
         // localStorage offsets from a different viewport size
         panelLayout = normalizePanelLayout(panelLayout || {});
@@ -487,6 +516,12 @@ export function createStoragePanelController({ mountTarget, repository, inspecti
     }
 
     function onRootClick(event) {
+        const tabTrigger = event.target.closest?.('[data-storage-tab]');
+        if (tabTrigger) {
+            setTab(tabTrigger.dataset.storageTab);
+            return;
+        }
+
         const closeTrigger = event.target.closest?.('[data-storage-detail-close]');
         if (closeTrigger) {
             closeDetail();
