@@ -109,6 +109,18 @@ function reduceState(state, action) {
             };
         }
 
+        case 'UPDATE_PLAYER_PROFILE': {
+            const { displayName, avatarKey } = action.payload || {};
+            const player = { ...state.player };
+            if (typeof displayName === 'string' && displayName.trim()) {
+                player.displayName = displayName.trim().slice(0, 16).toUpperCase();
+            }
+            if (typeof avatarKey === 'string' && avatarKey) {
+                player.avatarKey = avatarKey;
+            }
+            return { ...state, player };
+        }
+
         // Ajoute (ou retire si négatif) de la monnaie — solde plancher à 0
         case 'ADD_CURRENCY': {
             const { currency, amount } = action.payload || {};

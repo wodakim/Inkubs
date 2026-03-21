@@ -54,7 +54,7 @@ export function createCanonicalStorageRecord({
         captureContext,
         storageDisplay: {
             label: candidate?.displayName || `Specimen ${String(runtimeId).slice(-6).toUpperCase()}`,
-            level: deriveDisplayLevel(proceduralCore?.stats),
+            level: 1,
             rarity: deriveDisplayRarity(candidate?.complexityMetrics || proceduralCore?.genome),
             typeLabel: proceduralCore?.type || candidate?.speciesKey || 'unknown',
             mood: proceduralCore?.genome?.mood || null,

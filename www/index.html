@@ -36,7 +36,7 @@
         <header class="hud-shell w-full z-20 flex justify-between items-start px-4" data-hud style="padding-top: max(1rem, var(--safe-top));">
             <button type="button" class="glass-pill rounded-full flex items-center pr-4 p-1 gap-3 btn-active-scale cursor-pointer shadow-lg hud-profile-trigger" data-action="toggle-profile-modal" aria-controls="profile-modal" aria-expanded="false">
                 <div class="relative w-10 h-10 rounded-full border border-emerald/50 bg-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                    <i class="ph-fill ph-user text-emerald text-xl"></i>
+                    <i class="ph-fill ph-user text-emerald text-xl" data-player-avatar-icon></i>
                 </div>
                 <div class="flex flex-col items-start">
                     <span class="text-[10px] text-gray-400 font-bold tracking-wider uppercase leading-none" data-player-role>Docteur</span>
@@ -126,7 +126,7 @@
             <div id="profile-card" class="glass-panel profile-card relative w-[85%] max-w-sm rounded-[40px] p-8 flex flex-col items-center transform scale-90 border-emerald/20 shadow-2xl">
                 <button type="button" class="absolute top-6 right-6 w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-gray-400 btn-active-scale" data-action="close-profile-modal" aria-label="Fermer le profil"><i class="ph-bold ph-x"></i></button>
                 <div class="relative w-28 h-28 rounded-full border-2 border-emerald bg-slate-900 flex items-center justify-center overflow-hidden shadow-[0_0_30px_rgba(16,185,129,0.4)] mb-4">
-                    <i class="ph-fill ph-user text-emerald text-6xl"></i>
+                    <i class="ph-fill ph-user text-emerald text-6xl" data-modal-player-avatar-icon></i>
                     <div class="absolute inset-0 bg-gradient-to-b from-transparent via-emerald/10 to-transparent animate-pulse"></div>
                 </div>
                 <h2 class="text-2xl font-black text-white uppercase tracking-tight" data-modal-player-name>N3O_VNDL</h2>
@@ -140,12 +140,14 @@
                 </div>
 
                 <div class="w-full grid grid-cols-2 gap-4 mt-8">
-                    <div class="glass-pill rounded-3xl h-24 border-white/5 flex items-center justify-center">
-                        <span class="text-[8px] uppercase font-black text-gray-600">Locked</span>
-                    </div>
-                    <div class="glass-pill rounded-3xl h-24 border-white/5 flex items-center justify-center">
-                        <span class="text-[8px] uppercase font-black text-gray-600">Locked</span>
-                    </div>
+                    <button type="button" class="profile-slot-btn" data-action="open-profile-settings">
+                        <i class="ph-bold ph-user-circle text-xl mb-1"></i>
+                        <span>Mon Profil</span>
+                    </button>
+                    <button type="button" class="profile-slot-btn" data-action="open-perf-settings">
+                        <i class="ph-bold ph-gauge text-xl mb-1"></i>
+                        <span>Performances</span>
+                    </button>
                 </div>
                 <!-- Notifications d'incubateur -->
                 <div class="profile-notif-block w-full mt-6" id="profile-notif-block">
@@ -166,8 +168,66 @@
                         </div>
                     </div>
                 </div>
-                <button type="button" class="w-full mt-4 py-4 rounded-2xl bg-emerald/10 border border-emerald/40 text-emerald font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-emerald/20">Paramètres Profil</button>
-                <button type="button" id="reset-data-btn" class="w-full mt-3 py-3 rounded-2xl bg-red-900/20 border border-red-500/30 text-red-400 font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-red-900/40">⚠ Réinitialiser les données</button>
+                <button type="button" id="reset-data-btn" class="w-full mt-4 py-3 rounded-2xl bg-red-900/20 border border-red-500/30 text-red-400 font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-red-900/40">⚠ Réinitialiser les données</button>
+
+                <!-- Panneau de paramètres (slide-in par-dessus le contenu de la card) -->
+                <div id="profile-settings-panel" class="profile-settings-panel" aria-hidden="true">
+                    <div class="profile-settings-panel__header">
+                        <button type="button" class="profile-settings-back" data-action="close-profile-settings" aria-label="Retour">
+                            <i class="ph-bold ph-arrow-left"></i>
+                        </button>
+                        <span class="profile-settings-panel__title" id="profile-settings-title"></span>
+                    </div>
+
+                    <!-- Section : Mon Profil -->
+                    <div id="settings-profile-section" class="profile-settings-section" hidden>
+                        <p class="settings-section-label">Avatar</p>
+                        <div class="profile-avatar-grid">
+                            <button type="button" class="avatar-option" data-avatar="user"><i class="ph-fill ph-user"></i></button>
+                            <button type="button" class="avatar-option" data-avatar="robot"><i class="ph-fill ph-robot"></i></button>
+                            <button type="button" class="avatar-option" data-avatar="alien"><i class="ph-fill ph-alien"></i></button>
+                            <button type="button" class="avatar-option" data-avatar="skull"><i class="ph-fill ph-skull"></i></button>
+                            <button type="button" class="avatar-option" data-avatar="ghost"><i class="ph-fill ph-ghost"></i></button>
+                            <button type="button" class="avatar-option" data-avatar="flame"><i class="ph-fill ph-flame"></i></button>
+                            <button type="button" class="avatar-option" data-avatar="crown"><i class="ph-fill ph-crown"></i></button>
+                            <button type="button" class="avatar-option" data-avatar="cat"><i class="ph-fill ph-cat"></i></button>
+                        </div>
+                        <p class="settings-section-label">Nom d'affichage</p>
+                        <input type="text" id="profile-name-input" class="profile-name-input" maxlength="16" placeholder="Ton pseudo...">
+                        <button type="button" class="profile-save-btn" data-action="save-profile">Sauvegarder</button>
+                    </div>
+
+                    <!-- Section : Performances -->
+                    <div id="settings-perf-section" class="profile-settings-section" hidden>
+                        <p class="settings-perf-desc">Adapte la qualité visuelle selon la puissance de ton appareil.</p>
+                        <div class="perf-tier-list">
+                            <button type="button" class="perf-tier-btn" data-perf-btn="low">
+                                <span class="perf-tier-icon">🔋</span>
+                                <div class="perf-tier-info">
+                                    <span class="perf-tier-name">Économie</span>
+                                    <span class="perf-tier-desc">Fluidité maximale</span>
+                                </div>
+                            </button>
+                            <button type="button" class="perf-tier-btn" data-perf-btn="medium">
+                                <span class="perf-tier-icon">⚡</span>
+                                <div class="perf-tier-info">
+                                    <span class="perf-tier-name">Équilibré</span>
+                                    <span class="perf-tier-desc">Recommandé</span>
+                                </div>
+                            </button>
+                            <button type="button" class="perf-tier-btn" data-perf-btn="high">
+                                <span class="perf-tier-icon">✨</span>
+                                <div class="perf-tier-info">
+                                    <span class="perf-tier-name">Qualité</span>
+                                    <span class="perf-tier-desc">Appareils haut de gamme</span>
+                                </div>
+                            </button>
+                        </div>
+                        <button type="button" class="perf-auto-btn" data-action="auto-detect-perf">
+                            <i class="ph-bold ph-magnifying-glass"></i> Détection automatique
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 

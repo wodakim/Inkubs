@@ -311,6 +311,259 @@
     transform: scale(0.97);
 }
 
+/* ── Slot buttons (replace locked) ──────────────────────────────────── */
+.profile-slot-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    height: 80px;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 70%),
+        rgba(255, 255, 255, 0.02);
+    color: rgba(16, 185, 129, 0.7);
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all var(--motion-fast) ease;
+    cursor: pointer;
+}
+
+.profile-slot-btn:active {
+    transform: scale(0.95);
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.18) 0%, transparent 70%),
+        rgba(255, 255, 255, 0.04);
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
+/* ── Settings panel (slide-in overlay inside the profile card) ───────── */
+.profile-settings-panel {
+    position: absolute;
+    inset: 0;
+    background: var(--glass-bg, rgba(6, 15, 28, 0.97));
+    border-radius: inherit;
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem 1.5rem 1.5rem;
+    transform: translateX(100%);
+    transition: transform var(--motion-medium) var(--ease-spring);
+    overflow-y: auto;
+    z-index: 10;
+}
+
+.profile-settings-panel.is-open {
+    transform: translateX(0);
+}
+
+.profile-settings-panel__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.profile-settings-back {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    transition: all var(--motion-fast) ease;
+}
+
+.profile-settings-back:active {
+    transform: scale(0.9);
+}
+
+.profile-settings-panel__title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-text-primary);
+    letter-spacing: 0.02em;
+}
+
+/* ── Profile settings section ─────────────────────────────────────── */
+.settings-section-label {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(16, 185, 129, 0.6);
+    margin-bottom: 0.6rem;
+}
+
+.profile-avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.avatar-option {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 1.5px solid rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.03);
+    font-size: 1.4rem;
+    color: var(--color-text-muted);
+    transition: all var(--motion-fast) ease;
+    cursor: pointer;
+}
+
+.avatar-option:active,
+.avatar-option.is-selected {
+    border-color: rgba(16, 185, 129, 0.6);
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--color-slime-300);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+}
+
+.profile-name-input {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-md);
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    outline: none;
+    transition: border-color var(--motion-fast) ease;
+    margin-bottom: 0.75rem;
+}
+
+.profile-name-input:focus {
+    border-color: rgba(16, 185, 129, 0.45);
+}
+
+.profile-save-btn {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.06));
+    color: var(--color-slime-400);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all var(--motion-fast) ease;
+}
+
+.profile-save-btn:active {
+    transform: scale(0.97);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(16, 185, 129, 0.12));
+}
+
+/* ── Performance tier section ─────────────────────────────────────── */
+.settings-perf-desc {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    margin-bottom: 1rem;
+}
+
+.perf-tier-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.perf-tier-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: var(--radius-md);
+    border: 1.5px solid rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.03);
+    text-align: left;
+    transition: all var(--motion-fast) ease;
+    cursor: pointer;
+}
+
+.perf-tier-btn.is-active {
+    border-color: rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 0.08);
+}
+
+.perf-tier-btn:active {
+    transform: scale(0.97);
+}
+
+.perf-tier-icon {
+    font-size: 1.3rem;
+    flex-shrink: 0;
+}
+
+.perf-tier-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.perf-tier-name {
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.perf-tier-desc {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--color-text-muted);
+}
+
+.perf-tier-btn.is-active .perf-tier-name {
+    color: var(--color-slime-400);
+}
+
+.perf-auto-btn {
+    width: 100%;
+    padding: 0.65rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--color-text-muted);
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: all var(--motion-fast) ease;
+}
+
+.perf-auto-btn:active {
+    transform: scale(0.97);
+    background: rgba(255, 255, 255, 0.06);
+}
+
 /* ═══════ RESET CONFIRM MODAL ════════════════════════════════════════ */
 
 #reset-confirm-modal {

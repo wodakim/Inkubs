@@ -192,6 +192,20 @@ function scoreToTier(total) {
  * Met à jour le cache localStorage et applique le tier sur le <html>.
  * @returns {Promise<'low'|'medium'|'high'>}
  */
+/**
+ * Permet au joueur de forcer manuellement un palier de performance.
+ * Met à jour le cache localStorage et applique immédiatement les changements.
+ * @param {'low'|'medium'|'high'} tier
+ */
+export function setPerformanceTier(tier) {
+    if (tier !== 'low' && tier !== 'medium' && tier !== 'high') return;
+    _cachedTier = tier;
+    try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ tier, ts: Date.now(), manual: true }));
+    } catch (_) {}
+    applyTierToDOM(tier);
+}
+
 export async function detectAndApplyPerformanceProfile() {
     const hwScore    = getHardwareScore();
     const benchScore = await runCanvasBenchmark();

@@ -12,6 +12,7 @@ export const MODAL_IDS = Object.freeze({ PROFILE: 'profile' });
 export const DEFAULT_PLAYER_STATE = Object.freeze({
     roleLabel: 'Docteur',
     displayName: 'N3O_VNDL',
+    avatarKey: 'user',
     levelLabel: 'LVL.0',
     identityLabel: 'ID: INK-774-B',
     levelText: 'Niveau 0',

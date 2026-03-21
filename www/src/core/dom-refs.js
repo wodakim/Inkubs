@@ -24,11 +24,13 @@ export function getDomRefs(root = document) {
         hudPlayerName: root.querySelector('[data-player-name]'),
         hudPlayerRole: root.querySelector('[data-player-role]'),
         hudPlayerLevel: root.querySelector('[data-player-level]'),
+        hudPlayerAvatarIcon: root.querySelector('[data-player-avatar-icon]'),
         modalPlayerName: root.querySelector('[data-modal-player-name]'),
         modalPlayerId: root.querySelector('[data-modal-player-id]'),
         modalPlayerLevelLabel: root.querySelector('[data-modal-player-level-label]'),
         modalPlayerXp: root.querySelector('[data-modal-player-xp]'),
         modalPlayerXpBar: root.querySelector('[data-modal-player-xp-bar]'),
+        modalPlayerAvatarIcon: root.querySelector('[data-modal-player-avatar-icon]'),
         currencyValues: {
             hexagon: root.querySelector('[data-currency-value="hexagon"]'),
             sketch: root.querySelector('[data-currency-value="sketch"]'),
