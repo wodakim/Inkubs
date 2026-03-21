@@ -64,11 +64,12 @@ function buildPreviewBlueprint() {
 }
 
 function animateIn(wrapper) {
-    // La boucle rAF (startMotionLoop 'extruding') gère entièrement le
-    // transform du wrapper — ne pas poser de CSS transition ici, elle
-    // se battrait avec la boucle et créerait des artifacts visuels.
     wrapper.style.opacity = '1';
-    wrapper.style.transform = 'translate3d(0,18px,0) scale(1,0.92)';
+    wrapper.style.transform = 'translate3d(0,18px,0) scale(1.06,0.92)';
+    wrapper.style.transition = `transform ${INTAKE_ANIMATION_MS}ms cubic-bezier(0.16, 0.9, 0.14, 1)`;
+    requestAnimationFrame(() => {
+        wrapper.style.transform = 'translate3d(0,0,0) scale(1,1)';
+    });
 }
 
 function distanceBetween(a, b) {
@@ -507,9 +508,9 @@ export function createIncubatorSlimePreview() {
         if (engine) {
             engine.applyVerticalImpulse(-13.8);
         }
-        // Pas de CSS transition : la boucle rAF gère transform + opacity
-        // frame par frame — poser une transition ici créerait un conflit
-        // (chaque rAF déclencherait une nouvelle interpolation de 820ms).
+        if (wrapper) {
+            wrapper.style.transition = `transform ${PURGE_ANIMATION_MS}ms cubic-bezier(0.22, 0.82, 0.18, 1), opacity ${PURGE_ANIMATION_MS}ms linear`;
+        }
     }
 
     function syncLayout() {

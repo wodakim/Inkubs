@@ -419,10 +419,6 @@ const stylesheetText = `
 
 .glass-column {
   isolation: isolate;
-  /* Containment paint : isole le compositing GPU de l'animation du slime
-     pour éviter que la promotion de couches internes (willChange, canvas)
-     ne déclenche une réévaluation de l'arbre compositor externe. */
-  contain: layout paint;
 }
 
 .glass-reflection {
@@ -1278,6 +1274,15 @@ const stylesheetText = `
   min-width: 340px;
   align-self: center;
   margin-inline: auto;
+}
+
+.inku-incubator[data-integration-embed-mode="true"] .display-panel__screen {
+  /* Hauteur fixe : candidate-row et idle-hint sont toggles hidden/visible
+     pendant le cycle automatique. Sans min-height, le display-panel
+     rétrécit → le chassis remonte → tout le contenu de l'incubateur
+     "bouge". On fixe une hauteur plancher couvrant la state maximale
+     (candidate-row visible) pour que le chassis reste immobile. */
+  min-height: 110px;
 }
 
 .inku-incubator[data-integration-embed-mode="true"] .chassis {
