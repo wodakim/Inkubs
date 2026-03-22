@@ -5,12 +5,22 @@
 
 .prairie-feature {
     position: relative;
+    /* Hauteur du HUD (header statique) + safe-area top — miroir de la formule
+       utilisée dans external-display-panel pour se positionner sous le header.
+       Permet d'étendre le canvas de la prairie DERRIÈRE le header (qui reste
+       z-index: 20, donc toujours visuellement au-dessus). */
+    --hud-h: calc(72px + env(safe-area-inset-top, 0px));
     /* z-index > 1 garantit que la prairie est toujours devant le root de
        l'incubateur (z-index: 1) dans le content-mount, même si display:none
        venait à faillir côté JS. Filet de sécurité CSS pour le doublon. */
     z-index: 2;
     width: 100%;
-    height: 100%;
+    /* On remonte le canvas en arrière-plan du header sans toucher au layout
+       parent : margin-top négatif + height compensée. Le header étant z-20
+       (> content-shell z-10 > prairie stacking context), il reste toujours
+       visuellement au-dessus de la prairie. */
+    margin-top: calc(-1 * var(--hud-h));
+    height: calc(100% + var(--hud-h));
     min-height: 0;
     overflow: hidden;
     isolation: isolate;
@@ -106,7 +116,9 @@
     flex-direction: column;
     justify-content: space-between;
     pointer-events: none;
-    padding: 0.9rem 0.95rem calc(4.8rem + env(safe-area-inset-bottom, 0px));
+    /* padding-top = hauteur du HUD + padding d'origine, pour que la minimap
+       reste visible en dessous du header flottant. */
+    padding: calc(var(--hud-h) + 0.9rem) 0.95rem calc(4.8rem + env(safe-area-inset-bottom, 0px));
 }
 
 .prairie-feature__topbar {
