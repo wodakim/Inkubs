@@ -258,9 +258,8 @@
     width: min(100vw, 448px);
     /* Espace sous le HUD : ~72px HUD height + safe-top */
     top: calc(72px + max(1rem, env(safe-area-inset-top, 20px)));
-    /* Ne pas empiéter sur la nav : ~80px nav + safe-bottom */
-    max-height: calc(100dvh - 72px - max(1rem, env(safe-area-inset-top, 20px)) - 96px - max(1.5rem, env(safe-area-inset-bottom, 20px)));
-    z-index: 15;
+    /* z-index 9 = derrière le content-shell (z-index: 10) → panel DERRIÈRE l'incubateur */
+    z-index: 9;
     pointer-events: none;
     display: flex;
     flex-direction: column;

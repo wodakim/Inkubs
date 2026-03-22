@@ -16,7 +16,7 @@ function getFocusableElements(container) {
         .filter((element) => !element.hasAttribute('disabled'));
 }
 
-export function createProfileModalController({ refs, store }) {
+export function createProfileModalController({ refs, store, settingsPanelController = null }) {
     const listeners = createListenerRegistry();
     const modalId = MODAL_IDS.PROFILE;
     let lastTrigger = null;
@@ -139,6 +139,10 @@ export function createProfileModalController({ refs, store }) {
             const action = e.target.closest('[data-action]')?.dataset.action;
             if (action === 'open-profile-settings') openSettingsPanel('profile');
             if (action === 'open-perf-settings')    openSettingsPanel('perf');
+            if (action === 'open-all-settings') {
+                closeProfileModal();
+                settingsPanelController?.open();
+            }
         });
     }
 

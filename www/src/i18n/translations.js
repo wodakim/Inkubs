@@ -21,6 +21,7 @@ export const TRANSLATIONS = {
         // Profil — carte principale
         'profile.my_profile':       'Mon Profil',
         'profile.performance':      'Performances',
+        'profile.settings':         'Paramètres',
         'profile.incubator_alerts': 'Alertes Incubateur',
         'profile.notify_from':      'Notifier dès :',
         'profile.tier.uncommon':    'Peu commun',
@@ -31,6 +32,7 @@ export const TRANSLATIONS = {
         'profile.language':         'Langue',
 
         // Panneau paramètres (in-game)
+        'settings.title':          'Paramètres',
         'settings.back':           'Retour',
         'settings.avatar':         'Avatar',
         'settings.display_name':   "Nom d'affichage",
@@ -388,6 +390,7 @@ export const TRANSLATIONS = {
         // Profil — carte principale
         'profile.my_profile':       'My Profile',
         'profile.performance':      'Performance',
+        'profile.settings':         'Settings',
         'profile.incubator_alerts': 'Incubator Alerts',
         'profile.notify_from':      'Notify from:',
         'profile.tier.uncommon':    'Uncommon',
@@ -398,6 +401,7 @@ export const TRANSLATIONS = {
         'profile.language':         'Language',
 
         // Panneau paramètres (in-game)
+        'settings.title':          'Settings',
         'settings.back':           'Back',
         'settings.avatar':         'Avatar',
         'settings.display_name':   'Display name',

@@ -2088,16 +2088,9 @@ export function createPrairieFeature() {
     function step() {
         rafId = window.requestAnimationFrame(step);
 
-        // ── Frame throttling based on performance tier ──────────────────────
-        const tier = getPerformanceTier();
-        if (tier !== 'high') {
-            const now60 = performance.now();
-            const targetFps = tier === 'low' ? 24 : 40;
-            const minInterval = 1000 / targetFps;
-            if (!step._lastFrameTime) step._lastFrameTime = 0;
-            if (now60 - step._lastFrameTime < minInterval) return;
-            step._lastFrameTime = now60;
-        }
+        // NOTE: No FPS throttling here — performance tier only affects rendering
+        // quality (DPR, particles, visual effects), never frame rate. Capping FPS
+        // hurts the user on low/medium tiers without any actual GPU/CPU benefit.
 
         if (pointerMode === 'slime-drag' && edgeScrollPointer) {
             applyEdgeScroll(edgeScrollPointer.clientX, edgeScrollPointer.clientY);
@@ -2250,8 +2243,6 @@ export function createPrairieFeature() {
         resizeCanvas();
         computeWorld();
         syncSceneTransform();
-        // Reset frame throttle so the new FPS takes effect right away
-        if (step._lastFrameTime !== undefined) step._lastFrameTime = 0;
     }
 
     function resize() {

@@ -72,8 +72,47 @@ export function createTitleScreen({ onPlay } = {}) {
 .cable-binding{position:absolute;left:-2px;right:-2px;height:12px;background:linear-gradient(90deg,#1e293b,#64748b,#1e293b);box-shadow:0 4px 6px rgba(0,0,0,0.6),inset 0 2px 2px rgba(255,255,255,0.3);border-top:1px solid #020617;border-bottom:1px solid #020617;border-radius:2px;z-index:2;}
 .led{width:5px;height:5px;border-radius:50%;background-color:#10b981;box-shadow:0 0 8px #10b981;margin:0 3px;}
 canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-index:2;}
-.title-glow{text-shadow:0 0 20px rgba(16,185,129,0.8),0 0 40px rgba(16,185,129,0.4);}
+/* ── Logo juicy ─────────────────────────────────────────────────────── */
+#ts-logo-area{
+    display:flex;flex-direction:column;align-items:center;flex-shrink:0;
+    position:relative;z-index:20;
+    padding-top:max(3.75rem,calc(env(safe-area-inset-top,0px) + 2.25rem));
+}
+.ts-logo-badge{
+    display:flex;align-items:center;gap:0.45rem;margin-bottom:0.3rem;
+    font-family:'JetBrains Mono','Fira Code',monospace;
+    font-size:0.5rem;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;
+    color:rgba(52,211,153,0.52);
+}
+.ts-logo-dot{
+    display:inline-block;width:4px;height:4px;border-radius:50%;flex-shrink:0;
+    background:#10b981;box-shadow:0 0 6px #10b981,0 0 14px rgba(16,185,129,0.5);
+}
+.ts-logo-title{
+    font-size:5.5rem;font-weight:900;line-height:1;letter-spacing:-0.025em;
+    color:#fff;margin:0;font-family:'Nunito',sans-serif;
+    text-shadow:
+        0 0 22px rgba(16,185,129,1),
+        0 0 55px rgba(16,185,129,0.7),
+        0 0 100px rgba(16,185,129,0.4),
+        0 0 180px rgba(16,185,129,0.15),
+        0 3px 8px rgba(0,0,0,0.65);
+}
+.ts-logo-sub{
+    font-family:'JetBrains Mono','Fira Code',monospace;
+    font-size:0.57rem;letter-spacing:0.28em;text-transform:uppercase;
+    color:rgba(52,211,153,0.58);font-weight:600;margin-top:0.5rem;
+}
 .safe-area-pb{padding-bottom:max(2.5rem,calc(env(safe-area-inset-bottom) + 1.2rem));}
+@media(max-height:750px){
+    #ts-logo-area{padding-top:max(2.75rem,calc(env(safe-area-inset-top,0px) + 1.5rem));}
+    .ts-logo-title{font-size:4.25rem;}
+}
+@media(max-height:650px){
+    #ts-logo-area{padding-top:max(2rem,calc(env(safe-area-inset-top,0px) + 1rem));}
+    .ts-logo-title{font-size:3.4rem;}
+    .ts-logo-badge{display:none;}
+}
 
 /* Bouton paramètres — accessible encoche/Dynamic Island */\n#ts-settings-btn-wrap{position:fixed;top:0;right:0;z-index:200;padding-top:max(0.6rem,env(safe-area-inset-top,0px));padding-right:max(0.75rem,env(safe-area-inset-right,0px));}\n#ts-open-settings{width:3rem;height:3rem;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,0.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1.5px solid rgba(255,255,255,0.14);box-shadow:0 4px 18px rgba(0,0,0,0.5);color:rgba(200,210,220,0.9);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background 0.15s,transform 0.1s;appearance:none;}\n#ts-open-settings:active{transform:scale(0.91);background:rgba(16,185,129,0.18);}\n#ts-open-settings i{font-size:1.25rem;pointer-events:none;}\n\n/* PLAY CARD */
 .login-card-aaa{background:linear-gradient(180deg,rgba(11,17,32,0.7) 0%,rgba(2,6,23,0.85) 100%);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(16,185,129,0.15);box-shadow:0 15px 35px -10px rgba(0,0,0,0.9),inset 0 1px 1px rgba(255,255,255,0.05),inset 0 0 20px rgba(16,185,129,0.05);border-radius:20px;height:auto;padding:1.5rem 1.25rem;width:100%;max-width:320px;margin:0 auto;}
@@ -201,10 +240,15 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
             <i class="ph ph-gear"></i>
         </button>
     </div>
-    <!-- Title -->
-    <div class="flex flex-col items-center flex-shrink-0 mt-0 sm:mt-1 relative z-20">
-        <h1 class="text-4xl sm:text-5xl font-black text-white title-glow tracking-tight" style="font-family:'Nunito',sans-serif;">Inkü</h1>
-        <p class="text-emerald-400 text-[9px] sm:text-xs tracking-widest mt-1 font-bold uppercase opacity-80">${t('ts.subtitle')}</p>
+    <!-- Title — safe-zone aware, JUICY -->
+    <div id="ts-logo-area">
+        <div class="ts-logo-badge">
+            <span class="ts-logo-dot"></span>
+            <span class="ts-logo-badge-text">INKU LABS</span>
+            <span class="ts-logo-dot"></span>
+        </div>
+        <h1 class="ts-logo-title">Inkü</h1>
+        <p class="ts-logo-sub">${t('ts.subtitle')}</p>
     </div>
     <!-- Mid -->
     <div class="flex-1 w-full flex items-center justify-center px-4 py-2 min-h-0 relative z-10">

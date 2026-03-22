@@ -14,6 +14,7 @@ import { loadPlayerState, savePlayerState } from '../features/economy/player-per
 import { createPassiveIncomeEngine } from '../features/economy/passive-income-engine.js';
 import { getStorageRuntimeContext } from '../features/storage/storage-runtime-context.js';
 import { createNotificationSettingsController } from '../features/economy/notification-settings-controller.js';
+import { createSettingsPanelController } from '../features/settings/settings-panel-controller.js';
 
 export function createGameMenuApp(root = document) {
     const refs = getDomRefs(root);
@@ -24,7 +25,8 @@ export function createGameMenuApp(root = document) {
 
     const hudController = createHudController({ refs, store });
     const navigationController = createNavigationController({ refs, store });
-    const profileModalController = createProfileModalController({ refs, store });
+    const settingsPanelController = createSettingsPanelController();
+    const profileModalController = createProfileModalController({ refs, store, settingsPanelController });
     const dustBackgroundController = createDustBackgroundController({ refs });
     const contentMountController = createContentMountController({ refs, store });
 
@@ -119,6 +121,7 @@ export function createGameMenuApp(root = document) {
         refs.shell.dataset.menuActive = 'false';
         store.dispatch({ type: 'SET_SHELL_ACTIVE', payload: { value: false } });
         profileModalController.closeProfileModal();
+        settingsPanelController.close();
         dustBackgroundController.stop();
         passiveIncome.stop();
     }
@@ -129,6 +132,7 @@ export function createGameMenuApp(root = document) {
         dustBackgroundController.destroy();
         navigationController.destroy();
         profileModalController.destroy();
+        settingsPanelController.destroy();
         contentMountController.destroy();
         hudController.destroy();
     }
