@@ -5,6 +5,10 @@
 
 .prairie-feature {
     position: relative;
+    /* z-index > 1 garantit que la prairie est toujours devant le root de
+       l'incubateur (z-index: 1) dans le content-mount, même si display:none
+       venait à faillir côté JS. Filet de sécurité CSS pour le doublon. */
+    z-index: 2;
     width: 100%;
     height: 100%;
     min-height: 0;

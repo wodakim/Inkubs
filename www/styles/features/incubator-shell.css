@@ -26,6 +26,13 @@
     overflow: hidden;
 }
 
+/* Garantie CSS : l'attribut hidden sur la feature cache TOUT, y compris le
+   Shadow DOM de l'incubateur. Le sélecteur [hidden] seul n'a pas !important
+   dans Tailwind, donc display:flex ci-dessus l'écraserait sans cette règle. */
+.labo-incubator-feature[hidden] {
+    display: none !important;
+}
+
 .labo-incubator-stage {
     position: relative;
     width: 100%;
