@@ -1644,57 +1644,6 @@ export function createPrairieFeature() {
             });
         }
 
-        // ── Trees (short rounded tree, stays at ground level) ────────────
-        const treeCount = 1 + Math.floor(rng() * 2);
-        for (let i = 0; i < treeCount; i++) {
-            const x = wL + 150 + rng() * (wSpan - 300);
-            const trunkH = 22 + rng() * 14;   // same order of magnitude as stump/rock
-            const trunkW = 9 + rng() * 6;
-            const canopyR = 20 + rng() * 12;  // canopy bottom nearly touches ground
-            const hue = 100 + rng() * 40;
-            prairieObjects.push({
-                type: 'tree', x, y: gY,
-                trunkH, trunkW, canopyR,
-                hue, darkHue: hue - 10,
-                interactive: true, interactRadius: canopyR * 0.9,
-            });
-        }
-
-        // ── Berry bushes (organic cluster with small fruits) ──────────────
-        const bushCount = 3 + Math.floor(rng() * 3);
-        for (let i = 0; i < bushCount; i++) {
-            const x = wL + 60 + rng() * (wSpan - 120);
-            const w = 18 + rng() * 16;
-            const h = 14 + rng() * 12;
-            const berryCount = 3 + Math.floor(rng() * 5);
-            const berryHue = rng() > 0.5 ? (0 + rng() * 20) : (280 + rng() * 30); // red or purple
-            prairieObjects.push({
-                type: 'bush', x, y: gY, w, h,
-                leafHue: 105 + rng() * 30,
-                berryHue, berryCount,
-                interactive: false,
-            });
-        }
-
-        // ── Pebble clusters (ground scatter, purely decorative) ───────────
-        const pebbleGroupCount = 3 + Math.floor(rng() * 4);
-        for (let i = 0; i < pebbleGroupCount; i++) {
-            const x = wL + 40 + rng() * (wSpan - 80);
-            const count = 2 + Math.floor(rng() * 4);
-            const pebbles = Array.from({ length: count }, (_, j) => ({
-                dx: (j - count * 0.5) * (5 + rng() * 6),
-                dy: -rng() * 3,
-                rx: 3 + rng() * 4,
-                ry: 2 + rng() * 2,
-                hue: 170 + rng() * 60,
-                lightness: 28 + rng() * 18,
-            }));
-            prairieObjects.push({
-                type: 'pebbles', x, y: gY, pebbles,
-                interactive: false,
-            });
-        }
-
         // ── Puddles (flat, decorative + curiosity trigger) ───────────────
         const puddleCount = 2 + Math.floor(rng() * 2);
         for (let i = 0; i < puddleCount; i++) {
@@ -1703,6 +1652,40 @@ export function createPrairieFeature() {
                 type: 'puddle', x, y: gY + 2,
                 w: 35 + rng() * 40, h: 4 + rng() * 4,
                 interactive: true, interactRadius: 45,
+            });
+        }
+
+        // ── Small round bushes (3 overlapping circles, purely decorative) ─
+        const bushCount = 3 + Math.floor(rng() * 3);
+        for (let i = 0; i < bushCount; i++) {
+            const x = wL + 60 + rng() * (wSpan - 120);
+            const r = 8 + rng() * 8;          // main ball radius 8-16
+            const leafHue = 105 + rng() * 30; // green 105-135
+            prairieObjects.push({
+                type: 'bush', x, y: gY,
+                r, leafHue,
+                interactive: false,
+            });
+        }
+
+        // ── Pebble clusters (tiny circles on ground, purely decorative) ──
+        const pebbleGroupCount = 4 + Math.floor(rng() * 3);
+        for (let i = 0; i < pebbleGroupCount; i++) {
+            const x = wL + 40 + rng() * (wSpan - 80);
+            const count = 2 + Math.floor(rng() * 3);
+            const pebbles = [];
+            for (let j = 0; j < count; j++) {
+                pebbles.push({
+                    dx: (j - count * 0.5) * (6 + rng() * 5),
+                    r:  Math.max(2, 2 + rng() * 4),  // radius 2-6, always >= 2
+                    hue: 170 + rng() * 60,
+                    l:   28 + rng() * 18,
+                });
+            }
+            prairieObjects.push({
+                type: 'pebbles', x, y: gY,
+                pebbles,
+                interactive: false,
             });
         }
 
@@ -1844,77 +1827,43 @@ export function createPrairieFeature() {
                     }
                     break;
                 }
-                case 'tree': {
-                    const tx = obj.x, ty = obj.y;
-                    // Shadow ellipse on ground
-                    ctx.fillStyle = 'rgba(0,0,0,0.08)';
-                    ctx.beginPath();
-                    ctx.ellipse(tx, ty, obj.trunkW * 2.5, 4, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    // Trunk
-                    ctx.fillStyle = 'hsla(28, 32%, 24%, 0.88)';
-                    ctx.beginPath();
-                    ctx.moveTo(tx - obj.trunkW * 0.5, ty);
-                    ctx.lineTo(tx - obj.trunkW * 0.42, ty - obj.trunkH);
-                    ctx.lineTo(tx + obj.trunkW * 0.42, ty - obj.trunkH);
-                    ctx.lineTo(tx + obj.trunkW * 0.5, ty);
-                    ctx.closePath();
-                    ctx.fill();
-                    // Canopy (three overlapping circles for organic shape)
-                    const topY = ty - obj.trunkH;
-                    const layers = [
-                        { ox: 0,                      oy: 0,                        r: obj.canopyR,        l: 42 },
-                        { ox: -obj.canopyR * 0.38,    oy: obj.canopyR * 0.22,       r: obj.canopyR * 0.72, l: 36 },
-                        { ox:  obj.canopyR * 0.35,    oy: obj.canopyR * 0.18,       r: obj.canopyR * 0.68, l: 36 },
-                        { ox: 0,                      oy: -obj.canopyR * 0.3,       r: obj.canopyR * 0.6,  l: 48 },
-                    ];
-                    for (const lyr of layers) {
-                        ctx.fillStyle = `hsla(${obj.hue}, 45%, ${lyr.l}%, 0.82)`;
-                        ctx.beginPath();
-                        ctx.arc(tx + lyr.ox, topY + lyr.oy, lyr.r, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                    // Canopy highlight
-                    ctx.fillStyle = `hsla(${obj.hue + 10}, 50%, 58%, 0.22)`;
-                    ctx.beginPath();
-                    ctx.ellipse(tx - obj.canopyR * 0.18, topY - obj.canopyR * 0.18, obj.canopyR * 0.38, obj.canopyR * 0.28, -0.5, 0, Math.PI * 2);
-                    ctx.fill();
-                    break;
-                }
                 case 'bush': {
+                    // Three overlapping circles for a round leafy bush
                     const bx = obj.x, by = obj.y;
-                    // Main bush body (rounded blob)
-                    ctx.fillStyle = `hsla(${obj.leafHue}, 42%, 30%, 0.82)`;
+                    const r = obj.r;
+                    // Back-left lobe
+                    ctx.fillStyle = `hsla(${obj.leafHue - 5}, 44%, 28%, 0.78)`;
                     ctx.beginPath();
-                    ctx.ellipse(bx, by - obj.h * 0.55, obj.w * 0.5, obj.h * 0.55, 0, 0, Math.PI * 2);
+                    ctx.arc(bx - r * 0.45, by - r * 0.55, r * 0.72, 0, Math.PI * 2);
                     ctx.fill();
-                    // Highlight lobe on top-left
-                    ctx.fillStyle = `hsla(${obj.leafHue + 8}, 48%, 40%, 0.5)`;
+                    // Back-right lobe
+                    ctx.fillStyle = `hsla(${obj.leafHue}, 44%, 30%, 0.78)`;
                     ctx.beginPath();
-                    ctx.ellipse(bx - obj.w * 0.18, by - obj.h * 0.8, obj.w * 0.28, obj.h * 0.3, -0.3, 0, Math.PI * 2);
+                    ctx.arc(bx + r * 0.42, by - r * 0.52, r * 0.68, 0, Math.PI * 2);
                     ctx.fill();
-                    // Berries scattered over the bush
-                    for (let b = 0; b < obj.berryCount; b++) {
-                        const ang = (b / obj.berryCount) * Math.PI * 2 + 0.4;
-                        const dist = obj.w * (0.18 + (b % 2) * 0.12);
-                        const bry = by - obj.h * (0.45 + 0.35 * Math.abs(Math.sin(ang)));
-                        ctx.fillStyle = `hsla(${obj.berryHue}, 72%, 55%, 0.88)`;
-                        ctx.beginPath();
-                        ctx.arc(bx + Math.cos(ang) * dist, bry, 2.2, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
+                    // Front main lobe
+                    ctx.fillStyle = `hsla(${obj.leafHue + 6}, 46%, 34%, 0.82)`;
+                    ctx.beginPath();
+                    ctx.arc(bx, by - r * 0.75, r, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Highlight dot
+                    ctx.fillStyle = `hsla(${obj.leafHue + 12}, 50%, 50%, 0.18)`;
+                    ctx.beginPath();
+                    ctx.arc(bx - r * 0.2, by - r * 1.1, r * 0.3, 0, Math.PI * 2);
+                    ctx.fill();
                     break;
                 }
                 case 'pebbles': {
                     for (const p of obj.pebbles) {
-                        ctx.fillStyle = `hsla(${p.hue}, 12%, ${p.lightness}%, 0.72)`;
+                        const pr = Math.max(2, p.r);
+                        ctx.fillStyle = `hsla(${p.hue}, 12%, ${p.l}%, 0.70)`;
                         ctx.beginPath();
-                        ctx.ellipse(obj.x + p.dx, obj.y + p.dy, p.rx, p.ry, p.dx * 0.08, 0, Math.PI * 2);
+                        ctx.arc(obj.x + p.dx, obj.y - pr * 0.4, pr, 0, Math.PI * 2);
                         ctx.fill();
-                        // Tiny highlight
-                        ctx.fillStyle = `hsla(${p.hue}, 8%, ${p.lightness + 14}%, 0.22)`;
+                        // Tiny specular dot
+                        ctx.fillStyle = `hsla(${p.hue}, 8%, ${p.l + 16}%, 0.20)`;
                         ctx.beginPath();
-                        ctx.ellipse(obj.x + p.dx - p.rx * 0.25, obj.y + p.dy - p.ry * 0.3, p.rx * 0.3, p.ry * 0.25, 0, 0, Math.PI * 2);
+                        ctx.arc(obj.x + p.dx - pr * 0.3, obj.y - pr * 0.7, pr * 0.28, 0, Math.PI * 2);
                         ctx.fill();
                     }
                     break;
