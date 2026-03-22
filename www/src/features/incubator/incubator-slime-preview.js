@@ -96,6 +96,7 @@ export function createIncubatorSlimePreview() {
     let fluidDisturbance = null;
     let lastContainer = null;
     let lastCandidate = null;
+    let wrapperOriginalParent = null; // référence au parent DOM original avant reparentage
     let isExternallySuspended = false;
     let suspendedSlime = null;   // local ref to incubator slime, saved at suspend time
 
@@ -595,12 +596,19 @@ export function createIncubatorSlimePreview() {
     }
 
     function renderCandidate(container, candidate) {
+        const wasSuspended = isExternallySuspended;
         clear();
         lastContainer = container || null;
         lastCandidate = candidate || null;
         currentBlueprint = candidate?.metadata?.previewBlueprint || buildPreviewBlueprint();
         isExternallySuspended = false;
         mountCanvas(container);
+        // Si on était suspendu (prairie active), cacher le nouveau wrapper immédiatement
+        // pour éviter le doublon visible pendant le cycle de l'incubateur.
+        if (wasSuspended && wrapper) {
+            wrapper.style.display = 'none';
+            isExternallySuspended = true;
+        }
         mountPreviewRuntime({ startMotion: 'extruding', spawnImpulseY: -16.4 });
     }
 
@@ -699,6 +707,9 @@ export function createIncubatorSlimePreview() {
         if (engine) {
             engine.stop();
         }
+        // Masquer le wrapper physiquement — visibility:hidden sur l'hôte ne
+        // traverse pas le Shadow DOM, display:none sur le wrapper lui-même si.
+        if (wrapper) wrapper.style.display = 'none';
         // Mark as suspended even when engine is null (between cycles) so that
         // resumeAfterExternalRuntime knows a navigation round-trip happened.
         isExternallySuspended = true;
@@ -712,6 +723,9 @@ export function createIncubatorSlimePreview() {
         }
         isExternallySuspended = false;
         suspendedSlime = null;
+
+        // Restaurer la visibilité du wrapper
+        if (wrapper) wrapper.style.display = '';
 
         // Case 1: engine is alive (was stopped with engine.stop()).
         // Just restart the render loop and the motion controller in place —
@@ -752,5 +766,8 @@ export function createIncubatorSlimePreview() {
         bindCanonicalClaim,
         suspendForExternalRuntime,
         resumeAfterExternalRuntime,
+
+        /** Retourne le canvas source du slime pour le mirroring externe. */
+        getSourceCanvas() { return canvas; },
     };
 }

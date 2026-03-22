@@ -18,12 +18,14 @@ export function createLaboIncubatorFeature({ store } = {}) {
     let controller = null;
     let currentMount = null;
     let isSuspended = false;
+    let isPrairiePreviewActive = false; // true quand la prairie affiche l'aperçu
     let preview = null;
     let orchestrator = null;
     let storageContext = null;
     let storagePanel = null;
     let controllerStateUnsubscribe = null;
     let externalPanel = null;   // display panel flottant hors du shadow DOM
+    let externalPreviewListener = null; // listener pour inku:labo-preview-request depuis la prairie
 
     // Economy panel (prix + revenu/min + bouton acquérir)
     let storeUnsubscribe = null;
@@ -236,6 +238,11 @@ export function createLaboIncubatorFeature({ store } = {}) {
                 const rarityTier = candidate?.metadata?.previewBlueprint?.genome?.rarityTier || 'common';
                 const activeSectionId = store?.getState?.()?.activeSectionId ?? 'labo';
                 void notifyRareCandidate(rarityTier, store, activeSectionId);
+
+                // Le getter passé à la prairie lors de l'ouverture appelle
+                // preview.getSourceCanvas() à chaque frame — pas besoin de
+                // renvoyer quoi que ce soit ici, le nouveau canvas est
+                // automatiquement récupéré au prochain frame du miroir.
             });
             controllerStateUnsubscribe = controller.on(INCUBATOR_EVENTS.STATE_CHANGED, ({ state, previousState }) => {
                 // Sync statut dans le panel externe
@@ -306,6 +313,11 @@ export function createLaboIncubatorFeature({ store } = {}) {
         if (!root) {
             return;
         }
+        // Réinitialiser l'inline visibility du wrapper slime pour qu'il hérite
+        // du root. Sans ça, un visibility:visible posé par reviveCandidate ou
+        // le listener prairie passerait à travers le visibility:hidden du root.
+        const w = wrapper_ref();
+        if (w) w.style.visibility = '';
         root.hidden = false;
         root.style.visibility = 'hidden';
         root.style.opacity = '0';
@@ -330,9 +342,47 @@ export function createLaboIncubatorFeature({ store } = {}) {
     }
 
     function suspendRuntime() {
-        // Ne PAS pauser l'orchestrateur : les cycles continuent en arrière-plan
-        // (les timers setTimeout restent actifs, seul le rendu visuel est gelé).
+        orchestrator?.pause?.();
         preview?.suspendForExternalRuntime?.();
+    }
+
+    function bindExternalPreviewListener() {
+        if (externalPreviewListener) return;
+        externalPreviewListener = (event) => {
+            const active = event?.detail?.active === true;
+            isPrairiePreviewActive = active;
+            if (active) {
+                // Masquer le wrapper original pour éviter le doublon derrière la minimap
+                const w = wrapper_ref();
+                if (w) w.style.visibility = 'hidden';
+                // Envoyer un GETTER de blueprint — la prairie crée son propre engine
+                // avec le même genome, sans dépendre du canvas interne de l'incubateur
+                window.dispatchEvent(new CustomEvent('inku:labo-source-canvas', {
+                    detail: {
+                        getBlueprint: () => controller?.getCandidate?.()?.metadata?.previewBlueprint ?? null,
+                    },
+                }));
+            } else {
+                // Révéler le wrapper original quand le panel aperçu se ferme
+                const w = wrapper_ref();
+                if (w) w.style.visibility = 'visible';
+                window.dispatchEvent(new CustomEvent('inku:labo-source-canvas', {
+                    detail: { getBlueprint: null },
+                }));
+            }
+        };
+        window.addEventListener('inku:labo-preview-request', externalPreviewListener);
+    }
+
+    function wrapper_ref() {
+        const c = preview?.getSourceCanvas?.();
+        return c ? c.parentElement : null;
+    }
+
+    function unbindExternalPreviewListener() {
+        if (!externalPreviewListener) return;
+        window.removeEventListener('inku:labo-preview-request', externalPreviewListener);
+        externalPreviewListener = null;
     }
 
     function handleVisibilityChange() {
@@ -341,8 +391,12 @@ export function createLaboIncubatorFeature({ store } = {}) {
             orchestrator?.pause?.();
             preview?.suspendForExternalRuntime?.();
         } else {
-            // Device revenu au premier plan
-            preview?.resumeAfterExternalRuntime?.();
+            // Device revenu au premier plan — ne reprendre le preview que si le labo
+            // est actif (pas suspendu). Si on est sur la prairie avec le bouton aperçu
+            // actif, l'event inku:labo-preview-request gère ça indépendamment.
+            if (!isSuspended) {
+                preview?.resumeAfterExternalRuntime?.();
+            }
             // Ne reprendre l'orchestrateur que s'il n'est pas en état d'arrêt complet
             if (!isSuspended || orchestrator) {
                 orchestrator?.resume?.();
@@ -356,15 +410,14 @@ export function createLaboIncubatorFeature({ store } = {}) {
             return false;
         }
 
-        // Restore the visual slime. resumeAfterExternalRuntime() handles its own
-        // retry loop internally — do NOT call ensureRuntimeAvailable() as a fallback
-        // here, as it would bypass the layout-ready check and spawn the slime at
-        // incorrect coordinates (getBoundingClientRect returns 0 while hidden).
+        // Quand on revient au labo, s'assurer que le wrapper est visible
+        isPrairiePreviewActive = false;
+        const w = wrapper_ref();
+        if (w) w.style.visibility = 'visible';
+
         preview.resumeAfterExternalRuntime?.();
         preview.syncLayout?.();
 
-        // If the candidate's dwell time expired during navigation, signal that
-        // startCycle() should advance the cycle — but the slime is already visible.
         if (controller?.getState?.() === 'suspended' && orchestrator?.isCurrentCandidateOverdue?.()) {
             return false;
         }
@@ -400,6 +453,7 @@ export function createLaboIncubatorFeature({ store } = {}) {
             ensureStoragePanel();
             isSuspended = false;
             document.addEventListener('visibilitychange', handleVisibilityChange);
+            bindExternalPreviewListener();
             currentMount?.classList.add('content-mount--allow-overlap', 'content-mount--labo-incubator');
             if (!externalPanel) externalPanel = createExternalDisplayPanel();
             externalPanel.mount();
@@ -413,6 +467,7 @@ export function createLaboIncubatorFeature({ store } = {}) {
             ensureStoragePanel();
             isSuspended = false;
             document.addEventListener('visibilitychange', handleVisibilityChange);
+            bindExternalPreviewListener();
             currentMount?.classList.add('content-mount--allow-overlap', 'content-mount--labo-incubator');
             if (!externalPanel) externalPanel = createExternalDisplayPanel();
             externalPanel.mount();
@@ -428,12 +483,14 @@ export function createLaboIncubatorFeature({ store } = {}) {
             suspendRuntime();
             hideFeature();
             externalPanel?.hide();
+            // Garde le listener actif : la prairie peut demander l'aperçu via inku:labo-preview-request
         },
         syncLayout() {
             if (isSuspended) { return; }
             applyLayout();
         },
         unmount() {
+            unbindExternalPreviewListener();
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             destroyRuntime();
             if (currentMount) {
