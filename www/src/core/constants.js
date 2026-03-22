@@ -21,7 +21,7 @@ export const DEFAULT_PLAYER_STATE = Object.freeze({
     xpText: '0 / 10K XP',
     xpProgress: '0%',
     currencies: {
-        hexagon: 2500,
+        hexagon: 500,   // enough for ~2 common slimes (~200 each) to start
         sketch: 0,
     },
 });

@@ -412,13 +412,7 @@ const stylesheetText = `
 }
 
 .display-panel__idle-hint {
-  font-size: 0.62rem;
-  letter-spacing: 0.22em;
-  color: hsla(var(--inku-accent-hue) 40% 45% / 0.5);
-  font-family: 'Courier New', monospace;
-  text-align: center;
-  padding: 0.15rem 0;
-  animation: inkuIdlePulse 3s ease-in-out infinite;
+  display: none; /* player can see the incubator is empty — no need for this hint */
 }
 
 @keyframes inkuIdlePulse {
@@ -592,14 +586,7 @@ const stylesheetText = `
 }
 
 .candidate-placeholder {
-  max-width: 180px;
-  padding: 0.65rem 0.85rem;
-  border: 1px dashed hsla(var(--inku-accent-hue) 60% 58% / 0.35);
-  border-radius: 14px;
-  background: rgba(2, 6, 23, 0.36);
-  color: rgba(203, 213, 225, 0.75);
-  text-align: center;
-  font-size: 0.82rem;
+  display: none; /* internal feed status — not relevant to the player */
 }
 
 .liquid-layer {
@@ -964,38 +951,67 @@ const stylesheetText = `
   border-radius: 6px;
 }
 
+/* ── Buy button: transparent overlay covering the entire side-module ── */
 .side-module__toggle {
-  width: 22px;
-  height: 22px;
-  margin: 0.45rem auto 0;
-  display: block;
-  border: 2px solid rgba(0, 0, 0, 0.7);
-  border-radius: 999px;
-  background: linear-gradient(180deg, rgba(75, 85, 99, 0.94), rgba(15, 23, 42, 0.98));
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.55),
-    inset 0 1px 2px rgba(255,255,255,0.1);
+  /* Fills the entire side-module so the whole panel is one big tap zone */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 14px;
+  background: transparent;
   cursor: pointer;
-  transition: transform 120ms ease, box-shadow 200ms ease, background 200ms ease;
-  position: relative;
-  overflow: hidden;
+  transition: background 160ms ease;
+  z-index: 5;
+  overflow: visible;
 }
 
-/* Glint on the LED */
+.side-module__toggle:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Cart SVG icon — centered in the panel */
+.side-module__toggle::after {
+  content: "";
+  display: block;
+  width: 22px;
+  height: 22px;
+  margin-bottom: 20px; /* shift above the LED indicator */
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='21' r='1'/%3E%3Ccircle cx='20' cy='21' r='1'/%3E%3Cpath d='M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6'/%3E%3C/svg%3E") center/contain no-repeat;
+  opacity: 0.65;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+}
+
+.side-module__toggle:hover:not(:disabled)::after {
+  opacity: 0.95;
+}
+
+/* LED indicator at bottom — replaces old circle button appearance */
 .side-module__toggle::before {
   content: "";
   position: absolute;
-  top: 2px;
-  left: 3px;
-  width: 8px;
-  height: 5px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.35);
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid rgba(0, 0, 0, 0.7);
+  background: linear-gradient(180deg, rgba(75, 85, 99, 0.94), rgba(15, 23, 42, 0.98));
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.55), inset 0 1px 2px rgba(255,255,255,0.1);
   pointer-events: none;
+  transition: background 200ms ease, box-shadow 200ms ease;
 }
 
 /* Green = can buy */
-.inku-incubator[data-meter-state="allowed"] .side-module__toggle {
+.inku-incubator[data-meter-state="allowed"] .side-module__toggle::before {
   background: linear-gradient(180deg, #4ade80, #16a34a);
   border-color: #052e16;
   box-shadow:
@@ -1005,14 +1021,22 @@ const stylesheetText = `
   animation: inkuLedPulse 2.5s ease-in-out infinite;
 }
 
+.inku-incubator[data-meter-state="allowed"] .side-module__toggle::after {
+  opacity: 0.9;
+}
+
 /* Red = cannot buy */
-.inku-incubator[data-meter-state="blocked"] .side-module__toggle {
+.inku-incubator[data-meter-state="blocked"] .side-module__toggle::before {
   background: linear-gradient(180deg, #f87171, #dc2626);
   border-color: #450a0a;
   box-shadow:
     0 2px 4px rgba(0,0,0,0.55),
     0 0 10px rgba(248, 113, 113, 0.45),
     inset 0 1px 2px rgba(255,255,255,0.15);
+}
+
+.inku-incubator[data-meter-state="blocked"] .side-module__toggle::after {
+  opacity: 0.35;
 }
 
 @keyframes inkuLedPulse {
@@ -1344,8 +1368,7 @@ const stylesheetText = `
   color: rgba(226, 232, 240, 0.92);
 }
 
-.action-button:hover:not(:disabled),
-.side-module__toggle:hover:not(:disabled) {
+.action-button:hover:not(:disabled) {
   transform: translateY(-1px);
 }
 
@@ -1546,11 +1569,12 @@ const stylesheetText = `
 }
 
 .inku-incubator[data-integration-embed-mode="true"] .side-module__toggle {
-  width: 16px;
-  height: 16px;
-  margin: 0.32rem auto 0;
-  text-indent: -9999px;
-  overflow: hidden;
+  /* keep full-cover layout in embed mode */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
 }
 
 .inku-incubator[data-integration-embed-mode="true"] .side-module::after {

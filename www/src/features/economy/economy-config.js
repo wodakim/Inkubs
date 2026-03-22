@@ -4,13 +4,28 @@
  * Seuls les slimes dans l'équipe de 4 génèrent du revenu passif.
  */
 
-/** Revenu de base en inkübits/min pour chaque tier de rareté. */
+/**
+ * Revenu de base en inkübits/min pour chaque tier de rareté.
+ *
+ * Cohérence économique (4 slots d'équipe maximum) :
+ *   common    ×4 = 8/min  → earn 200 inkübits in ~25 min  (common costs ~200)
+ *   uncommon  ×4 = 28/min → earn 450 inkübits in ~16 min
+ *   rare      ×4 = 80/min → earn 950 inkübits in ~12 min
+ *   epic      ×4 = 240/min
+ *   legendary ×4 = 720/min
+ *
+ * Pour progresser :
+ *   - 2 common (départ) → 3e common en ~50 min → 4e en ~25 min
+ *   - 4 common → premier uncommon en ~65 min
+ *   - 4 uncommon → premier rare en ~34 min
+ *   - 4 rare → premier epic en ~24 min
+ */
 export const RARITY_INCOME_BASE = Object.freeze({
-    common:    0.6,
-    uncommon:  2.0,
-    rare:      5.5,
-    epic:      13.0,
-    legendary: 30.0,
+    common:    2.0,
+    uncommon:  7.0,
+    rare:      20.0,
+    epic:      60.0,
+    legendary: 180.0,
 });
 
 /** Multiplicateurs de revenu selon l'humeur du slime. */
@@ -50,14 +65,30 @@ export const INCOME_STAT_WEIGHTS = Object.freeze({
 /** Le bonus stat max est de +60% du revenu de base (à stats = 100). */
 export const INCOME_STAT_BONUS_CAP = 0.60;
 
-/** Configuration pour le calcul du prix d'acquisition. */
+/**
+ * Configuration pour le calcul du prix d'acquisition.
+ *
+ * Fourchettes de prix typiques :
+ *   common    ~200  inkübits  (elemTotal ~5,  complexity ~0.5)
+ *   uncommon  ~430  inkübits  (elemTotal ~25, complexity ~0.8)
+ *   rare      ~920  inkübits  (elemTotal ~60, complexity ~1.5)
+ *   epic      ~1950 inkübits  (elemTotal ~130, complexity ~2.5)
+ *   legendary ~3700 inkübits  (elemTotal ~230, complexity ~4.0)
+ */
 export const ACQUISITION_COST_CONFIG = Object.freeze({
-    basePrice:        120,
-    complexityWeight: 75,
-    rarityWeight:     5,    // appliqué à rarityValue (0-100 via courbe)
+    basePrice:        100,
+    complexityWeight: 100,
+    rarityWeight:     10,   // appliqué au score cumulé des éléments visuels
     attributeWeight:  12,
     roundTo:          5,
 });
 
 /** Solde de départ du joueur en inkübits. */
 export const STARTING_INKUBITS = 500;
+
+/**
+ * Nombre de minutes de génération de revenu pour récupérer le coût d'achat.
+ * price = incomeRate(slime) × PRICE_RECOVERY_MINUTES
+ * Garantit une cohérence directe entre prix et revenu.
+ */
+export const PRICE_RECOVERY_MINUTES = 100;

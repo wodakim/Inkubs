@@ -79,7 +79,8 @@ function injectCSS() {
     transform: translateX(-50%);
     width: min(100vw, 448px);
     top: calc(68px + max(0.75rem, env(safe-area-inset-top, 16px)));
-    z-index: 15;
+    /* z-index 9 = behind content-shell (z-index:10) → panel appears BEHIND incubator */
+    z-index: 9;
     pointer-events: none;
     display: flex;
     justify-content: center;
@@ -89,17 +90,19 @@ function injectCSS() {
 .labo-dp-overlay.is-visible { opacity: 1; }
 
 .labo-dp-panel {
-    pointer-events: auto;
-    width: min(88vw, 340px);
-    background: #0a0f1a;
-    border: 3px solid #1a2535;
-    border-bottom-width: 6px;
-    border-radius: 12px 12px 8px 8px;
-    padding: 6px;
-    box-shadow: 0 14px 32px rgba(0,0,0,0.75), inset 0 0 0 1px rgba(255,255,255,0.04);
+    pointer-events: none;
+    width: min(88vw, 320px);
+    background: #080d18;
+    border: 2px solid #1a2535;
+    border-bottom-width: 5px;
+    border-radius: 10px 10px 7px 7px;
+    padding: 5px;
+    box-shadow: 0 10px 28px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.035);
     overflow: hidden;
     font-family: 'Courier New', 'Lucida Console', monospace;
     position: relative;
+    /* Fixed height prevents growing when candidate data changes */
+    max-height: 210px;
 }
 
 /* CRT overlay */
@@ -116,14 +119,15 @@ function injectCSS() {
 .labo-dp-screen {
     position: relative;
     z-index: 2;
-    padding: 0.55rem 0.75rem 0.6rem;
-    border-radius: 6px;
+    padding: 0.45rem 0.65rem 0.5rem;
+    border-radius: 5px;
     background: linear-gradient(180deg, #020d08 0%, #010a14 100%);
     border: 1px solid rgba(0,255,100,0.08);
     box-shadow: inset 0 0 20px rgba(0,255,120,0.04), inset 0 2px 8px rgba(0,0,0,0.6);
     display: flex;
     flex-direction: column;
-    gap: 0.22rem;
+    gap: 0.18rem;
+    overflow: hidden;
 }
 
 /* Scanline moving */
@@ -181,7 +185,7 @@ function injectCSS() {
 
 /* Status */
 .labo-dp-status {
-    font-size: 0.7rem;
+    font-size: 0.62rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -203,12 +207,12 @@ function injectCSS() {
 .labo-dp-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.35rem; }
 .labo-dp-name {
     flex: 1;
-    font-size: 0.8rem;
+    font-size: 0.88rem;
     font-weight: 900;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: rgba(220,255,230,0.96);
-    text-shadow: 0 0 10px hsla(190,80%,65%,0.4);
+    color: rgba(220,255,230,0.97);
+    text-shadow: 0 0 10px hsla(190,80%,65%,0.45);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -223,44 +227,38 @@ function injectCSS() {
     border-left: 1px solid hsla(190,40%,35%,0.2);
 }
 .labo-dp-price-label { font-size: 0.42rem; letter-spacing: 0.18em; color: rgba(148,163,184,0.45); text-transform: uppercase; line-height: 1; }
-.labo-dp-price-val { font-size: 0.88rem; font-weight: 700; color: rgba(250,220,100,0.95); text-shadow: 0 0 8px rgba(250,200,50,0.3); white-space: nowrap; line-height: 1.2; }
+.labo-dp-price-val { font-size: 0.95rem; font-weight: 900; color: rgba(250,220,100,0.97); text-shadow: 0 0 10px rgba(250,200,50,0.35); white-space: nowrap; line-height: 1.2; }
 
-/* Row 2: rarity + pattern + income */
+/* Row 2: rarity + income */
 .labo-dp-meta { display: flex; align-items: center; gap: 0.3rem; overflow: hidden; }
-.labo-dp-rarity { font-size: 0.54rem; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; flex-shrink: 0; }
-.labo-dp-pattern { font-size: 0.46rem; letter-spacing: 0.07em; color: rgba(148,163,184,0.5); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.labo-dp-income { font-size: 0.46rem; letter-spacing: 0.05em; color: rgba(52,211,153,0.72); white-space: nowrap; margin-left: auto; flex-shrink: 0; }
+.labo-dp-rarity { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.04em; white-space: nowrap; flex-shrink: 0; }
+.labo-dp-pattern { font-size: 0.5rem; letter-spacing: 0.06em; color: rgba(148,163,184,0.5); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.labo-dp-income { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.04em; color: rgba(52,211,153,0.82); white-space: nowrap; margin-left: auto; flex-shrink: 0; }
 
 /* Row 3: trait + morpho */
 .labo-dp-info { display: flex; gap: 0.5rem; }
 .labo-dp-info-block { display: flex; flex-direction: column; gap: 0.04rem; flex: 1; min-width: 0; }
-.labo-dp-info-lbl { font-size: 0.38rem; letter-spacing: 0.18em; color: rgba(148,163,184,0.35); text-transform: uppercase; }
-.labo-dp-info-val { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(220,255,230,0.85); }
+.labo-dp-info-lbl { font-size: 0.44rem; letter-spacing: 0.16em; color: rgba(148,163,184,0.38); text-transform: uppercase; }
+.labo-dp-info-val { font-size: 0.66rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: rgba(220,255,230,0.88); }
 
 /* Row 4: element tags */
 .labo-dp-tags { display: flex; flex-wrap: wrap; gap: 0.18rem; }
 .labo-dp-tag {
-    font-size: 0.38rem;
-    letter-spacing: 0.08em;
+    font-size: 0.46rem;
+    letter-spacing: 0.07em;
     text-transform: uppercase;
-    padding: 0.08rem 0.28rem;
+    padding: 0.1rem 0.32rem;
     border-radius: 2px;
     border: 1px solid;
     white-space: nowrap;
 }
 
-/* Row 5: stats */
-.labo-dp-stats-lbl { font-size: 0.38rem; letter-spacing: 0.2em; color: rgba(148,163,184,0.3); text-transform: uppercase; margin-top: 0.04rem; }
-.labo-dp-stats { display: flex; flex-direction: column; gap: 0.12rem; }
-.labo-dp-stat-row { display: flex; align-items: center; gap: 0.25rem; }
-.labo-dp-stat-lbl { font-size: 0.38rem; letter-spacing: 0.08em; color: rgba(148,163,184,0.45); width: 1.6rem; flex-shrink: 0; }
-.labo-dp-stat-track { flex: 1; height: 2px; background: rgba(255,255,255,0.05); border-radius: 1px; overflow: hidden; }
-.labo-dp-stat-fill { height: 100%; border-radius: 1px; transition: width 0.4s ease; }
-.labo-dp-stat-val { font-size: 0.38rem; color: rgba(148,163,184,0.4); width: 1.4rem; text-align: right; flex-shrink: 0; }
+/* Stats hidden — too small to read on phone; space used for key info */
+.labo-dp-stats-lbl { display: none; }
+.labo-dp-stats { display: none; }
 
-/* Idle hint */
-.labo-dp-idle { font-size: 0.62rem; letter-spacing: 0.22em; color: hsla(190,40%,45%,0.5); text-align: center; padding: 0.15rem 0; animation: dpIdlePulse 3s ease-in-out infinite; }
-@keyframes dpIdlePulse { 0%,100%{opacity:0.4} 50%{opacity:0.9} }
+/* Idle hint hidden — panel must never change dimensions */
+.labo-dp-idle { display: none; }
 `;
     document.head.appendChild(style);
 }

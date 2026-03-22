@@ -62,8 +62,7 @@ export class IncubatorView {
     this.refs.title.textContent = this.config.ui.title;
     const [sideBuyButton] = this.refs.buyButtons;
     if (sideBuyButton) {
-      // Side buy button: NO text, only color state (green/red)
-      sideBuyButton.textContent = '';
+      // Buy button fills entire side-module panel — icon provided via CSS ::after
       sideBuyButton.setAttribute('aria-label', this.config.ui.buyButtonLabel);
     }
     this.refs.purgeButton.textContent = this.config.ui.purgeButtonLabel;

@@ -26,6 +26,7 @@
     <link rel="stylesheet" href="./styles/features/prairie.css">
     <link rel="stylesheet" href="./styles/features/rarity-notifications.css">
     <link rel="stylesheet" href="./styles/features/bar.css">
+    <link rel="stylesheet" href="./styles/features/settings-panel.css">
 </head>
 <body class="relative flex flex-col items-center justify-between max-w-md mx-auto w-full shadow-2xl overflow-hidden">
     <!-- Overlay paysage : affiché si l'API orientation.lock() échoue (ex. iOS Safari) -->
@@ -151,9 +152,9 @@
                         <i class="ph-bold ph-user-circle text-xl mb-1"></i>
                         <span data-i18n="profile.my_profile">Mon Profil</span>
                     </button>
-                    <button type="button" class="profile-slot-btn" data-action="open-perf-settings">
-                        <i class="ph-bold ph-gauge text-xl mb-1"></i>
-                        <span data-i18n="profile.performance">Performances</span>
+                    <button type="button" class="profile-slot-btn" data-action="open-all-settings">
+                        <i class="ph-bold ph-sliders-horizontal text-xl mb-1"></i>
+                        <span data-i18n="profile.settings">Paramètres</span>
                     </button>
                 </div>
                 <!-- Sélecteur de langue -->
@@ -265,6 +266,137 @@
                 </div>
             </div>
         </div>
+
+    <!-- ═══ PANNEAU PARAMÈTRES EN JEU ═══════════════════════════════════════
+         Écran complet — mêmes réglages que l'écran titre (son, affichage,
+         gameplay). z-index: 200 → au-dessus de tout (profil, HUD, nav).
+    ══════════════════════════════════════════════════════════════════════ -->
+    <div id="inku-settings-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Paramètres">
+        <div class="igs-header">
+            <button class="igs-back" id="igs-close-btn" aria-label="Fermer les paramètres">
+                <i class="ph ph-arrow-left" style="font-size:0.9rem;"></i>
+            </button>
+            <div class="igs-header-text">
+                <div class="igs-title" data-i18n="settings.title">Paramètres</div>
+                <div class="igs-version">INKÜ · v0.1.0</div>
+            </div>
+        </div>
+
+        <div class="igs-body">
+
+            <!-- SON -->
+            <div class="igs-section">
+                <div class="igs-section-label"><div class="igs-section-bar"></div><span data-i18n="ts.sound">Son</span></div>
+                <div class="igs-card">
+                    <div class="igs-row igs-row--slider">
+                        <div class="igs-row-icon igs-icon-green"><i class="ph ph-speaker-high"></i></div>
+                        <div class="igs-row-body">
+                            <div class="igs-row-top"><span class="igs-row-name" data-i18n="ts.master">Master</span><span class="igs-slider-val" id="igs-master-v">80</span></div>
+                            <input type="range" class="igs-slider" id="igs-master" min="0" max="100">
+                        </div>
+                    </div>
+                    <div class="igs-divider"></div>
+                    <div class="igs-row igs-row--slider">
+                        <div class="igs-row-icon igs-icon-blue"><i class="ph ph-music-note"></i></div>
+                        <div class="igs-row-body">
+                            <div class="igs-row-top"><span class="igs-row-name" data-i18n="ts.music">Musique</span><span class="igs-slider-val" id="igs-music-v">60</span></div>
+                            <input type="range" class="igs-slider" id="igs-music" min="0" max="100">
+                        </div>
+                    </div>
+                    <div class="igs-divider"></div>
+                    <div class="igs-row igs-row--slider">
+                        <div class="igs-row-icon igs-icon-purple"><i class="ph ph-bell"></i></div>
+                        <div class="igs-row-body">
+                            <div class="igs-row-top"><span class="igs-row-name" data-i18n="ts.sfx">Effets sonores</span><span class="igs-slider-val" id="igs-sfx-v">90</span></div>
+                            <input type="range" class="igs-slider" id="igs-sfx" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AFFICHAGE -->
+            <div class="igs-section">
+                <div class="igs-section-label"><div class="igs-section-bar igs-bar-blue"></div><span data-i18n="ts.display">Affichage</span></div>
+                <div class="igs-card">
+                    <div class="igs-row">
+                        <div class="igs-row-icon igs-icon-green"><i class="ph ph-gauge"></i></div>
+                        <div class="igs-row-body"><div class="igs-row-name" data-i18n="ts.fps_counter">Compteur FPS</div><div class="igs-row-sub" data-i18n="ts.fps_sub">Afficher le débit d'images</div></div>
+                        <div class="igs-row-ctrl"><label class="igs-toggle"><input type="checkbox" id="igs-fps"><span class="igs-toggle-track"><span class="igs-toggle-knob"></span></span></label></div>
+                    </div>
+                    <div class="igs-divider"></div>
+                    <div class="igs-row">
+                        <div class="igs-row-icon igs-icon-blue"><i class="ph ph-leaf"></i></div>
+                        <div class="igs-row-body"><div class="igs-row-name" data-i18n="ts.reduce_anim">Réduire les animations</div><div class="igs-row-sub" data-i18n="ts.reduce_anim_sub">Moins d'effets visuels</div></div>
+                        <div class="igs-row-ctrl"><label class="igs-toggle"><input type="checkbox" id="igs-motion"><span class="igs-toggle-track"><span class="igs-toggle-knob"></span></span></label></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QUALITÉ GRAPHIQUE -->
+            <div class="igs-section">
+                <div class="igs-section-label"><div class="igs-section-bar igs-bar-blue"></div><span data-i18n="ts.graphics_quality">Qualité graphique</span></div>
+                <div class="igs-card">
+                    <div class="igs-tier-list">
+                        <button type="button" class="igs-tier-btn" data-igs-tier="low">
+                            <i class="ph-bold ph-leaf igs-tier-icon"></i>
+                            <div class="igs-tier-info">
+                                <span class="igs-tier-name" data-i18n="settings.economy">Économie</span>
+                                <span class="igs-tier-desc" data-i18n="settings.max_fluidity">Fluidité maximale</span>
+                            </div>
+                        </button>
+                        <button type="button" class="igs-tier-btn" data-igs-tier="medium">
+                            <i class="ph-bold ph-lightning igs-tier-icon"></i>
+                            <div class="igs-tier-info">
+                                <span class="igs-tier-name" data-i18n="settings.balanced">Équilibré</span>
+                                <span class="igs-tier-desc" data-i18n="settings.recommended">Recommandé</span>
+                            </div>
+                        </button>
+                        <button type="button" class="igs-tier-btn" data-igs-tier="high">
+                            <i class="ph-bold ph-sparkle igs-tier-icon"></i>
+                            <div class="igs-tier-info">
+                                <span class="igs-tier-name" data-i18n="settings.quality">Qualité</span>
+                                <span class="igs-tier-desc" data-i18n="settings.high_end">Haut de gamme</span>
+                            </div>
+                        </button>
+                    </div>
+                    <button type="button" class="igs-auto-btn" id="igs-auto-detect">
+                        <i class="ph-bold ph-magic-wand"></i>
+                        <span data-i18n="settings.auto_detect">Détection automatique</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- GAMEPLAY -->
+            <div class="igs-section">
+                <div class="igs-section-label"><div class="igs-section-bar igs-bar-purple"></div><span data-i18n="ts.gameplay">Gameplay</span></div>
+                <div class="igs-card">
+                    <div class="igs-row">
+                        <div class="igs-row-icon igs-icon-purple"><i class="ph ph-device-mobile"></i></div>
+                        <div class="igs-row-body"><div class="igs-row-name" data-i18n="ts.vibrations">Vibrations</div><div class="igs-row-sub" data-i18n="ts.vibrations_sub">Retour haptique</div></div>
+                        <div class="igs-row-ctrl"><label class="igs-toggle"><input type="checkbox" id="igs-vibr"><span class="igs-toggle-track"><span class="igs-toggle-knob"></span></span></label></div>
+                    </div>
+                    <div class="igs-divider"></div>
+                    <div class="igs-row">
+                        <div class="igs-row-icon igs-icon-green"><i class="ph ph-hand-tap"></i></div>
+                        <div class="igs-row-body"><div class="igs-row-name" data-i18n="ts.touch">Interactions tactiles</div><div class="igs-row-sub" data-i18n="ts.touch_sub">Déplacer les slimes</div></div>
+                        <div class="igs-row-ctrl"><label class="igs-toggle"><input type="checkbox" id="igs-touch"><span class="igs-toggle-track"><span class="igs-toggle-knob"></span></span></label></div>
+                    </div>
+                    <div class="igs-divider"></div>
+                    <div class="igs-row">
+                        <div class="igs-row-icon igs-icon-green"><i class="ph ph-globe"></i></div>
+                        <div class="igs-row-body"><div class="igs-row-name" data-i18n="ts.language">Langue</div><div class="igs-row-sub" data-i18n="ts.language_sub">Langue de l'interface</div></div>
+                        <div class="igs-row-ctrl">
+                            <div class="igs-seg" id="igs-lang">
+                                <button class="igs-seg-btn" data-igs-lang="fr">🇫🇷 FR</button>
+                                <button class="igs-seg-btn" data-igs-lang="en">🇬🇧 EN</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
 
     <!-- Modal redémarrage traduction -->
     <div id="lang-restart-modal" class="fixed inset-0 z-[70] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300" aria-hidden="true">

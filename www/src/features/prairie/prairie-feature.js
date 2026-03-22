@@ -1655,6 +1655,40 @@ export function createPrairieFeature() {
             });
         }
 
+        // ── Small round bushes (3 overlapping circles, purely decorative) ─
+        const bushCount = 3 + Math.floor(rng() * 3);
+        for (let i = 0; i < bushCount; i++) {
+            const x = wL + 60 + rng() * (wSpan - 120);
+            const r = 8 + rng() * 8;          // main ball radius 8-16
+            const leafHue = 105 + rng() * 30; // green 105-135
+            prairieObjects.push({
+                type: 'bush', x, y: gY,
+                r, leafHue,
+                interactive: false,
+            });
+        }
+
+        // ── Pebble clusters (tiny circles on ground, purely decorative) ──
+        const pebbleGroupCount = 4 + Math.floor(rng() * 3);
+        for (let i = 0; i < pebbleGroupCount; i++) {
+            const x = wL + 40 + rng() * (wSpan - 80);
+            const count = 2 + Math.floor(rng() * 3);
+            const pebbles = [];
+            for (let j = 0; j < count; j++) {
+                pebbles.push({
+                    dx: (j - count * 0.5) * (6 + rng() * 5),
+                    r:  Math.max(2, 2 + rng() * 4),  // radius 2-6, always >= 2
+                    hue: 170 + rng() * 60,
+                    l:   28 + rng() * 18,
+                });
+            }
+            prairieObjects.push({
+                type: 'pebbles', x, y: gY,
+                pebbles,
+                interactive: false,
+            });
+        }
+
         // Sort by y then x for proper layering
         prairieObjects.sort((a, b) => (a.y - b.y) || (a.x - b.x));
     }
@@ -1789,6 +1823,47 @@ export function createPrairieFeature() {
                         const dr = obj.capW * 0.25;
                         ctx.beginPath();
                         ctx.arc(mx + Math.cos(da) * dr, my - obj.stemH - Math.sin(da) * obj.capH * 0.5, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                    break;
+                }
+                case 'bush': {
+                    // Three overlapping circles for a round leafy bush
+                    const bx = obj.x, by = obj.y;
+                    const r = obj.r;
+                    // Back-left lobe
+                    ctx.fillStyle = `hsla(${obj.leafHue - 5}, 44%, 28%, 0.78)`;
+                    ctx.beginPath();
+                    ctx.arc(bx - r * 0.45, by - r * 0.55, r * 0.72, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Back-right lobe
+                    ctx.fillStyle = `hsla(${obj.leafHue}, 44%, 30%, 0.78)`;
+                    ctx.beginPath();
+                    ctx.arc(bx + r * 0.42, by - r * 0.52, r * 0.68, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Front main lobe
+                    ctx.fillStyle = `hsla(${obj.leafHue + 6}, 46%, 34%, 0.82)`;
+                    ctx.beginPath();
+                    ctx.arc(bx, by - r * 0.75, r, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Highlight dot
+                    ctx.fillStyle = `hsla(${obj.leafHue + 12}, 50%, 50%, 0.18)`;
+                    ctx.beginPath();
+                    ctx.arc(bx - r * 0.2, by - r * 1.1, r * 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                    break;
+                }
+                case 'pebbles': {
+                    for (const p of obj.pebbles) {
+                        const pr = Math.max(2, p.r);
+                        ctx.fillStyle = `hsla(${p.hue}, 12%, ${p.l}%, 0.70)`;
+                        ctx.beginPath();
+                        ctx.arc(obj.x + p.dx, obj.y - pr * 0.4, pr, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Tiny specular dot
+                        ctx.fillStyle = `hsla(${p.hue}, 8%, ${p.l + 16}%, 0.20)`;
+                        ctx.beginPath();
+                        ctx.arc(obj.x + p.dx - pr * 0.3, obj.y - pr * 0.7, pr * 0.28, 0, Math.PI * 2);
                         ctx.fill();
                     }
                     break;
@@ -2054,6 +2129,12 @@ export function createPrairieFeature() {
         if (!canvas || !ctx) {
             return;
         }
+        // Re-assert our canvas as the global context each frame.
+        // Another SlimeEngine (incubator) keeps a window 'resize' listener that
+        // calls setCanvas() even while suspended, overwriting ctx with its own
+        // canvas. Re-asserting here is free (getContext returns a cached object)
+        // and guarantees slime.draw() always targets the prairie canvas.
+        ensureCanvasRuntime();
         const zoom = Number.isFinite(camera.zoom) ? camera.zoom : 1;
         // Scale by DPR so that world units (CSS pixels) map correctly to device pixels.
         const dpr = Math.min(window.devicePixelRatio || 1, getPerfSettings().dprCap);
@@ -2088,87 +2169,84 @@ export function createPrairieFeature() {
     function step() {
         rafId = window.requestAnimationFrame(step);
 
-        // ── Frame throttling based on performance tier ──────────────────────
-        const tier = getPerformanceTier();
-        if (tier !== 'high') {
-            const now60 = performance.now();
-            const targetFps = tier === 'low' ? 24 : 40;
-            const minInterval = 1000 / targetFps;
-            if (!step._lastFrameTime) step._lastFrameTime = 0;
-            if (now60 - step._lastFrameTime < minInterval) return;
-            step._lastFrameTime = now60;
-        }
+        // NOTE: No FPS throttling here — performance tier only affects rendering
+        // quality (DPR, particles, visual effects), never frame rate. Capping FPS
+        // hurts the user on low/medium tiers without any actual GPU/CPU benefit.
 
-        if (pointerMode === 'slime-drag' && edgeScrollPointer) {
-            applyEdgeScroll(edgeScrollPointer.clientX, edgeScrollPointer.clientY);
-        }
-
-        const now = performance.now();
-        for (const entry of getActiveEntries()) {
-            entry.slime.update();
-            if (!entry.slime.draggedNode && !wasRecentlyManipulated(entry, now)) {
-                softlyKeepSlimeNearPrairie(entry.slime);
+        try {
+            if (pointerMode === 'slime-drag' && edgeScrollPointer) {
+                applyEdgeScroll(edgeScrollPointer.clientX, edgeScrollPointer.clientY);
             }
-        }
-        resolveSlimeCollisions();
 
-        // ── Autonomous behavior engine ──────────────────────────────────────
-        {
-            const engineEntries = activeCanonicalIds
-                .map((id) => ({ id, slime: runtimeById.get(id)?.slime }))
-                .filter((e) => e.slime && !e.slime.draggedNode);
-            if (engineEntries.length >= 1) {
-                interactionEngine.tick(engineEntries, world, prairieObjects);
+            const now = performance.now();
+            for (const entry of getActiveEntries()) {
+                entry.slime.update();
+                if (!entry.slime.draggedNode && !wasRecentlyManipulated(entry, now)) {
+                    softlyKeepSlimeNearPrairie(entry.slime);
+                }
             }
-        }
+            resolveSlimeCollisions();
 
-        // ── Idle braking: stop residual sliding when no AI intent ──────────
-        for (const entry of getActiveEntries()) {
-            const slime = entry.slime;
-            if (slime.draggedNode || wasRecentlyManipulated(entry, now)) continue;
-            const brain = slime._prairieBrain;
-            if (brain && Math.abs(brain.intentDir) > 0.05) continue;
-            const gr = slime.getGroundedRatio?.() ?? 0;
-            if (gr < 0.15) continue;
-            const avgV = slime.getAverageVelocity?.();
-            if (!avgV || Math.abs(avgV.x) > 1.5) continue;
-            if (slime.locomotionState !== 'idle' && slime.locomotionState !== 'land') continue;
-            for (const node of slime.nodes || []) {
-                if (node === slime.draggedNode) continue;
-                const vx = node.x - node.oldX;
-                if (Math.abs(vx) < 0.1) node.oldX = node.x;
-                else if (Math.abs(vx) < 0.5) node.oldX = node.x - vx * 0.15;
+            // ── Autonomous behavior engine ──────────────────────────────────────
+            {
+                const engineEntries = activeCanonicalIds
+                    .map((id) => ({ id, slime: runtimeById.get(id)?.slime }))
+                    .filter((e) => e.slime && !e.slime.draggedNode);
+                if (engineEntries.length >= 1) {
+                    interactionEngine.tick(engineEntries, world, prairieObjects);
+                }
             }
-        }
 
-        for (const canonicalId of [...activeCanonicalIds]) {
-            const entry = runtimeById.get(canonicalId);
-            if (!entry) {
-                continue;
+            // ── Idle braking: stop residual sliding when no AI intent ──────────
+            for (const entry of getActiveEntries()) {
+                const slime = entry.slime;
+                if (slime.draggedNode || wasRecentlyManipulated(entry, now)) continue;
+                const brain = slime._prairieBrain;
+                if (brain && Math.abs(brain.intentDir) > 0.05) continue;
+                const gr = slime.getGroundedRatio?.() ?? 0;
+                if (gr < 0.15) continue;
+                const avgV = slime.getAverageVelocity?.();
+                if (!avgV || Math.abs(avgV.x) > 1.5) continue;
+                if (slime.locomotionState !== 'idle' && slime.locomotionState !== 'land') continue;
+                for (const node of slime.nodes || []) {
+                    if (node === slime.draggedNode) continue;
+                    const vx = node.x - node.oldX;
+                    if (Math.abs(vx) < 0.1) node.oldX = node.x;
+                    else if (Math.abs(vx) < 0.5) node.oldX = node.x - vx * 0.15;
+                }
             }
-            if (isSlimeOutOfPrairieBounds(entry.slime)) {
-                if (entry.slime.draggedNode || wasRecentlyManipulated(entry, now)) {
-                    entry.outOfBoundsFrames = 0;
+
+            for (const canonicalId of [...activeCanonicalIds]) {
+                const entry = runtimeById.get(canonicalId);
+                if (!entry) {
                     continue;
                 }
-                entry.outOfBoundsFrames = (entry.outOfBoundsFrames || 0) + 1;
-                if (entry.outOfBoundsFrames >= OUT_OF_BOUNDS_FRAME_THRESHOLD) {
-                    respawnOutOfBounds(canonicalId);
+                if (isSlimeOutOfPrairieBounds(entry.slime)) {
+                    if (entry.slime.draggedNode || wasRecentlyManipulated(entry, now)) {
+                        entry.outOfBoundsFrames = 0;
+                        continue;
+                    }
+                    entry.outOfBoundsFrames = (entry.outOfBoundsFrames || 0) + 1;
+                    if (entry.outOfBoundsFrames >= OUT_OF_BOUNDS_FRAME_THRESHOLD) {
+                        respawnOutOfBounds(canonicalId);
+                    }
+                    continue;
                 }
-                continue;
+                entry.outOfBoundsFrames = 0;
             }
-            entry.outOfBoundsFrames = 0;
-        }
 
-        syncSceneTransform();
-        updatePrairieObjects();
+            syncSceneTransform();
+            updatePrairieObjects();
 
-        // Spawn speech bubbles
-        const bubbleNow = performance.now();
-        for (const entry of getActiveEntries()) {
-            if (!entry.slime.draggedNode) {
-                maybeSpawnBubble(entry, bubbleNow);
+            // Spawn speech bubbles
+            const bubbleNow = performance.now();
+            for (const entry of getActiveEntries()) {
+                if (!entry.slime.draggedNode) {
+                    maybeSpawnBubble(entry, bubbleNow);
+                }
             }
+        } catch (_stepErr) {
+            // Physics/AI error — still render the frame so the canvas never freezes
         }
 
         drawFrame();
@@ -2180,10 +2258,23 @@ export function createPrairieFeature() {
             stopLoop();
             stopBackgroundTick();
         } else if (!isSuspended) {
+            // Ensure canvas is properly sized after returning from background,
+            // then restart the render loop.
+            resize();
             startLoop();
         } else {
             // Prairie suspendue mais device revenu — relancer le background tick
             startBackgroundTick();
+        }
+    }
+
+    // pageshow fires on iOS Safari/Chrome when the app comes back from the
+    // background (BFCache restore). visibilitychange alone is not reliable on
+    // all mobile browsers, so this acts as an additional safety net.
+    function handlePageShow() {
+        if (!isSuspended && !rafId) {
+            resize();
+            startLoop();
         }
     }
 
@@ -2193,6 +2284,7 @@ export function createPrairieFeature() {
         }
         // addEventListener deduplicates – safe to call multiple times.
         document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('pageshow', handlePageShow);
         window.addEventListener('inku:perf-tier-changed', handlePerfTierChanged);
         rafId = window.requestAnimationFrame(step);
     }
@@ -2243,6 +2335,7 @@ export function createPrairieFeature() {
         stopLoop();
         stopBackgroundTick();
         document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('pageshow', handlePageShow);
     }
 
     function handlePerfTierChanged() {
@@ -2250,8 +2343,6 @@ export function createPrairieFeature() {
         resizeCanvas();
         computeWorld();
         syncSceneTransform();
-        // Reset frame throttle so the new FPS takes effect right away
-        if (step._lastFrameTime !== undefined) step._lastFrameTime = 0;
     }
 
     function resize() {
