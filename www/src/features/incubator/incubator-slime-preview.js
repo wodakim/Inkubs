@@ -384,7 +384,9 @@ export function createIncubatorSlimePreview() {
             if (event.pointerId !== dragPointerId) return;
             const slime = engine?.getCurrentSlime?.();
             if (!slime?.draggedNode) {
+                // Grab dropped externally (engine reset, slime swap, etc.) — release capture.
                 dragPointerId = null;
+                frontGlass.releasePointerCapture?.(event.pointerId);
                 return;
             }
             // Natural detach: release when finger strays outside the incubator glass.
@@ -405,8 +407,9 @@ export function createIncubatorSlimePreview() {
             frontGlass.releasePointerCapture?.(event.pointerId);
         };
 
-        const onPointerCancel = () => {
+        const onPointerCancel = (event) => {
             engine?.getCurrentSlime?.()?.releaseGrab?.();
+            if (event?.pointerId != null) frontGlass.releasePointerCapture?.(event.pointerId);
             dragPointerId = null;
         };
 
@@ -417,6 +420,11 @@ export function createIncubatorSlimePreview() {
         frontGlass.addEventListener('lostpointercapture', onPointerCancel, { passive: true });
 
         cleanupInteraction = () => {
+            // Release any active grab before removing listeners, so the slime
+            // isn't left with draggedNode set (would freeze it in place).
+            const activeSlime = engine?.getCurrentSlime?.();
+            if (activeSlime?.draggedNode) activeSlime.releaseGrab?.();
+            if (dragPointerId != null) frontGlass?.releasePointerCapture?.(dragPointerId);
             frontGlass?.removeEventListener('pointerdown',       onPointerDown);
             frontGlass?.removeEventListener('pointermove',       onPointerMove);
             frontGlass?.removeEventListener('pointerup',         onPointerUp);
