@@ -1031,6 +1031,9 @@ export function createPrairieFeature() {
         sniff_object: '🌸 Renifle', play_ball: '⚽ Joue', sit_stump: '🪵 Se pose',
         flee_short: '💨 Esquive',
         fight_clash: '⚔️ Combat', fight_won: '🏆 Victoire', fight_lost: '💔 Défaite',
+        // Needs & food
+        seek_food: '🍃 Cherche à manger', eat_berry: '🫐 Mange des baies',
+        hunt_bird: '🦅 Chasse', communicate: '💬 Communique',
     };
 
     const STAT_LABELS = {
@@ -1173,6 +1176,16 @@ export function createPrairieFeature() {
         }
         html += '</div>';
 
+        // ── Hunger bar ──
+        const hunger = Math.round(brain.hunger ?? 0);
+        const hungerColor = hunger > 70 ? '#e05050' : hunger > 40 ? '#d08030' : '#50b070';
+        const hungerLabel = hunger > 80 ? '😩 Affamé' : hunger > 55 ? '😐 Faim' : hunger > 30 ? '😊 Petit creux' : '😌 Rassasié';
+        html += `<div class="prairie-obs__stat-row" style="margin-top:0.3rem">
+            <div class="prairie-obs__stat-head"><span class="prairie-obs__stat-label">🍃 Faim</span><span class="prairie-obs__stat-val">${hunger}</span></div>
+            <div class="prairie-obs__stat-bar"><div class="prairie-obs__stat-fill" style="width:${hunger}%;background:${hungerColor}"></div></div>
+        </div>
+        <div style="font-size:0.48rem;color:rgba(180,200,195,0.5);margin-bottom:0.3rem;padding-left:2px">${hungerLabel}</div>`;
+
         // ── Current behavior ──
         const bLabel = BEHAVIOR_LABELS[brain.behavior] || brain.behavior;
         html += `<div class="prairie-obs__current">Comportement : <strong>${bLabel}</strong></div>`;
@@ -1218,13 +1231,12 @@ export function createPrairieFeature() {
     }
 
     // ── generateLog : traduit l'état interne du slime en phrases naturelles ──
+    // prairieObjects is captured from the enclosing scope (closure).
     function generateLog(brain, slime) {
         const lines = [];
-        const s = slime?.stats || {};
         const genome = slime?.genome || {};
         const diet = genome.dietType || 'omnivore';
         const laziness = genome.laziness ?? 0.5;
-        const now = Date.now();
         const hunger = brain.hunger ?? 0;
         const em = brain.emotionalState || { happiness: 0.5, fear: 0 };
         const objMem = slime?.livingState?.objectMemoryLedger || {};
@@ -1242,7 +1254,7 @@ export function createPrairieFeature() {
         }
 
         // ── Objet de nourriture le plus proche dans la mémoire avec souvenir ─
-        const nearbyObjects = (window._prairiePrairieObjects || []).filter(o =>
+        const nearbyObjects = prairieObjects.filter(o =>
             (o.type === 'berry_bush' || o.type === 'bird') && o.interactive !== false
         );
         for (const obj of nearbyObjects) {
@@ -1326,9 +1338,6 @@ export function createPrairieFeature() {
             obsPageJournal.innerHTML = `<p class="prairie-obs__empty-msg">Aucun slime sélectionné.</p>`;
             return;
         }
-        // Expose prairie objects to generateLog via a window flag (safe, read-only reference)
-        window._prairiePrairieObjects = prairieObjects;
-
         const thoughts = generateLog(brain, slime);
         let html = '<div class="prairie-obs__journal">';
         for (const line of thoughts) {
@@ -2155,16 +2164,19 @@ export function createPrairieFeature() {
                 case 'berry_bush': {
                     const bx = obj.x, by = obj.y;
                     const r = obj.r;
-                    // Bush lobes (darker green than decorative bushes)
-                    ctx.fillStyle = `hsla(${obj.leafHue - 8}, 50%, 22%, 0.88)`;
+                    // Empty bush is more desaturated and darker
+                    const satBoost = obj.berryCount > 0 ? 1 : 0.45;
+                    const litBoost = obj.berryCount > 0 ? 1 : 0.75;
+                    // Bush lobes
+                    ctx.fillStyle = `hsla(${obj.leafHue - 8}, ${50 * satBoost}%, ${22 * litBoost}%, 0.88)`;
                     ctx.beginPath();
                     ctx.arc(bx - r * 0.42, by - r * 0.5, r * 0.70, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.fillStyle = `hsla(${obj.leafHue}, 50%, 24%, 0.88)`;
+                    ctx.fillStyle = `hsla(${obj.leafHue}, ${50 * satBoost}%, ${24 * litBoost}%, 0.88)`;
                     ctx.beginPath();
                     ctx.arc(bx + r * 0.38, by - r * 0.48, r * 0.66, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.fillStyle = `hsla(${obj.leafHue + 8}, 52%, 28%, 0.90)`;
+                    ctx.fillStyle = `hsla(${obj.leafHue + 8}, ${52 * satBoost}%, ${28 * litBoost}%, 0.90)`;
                     ctx.beginPath();
                     ctx.arc(bx, by - r * 0.72, r, 0, Math.PI * 2);
                     ctx.fill();
@@ -2195,7 +2207,9 @@ export function createPrairieFeature() {
                 }
 
                 case 'bird': {
-                    if (obj.state === 'captured') break; // don't render captured birds
+                    if (obj.state === 'captured' || obj.state === 'landing') break;
+                    // Don't render birds that are well off-screen
+                    if (obj.y < world.groundY - 800) break;
                     const bx = obj.x, by = obj.y;
                     const sz = obj.size;
                     const h = obj.hue;

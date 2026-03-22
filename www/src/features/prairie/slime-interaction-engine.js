@@ -795,6 +795,49 @@ function driveFace(slime, behavior, brain, target, dist, now) {
       break;
     }
 
+    case 'seek_food': {
+      // Determined look toward food, a little hungry frown
+      ov.eyeScaleX       = 1 + ramp * 0.08;
+      ov.eyeScaleY       = 1 + ramp * 0.10;
+      ov.browLift        = 0.10 + ramp * 0.10;
+      ov.browTilt        = 0.12 * ramp; // slight worried frown
+      ov.lookBiasX       = slime.facing * 6 * ramp;
+      ov.overrideMouthStyle = ramp > 0.6 ? 'tiny_frown' : null;
+      break;
+    }
+
+    case 'eat_berry': {
+      // Happy eating eyes, big smile
+      ov.eyeScaleX       = 1 + ramp * 0.14;
+      ov.eyeScaleY       = Math.max(0.35, 1 - ramp * 0.35); // squint with pleasure
+      ov.browLift        = 0.28 + ramp * 0.18;
+      ov.mouthScaleX     = 1 + ramp * 0.15;
+      ov.overrideMouthStyle = ramp > 0.5 ? 'candy_smile' : null;
+      break;
+    }
+
+    case 'hunt_bird': {
+      // Focused predator stare, narrowed eyes, slight smirk
+      ov.eyeScaleY       = Math.max(0.22, 1 - ramp * 0.65);
+      ov.browTilt        = slime.facing * 0.55 * ramp;
+      ov.browLift        = -0.08 * ramp;
+      ov.lookBiasX       = slime.facing * 9 * ramp;
+      ov.lookBiasY       = -2 * ramp; // looking slightly down at prey
+      ov.overrideEyeStyle   = ramp > 0.45 ? 'slit' : null;
+      ov.overrideMouthStyle = ramp > 0.55 ? 'grin'  : null;
+      break;
+    }
+
+    case 'communicate': {
+      // Friendly informative expression — bright eyes, open mouth
+      ov.eyeScaleX       = 1 + ramp * 0.12;
+      ov.eyeScaleY       = 1 + ramp * 0.14;
+      ov.browLift        = 0.20 + ramp * 0.14;
+      ov.lookBiasX       = target ? Math.sign(getCenter(target).x - getCenter(slime).x) * 5 * ramp : 0;
+      ov.overrideMouthStyle = ramp > 0.45 ? 'open_smile' : null;
+      break;
+    }
+
     default: break;
   }
 }
@@ -1024,6 +1067,9 @@ function startBehavior(brain, name, targetId, now, targetObj) {
   brain.pauseUntil = 0;
   brain.recentBehaviors.push(name);
   if (brain.recentBehaviors.length > 8) brain.recentBehaviors.shift();
+  // Reset one-shot behavior flags on each new behavior start
+  brain._ateThisBehavior = false;
+  brain._communicatedThisBehavior = false;
 }
 
 // ── Behavior chains ──────────────────────────────────────────────────────────
@@ -1222,11 +1268,9 @@ function _applyFoodGain(slime, brain, foodCategory, subType, diet, now) {
     // Herbivores can't hunt birds — they simply won't get the hunt_bird behavior
   }
 
-  // Store last food position for communication
-  brain._lastFoodPos = { x: slime._prairieBrain ? getCenter(slime).x : 0, objectType: objectKey };
-  // Clear _ateThisBehavior flag for future eat_berry behaviors
-  brain._ateThisBehavior = false;
-  brain._communicatedThisBehavior = false;
+  // Store last food position for communication (used by 'communicate' behavior)
+  brain._lastFoodPos = { x: getCenter(slime).x, objectType: objectKey };
+  // Note: _ateThisBehavior and _communicatedThisBehavior are reset by startBehavior
 }
 
 // ── Execute behavior (called every tick ~50ms) ──────────────────────────────
@@ -2005,54 +2049,42 @@ export class SlimeInteractionEngine {
           }
         }
       }
-    }
 
-    // ── Hunger tick ──────────────────────────────────────────────────────────
-    // Every 10 seconds, increase hunger based on laziness gene.
-    // Lazy slimes are less hungry (hunger rises slowly).
-    const HUNGER_INTERVAL = 10000; // 10s
-    if (now - brain._lastHungerTick > HUNGER_INTERVAL) {
-      brain._lastHungerTick = now;
-      const laziness = slime.genome?.laziness ?? 0.5;
+      // ── Hunger tick ────────────────────────────────────────────────────────
+      // Every 10 seconds, increase hunger based on laziness gene.
       // Active (laziness=0) → +3/tick, Lazy (laziness=1) → +0.8/tick
-      const gain = 0.8 + (1 - laziness) * 2.2;
-      brain.hunger = Math.min(100, brain.hunger + gain);
-    }
-
-    // ── Mood transfer (emotional contagion) ──────────────────────────────────
-    // Every tick, slimes within 150px influence each other's emotional state
-    // proportionally to the average empathy stat.
-    for (const { id: otherId, slime: other } of entries) {
-      if (otherId === brain.selfId) continue;
-      const oc = getCenter(other);
-      const sc2 = getCenter(slime);
-      const d2 = Math.hypot(sc2.x - oc.x, sc2.y - oc.y);
-      if (d2 > 150) continue;
-      const ob = other._prairieBrain;
-      if (!ob) continue;
-
-      // Blend rate based on average empathy (sociability proxy)
-      const empA = sigmoid(slime.stats?.empathy || 50);
-      const empB = sigmoid(other.stats?.empathy  || 50);
-      const blendRate = (empA + empB) * 0.5 * 0.04; // 0..0.04 per tick
-
-      // happiness: converge toward each other
-      const happyA = brain.emotionalState.happiness;
-      const happyB = ob.emotionalState.happiness;
-      brain.emotionalState.happiness = lerp(happyA, happyB, blendRate);
-      ob.emotionalState.happiness    = lerp(happyB, happyA, blendRate);
-
-      // fear: if one is fleeing, propagate fear to the other
-      const fearingA = brain.behavior === 'flee' || brain.behavior === 'recoil';
-      const fearingB = ob.behavior   === 'flee' || ob.behavior   === 'recoil';
-      if (fearingA) {
-        ob.emotionalState.fear = Math.min(1, ob.emotionalState.fear + blendRate * 0.5);
+      const HUNGER_INTERVAL = 10000;
+      if (now - brain._lastHungerTick > HUNGER_INTERVAL) {
+        brain._lastHungerTick = now;
+        const laziness = slime.genome?.laziness ?? 0.5;
+        brain.hunger = Math.min(100, brain.hunger + (0.8 + (1 - laziness) * 2.2));
       }
-      if (fearingB) {
-        brain.emotionalState.fear = Math.min(1, brain.emotionalState.fear + blendRate * 0.5);
+
+      // ── Mood transfer (emotional contagion) ────────────────────────────────
+      // Slimes within 150px influence each other's emotional state via empathy.
+      const slimeCtr = getCenter(slime);
+      for (const { id: otherId, slime: other } of entries) {
+        if (otherId === brain.selfId) continue;
+        const oc = getCenter(other);
+        if (Math.hypot(slimeCtr.x - oc.x, slimeCtr.y - oc.y) > 150) continue;
+        const ob = other._prairieBrain;
+        if (!ob) continue;
+
+        const blendRate = (sigmoid(slime.stats?.empathy || 50) + sigmoid(other.stats?.empathy || 50)) * 0.5 * 0.04;
+
+        // Happiness converges toward each other
+        const hA = brain.emotionalState.happiness, hB = ob.emotionalState.happiness;
+        brain.emotionalState.happiness = lerp(hA, hB, blendRate);
+        ob.emotionalState.happiness    = lerp(hB, hA, blendRate);
+
+        // Fear propagates from a fleeing slime to its neighbors
+        const fearingA = brain.behavior === 'flee' || brain.behavior === 'recoil' || brain.behavior === 'teleport_flee';
+        const fearingB = ob.behavior   === 'flee' || ob.behavior   === 'recoil' || ob.behavior   === 'teleport_flee';
+        if (fearingA) ob.emotionalState.fear = Math.min(1, ob.emotionalState.fear + blendRate * 0.6);
+        if (fearingB) brain.emotionalState.fear = Math.min(1, brain.emotionalState.fear + blendRate * 0.6);
+        // Fear fades when no threat is sensed
+        if (!fearingA) brain.emotionalState.fear = Math.max(0, brain.emotionalState.fear - 0.008);
       }
-      // Fear decays when not near a threat
-      if (!fearingA) brain.emotionalState.fear = Math.max(0, brain.emotionalState.fear - 0.01);
     }
   }
 
