@@ -174,7 +174,13 @@ export class IncubatorController {
       this.emit(INCUBATOR_EVENTS.PURCHASE_REQUESTED, { candidate, price: candidate.price });
 
       if (typeof this.config.hooks.resolvePurchase === 'function') {
-        await this.config.hooks.resolvePurchase(candidate, this);
+        const purchaseResult = await this.config.hooks.resolvePurchase(candidate, this);
+        if (purchaseResult === false) {
+          // Purchase aborted (e.g. insufficient funds) — return to suspended so the
+          // countdown keeps running and the slime is NOT refreshed.
+          this.transition('suspended');
+          return;
+        }
       }
 
       await this.delay(this.config.timings.purchaseMs);

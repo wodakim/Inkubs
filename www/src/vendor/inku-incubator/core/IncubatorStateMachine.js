@@ -3,7 +3,7 @@ const ALLOWED_TRANSITIONS = Object.freeze({
   staging: ['intake', 'purging', 'idle'],
   intake: ['suspended', 'error'],
   suspended: ['purchasePending', 'purging', 'error'],
-  purchasePending: ['purchased', 'error'],
+  purchasePending: ['purchased', 'error', 'suspended'],
   purchased: ['idle'],
   purging: ['purged', 'error'],
   purged: ['idle'],
