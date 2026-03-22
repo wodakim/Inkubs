@@ -2129,6 +2129,12 @@ export function createPrairieFeature() {
         if (!canvas || !ctx) {
             return;
         }
+        // Re-assert our canvas as the global context each frame.
+        // Another SlimeEngine (incubator) keeps a window 'resize' listener that
+        // calls setCanvas() even while suspended, overwriting ctx with its own
+        // canvas. Re-asserting here is free (getContext returns a cached object)
+        // and guarantees slime.draw() always targets the prairie canvas.
+        ensureCanvasRuntime();
         const zoom = Number.isFinite(camera.zoom) ? camera.zoom : 1;
         // Scale by DPR so that world units (CSS pixels) map correctly to device pixels.
         const dpr = Math.min(window.devicePixelRatio || 1, getPerfSettings().dprCap);
