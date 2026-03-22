@@ -412,7 +412,7 @@ export function createIncubatorSlimePreview() {
         };
     }
 
-    function mountCanvas(container, { hidden = false } = {}) {
+    function mountCanvas(container) {
         glassContainer = getGlassContainer(container);
         ensureFrontLayers();
 
@@ -441,11 +441,7 @@ export function createIncubatorSlimePreview() {
 
         wrapper.appendChild(canvas);
         glassContainer.appendChild(wrapper);
-        // Pas d'animation si on sera caché immédiatement (suspension en cours) :
-        // évite le RAF de animateIn qui tourne après que display:none soit posé.
-        if (!hidden) {
-            animateIn(wrapper);
-        }
+        animateIn(wrapper);
         bindGlassInteractions();
     }
 
@@ -614,19 +610,12 @@ export function createIncubatorSlimePreview() {
         lastCandidate = candidate || null;
         currentBlueprint = candidate?.metadata?.previewBlueprint || buildPreviewBlueprint();
         isExternallySuspended = false;
-        mountCanvas(container, { hidden: wasSuspended });
+        mountCanvas(container);
         if (wasSuspended && wrapper) {
-            // Cacher le wrapper ET marquer comme suspendu.
             wrapper.style.display = 'none';
             isExternallySuspended = true;
         }
-        // Ne pas démarrer le moteur SlimeEngine pendant la suspension :
-        // son constructeur appelle setCanvas() et ajoute un listener window.resize
-        // qui contaminent le contexte de rendu partagé avec la prairie.
-        // Le moteur sera créé à la reprise via resumeAfterExternalRuntime (case 2).
-        if (!wasSuspended) {
-            mountPreviewRuntime({ startMotion: 'extruding', spawnImpulseY: -16.4 });
-        }
+        mountPreviewRuntime({ startMotion: 'extruding', spawnImpulseY: -16.4 });
     }
 
     function beginAspiration() {
