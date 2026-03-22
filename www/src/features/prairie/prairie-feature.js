@@ -1267,13 +1267,13 @@ export function createPrairieFeature() {
 
         // ── Faim ──────────────────────────────────────────────────────────────
         if (hunger > 80) {
-            lines.push('J\'ai une faim dévorante... je dois trouver quelque chose à manger.');
+            lines.push(t('journal.hunger.starving'));
         } else if (hunger > 55) {
-            lines.push('J\'ai assez faim. Il faudrait que je mange bientôt.');
+            lines.push(t('journal.hunger.hungry'));
         } else if (hunger > 30) {
-            lines.push('Je commence à avoir un petit creux.');
+            lines.push(t('journal.hunger.peckish'));
         } else {
-            lines.push('Je me sens rassasié et content.');
+            lines.push(t('journal.hunger.satisfied'));
         }
 
         // ── Objet de nourriture le plus proche dans la mémoire avec souvenir ─
@@ -1290,46 +1290,40 @@ export function createPrairieFeature() {
             const pp = mem.pleasurePain;
             if (pp <= -0.3 && hunger > 40) {
                 if (obj.type === 'berry_bush') {
-                    lines.push(`Ces baies ${obj.berryType || ''} sont là... mais elles me rappellent de mauvais souvenirs. Je préfère éviter.`);
+                    lines.push(t('journal.memory.bad_berries').replace('{type}', obj.berryType || ''));
                 } else {
-                    lines.push(`Il y a un oiseau là-bas, mais ma dernière chasse s'est mal terminée. Je reste prudent.`);
+                    lines.push(t('journal.memory.bad_bird'));
                 }
             } else if (pp >= 0.3 && hunger > 30) {
                 if (obj.type === 'berry_bush') {
-                    lines.push(`Ces baies ont l'air délicieuses ! Je me souviens du bon goût.`);
+                    lines.push(t('journal.memory.good_berries'));
                 } else {
-                    lines.push(`Cet oiseau... la dernière fois c'était un festin.`);
+                    lines.push(t('journal.memory.good_bird'));
                 }
             }
         }
 
         // ── Régime alimentaire ────────────────────────────────────────────────
-        if (diet === 'herbivore') {
-            lines.push('Je préfère les plantes et les fruits. La violence n\'est pas mon fort.');
-        } else if (diet === 'carnivore') {
-            lines.push('Je suis un chasseur dans l\'âme. Les proies m\'attirent naturellement.');
-        } else {
-            lines.push('Je mange de tout — baies ou oiseaux, peu importe.');
-        }
+        lines.push(t(`journal.diet.${diet}`) || t('journal.diet.omnivore'));
 
         // ── Paresse ───────────────────────────────────────────────────────────
         if (laziness > 0.75) {
-            lines.push('Honnêtement... j\'aimerais rester là et ne rien faire.');
+            lines.push(t('journal.laziness.high'));
         } else if (laziness < 0.25) {
-            lines.push('Je suis toujours en mouvement. L\'inactivité me pèse.');
+            lines.push(t('journal.laziness.low'));
         }
 
         // ── Comportement actuel ───────────────────────────────────────────────
         const bLabel = BEHAVIOR_LABELS[brain.behavior] || brain.behavior;
-        lines.push(`En ce moment je suis occupé à ${bLabel}.`);
+        lines.push(t('journal.behavior.current').replace('{behavior}', bLabel));
 
         // ── État émotionnel ───────────────────────────────────────────────────
         if (em.fear > 0.5) {
-            lines.push('J\'ai peur... quelque chose me menace et je le sens.');
+            lines.push(t('journal.emotion.fear'));
         } else if (em.happiness > 0.75) {
-            lines.push('Je me sens vraiment bien. La présence des autres m\'apaise.');
+            lines.push(t('journal.emotion.happy'));
         } else if (em.happiness < 0.3) {
-            lines.push('Je me sens un peu seul et mélancolique.');
+            lines.push(t('journal.emotion.lonely'));
         }
 
         // ── Relations ─────────────────────────────────────────────────────────
@@ -1337,10 +1331,10 @@ export function createPrairieFeature() {
             const friends = Object.values(relLedger.affinities || {}).filter(r => r.type === 'friend' || r.type === 'lover');
             const rivals  = Object.values(relLedger.affinities || {}).filter(r => r.type === 'rival' || r.type === 'hostile');
             if (friends.length > 0) {
-                lines.push(`Je pense à ${friends[0].displayName}... sa compagnie me fait du bien.`);
+                lines.push(t('journal.relation.friend').replace('{name}', friends[0].displayName));
             }
             if (rivals.length > 0) {
-                lines.push(`${rivals[0].displayName} me dérange. Je ferai mieux de l'éviter.`);
+                lines.push(t('journal.relation.rival').replace('{name}', rivals[0].displayName));
             }
         }
 

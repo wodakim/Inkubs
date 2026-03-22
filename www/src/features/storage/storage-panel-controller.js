@@ -1093,38 +1093,38 @@ export function createStoragePanelController({ mountTarget, repository, store = 
 
             <section class="storage-detail-modal__info-grid">
                 <article class="storage-detail-modal__card">
-                    <h4>Apparence</h4>
+                    <h4>${t('storage.detail.section_appearance')}</h4>
                     <dl class="storage-detail-modal__kv">
-                        ${renderKeyValue('Forme', display.bodyShape || genome.bodyShape)}
-                        ${renderKeyValue('Yeux', genome.eyeStyle)}
-                        ${renderKeyValue('Bouche', genome.mouthStyle)}
-                        ${renderKeyValue('Humeur', display.mood || genome.mood)}
-                        ${renderKeyValue('Accessoire', display.accessory || genome.accessory)}
-                        ${renderKeyValue('Motif couleur', genome.colorPattern)}
-                        ${genome.rarityScore !== undefined ? renderKeyValue('Score rareté', Math.round(genome.rarityScore) + ' / 100') : ''}
+                        ${renderKeyValue(t('storage.detail.key_shape'), display.bodyShape || genome.bodyShape)}
+                        ${renderKeyValue(t('storage.detail.key_eyes'), genome.eyeStyle)}
+                        ${renderKeyValue(t('storage.detail.key_mouth'), genome.mouthStyle)}
+                        ${renderKeyValue(t('storage.detail.key_mood'), display.mood || genome.mood)}
+                        ${renderKeyValue(t('storage.detail.key_accessory'), display.accessory || genome.accessory)}
+                        ${renderKeyValue(t('storage.detail.key_pattern'), genome.colorPattern)}
+                        ${genome.rarityScore !== undefined ? renderKeyValue(t('storage.detail.key_rarity_score'), Math.round(genome.rarityScore) + ' / 100') : ''}
                     </dl>
                 </article>
                 <article class="storage-detail-modal__card">
-                    <h4>Caractère</h4>
+                    <h4>${t('storage.detail.section_character')}</h4>
                     <dl class="storage-detail-modal__kv">
-                        ${renderKeyValue('Archétype', record.livingState?.cognition?.archetype)}
-                        ${renderKeyValue('Conscience', record.livingState?.cognition?.consciousnessTier)}
-                        ${renderKeyValue('Humeur', record.livingState?.cognition?.baselineMood)}
-                        ${renderKeyValue('Cycle', record.livingState?.continuity?.lifecycleStage)}
-                        ${renderKeyValue('Acquis', record.acquiredAt ? String(record.acquiredAt).slice(0, 10) : null)}
+                        ${renderKeyValue(t('storage.detail.key_archetype'), record.livingState?.cognition?.archetype)}
+                        ${renderKeyValue(t('storage.detail.key_consciousness'), record.livingState?.cognition?.consciousnessTier)}
+                        ${renderKeyValue(t('storage.detail.key_mood'), record.livingState?.cognition?.baselineMood)}
+                        ${renderKeyValue(t('storage.detail.key_cycle'), record.livingState?.continuity?.lifecycleStage)}
+                        ${renderKeyValue(t('storage.detail.key_acquired'), record.acquiredAt ? String(record.acquiredAt).slice(0, 10) : null)}
                     </dl>
                 </article>
             </section>
 
             ${Object.keys(record.proceduralCore?.stats || {}).length > 0 ? `
             <section class="storage-detail-modal__stats-section">
-                <h4 class="storage-detail-modal__stats-title">Statistiques</h4>
+                <h4 class="storage-detail-modal__stats-title">${t('storage.detail.section_stats')}</h4>
                 <div class="storage-detail-modal__stat-list">${renderStatRows(record.proceduralCore?.stats || {})}</div>
             </section>` : ''}
 
             ${Object.keys(record.livingState?.cognition?.mentalAxes || {}).length > 0 ? `
             <section class="storage-detail-modal__stats-section">
-                <h4 class="storage-detail-modal__stats-title">Axes mentaux</h4>
+                <h4 class="storage-detail-modal__stats-title">${t('storage.detail.section_mental')}</h4>
                 <div class="storage-detail-modal__stat-list">${renderStatRows(record.livingState?.cognition?.mentalAxes || {})}</div>
             </section>` : ''}
         `;
