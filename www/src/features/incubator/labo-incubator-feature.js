@@ -465,8 +465,11 @@ export function createLaboIncubatorFeature({ store } = {}) {
             if (!externalPanel) externalPanel = createExternalDisplayPanel();
             externalPanel.mount();
             showFeature();
-            applyLayout();
-            startCycle();
+            requestAnimationFrame(() => {
+                if (isSuspended) return;
+                applyLayout();
+                startCycle();
+            });
         },
         resume(context) {
             ensureShell(context.mount);
@@ -479,8 +482,14 @@ export function createLaboIncubatorFeature({ store } = {}) {
             if (!externalPanel) externalPanel = createExternalDisplayPanel();
             externalPanel.mount();
             showFeature();
-            applyLayout();
-            startCycle();
+            // Différer applyLayout + startCycle d'une frame pour que showFeature()
+            // ait terminé son reflow — getBoundingClientRect() retourne des zéros
+            // si le DOM est encore display:none au moment de la lecture.
+            requestAnimationFrame(() => {
+                if (isSuspended) return; // l'utilisateur a déjà re-navigué
+                applyLayout();
+                startCycle();
+            });
         },
         suspend() {
             if (!root) { return; }

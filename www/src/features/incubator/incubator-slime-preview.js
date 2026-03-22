@@ -340,6 +340,20 @@ export function createIncubatorSlimePreview() {
             const point = getPointerPoint(event);
             if (!point) return;
 
+            // Invalider le rect mis en cache à chaque touch — garantit que la
+            // première interaction après un retour de suspension utilise des
+            // dimensions fraîches (le cache peut contenir des zéros si le DOM
+            // était caché au moment de la dernière lecture).
+            cachedCanvasRect = canvas ? canvas.getBoundingClientRect() : null;
+
+            // Forcer le release de tout grab résiduel (peut subsister si un
+            // pointercancel est arrivé pendant la suspension sans être traité).
+            const staleSlime = engine?.getCurrentSlime?.();
+            if (staleSlime?.draggedNode) {
+                staleSlime.releaseGrab?.();
+                dragPointerId = null;
+            }
+
             // Try to grab the slime for dragging first.
             if (dragPointerId === null) {
                 const slime = engine?.getCurrentSlime?.();
@@ -355,6 +369,9 @@ export function createIncubatorSlimePreview() {
             }
 
             // Not close enough to grab: fall back to tap/shock interaction.
+            // Geler le drift du wrapper avant de lire les rects pour le poc
+            // afin que glass et canvas soient parfaitement alignés.
+            if (wrapper) wrapper.style.transform = 'translate3d(0,0,0) scale(1,1)';
             const now = performance.now();
             const isDoubleTap = (now - lastTapAt) <= POKE_DOUBLE_TAP_MS &&
                 distanceBetween(point, lastTapPoint) <= POKE_DISTANCE_THRESHOLD;
@@ -736,16 +753,34 @@ export function createIncubatorSlimePreview() {
         // Restaurer la visibilité du wrapper
         if (wrapper) wrapper.style.display = '';
 
-        // Invalider le cache du rect : pendant la suspension le root avait
-        // display:none, donc tout getBoundingClientRect() renvoyait des zéros.
-        // La première lecture dans la boucle RAF obtiendra des dimensions fraîches.
+        // Invalider TOUS les caches de rect : pendant la suspension les éléments
+        // avaient display:none → getBoundingClientRect() renvoyait des zéros.
+        // On force aussi un re-fetch de glassContainer/frontGlass car le Shadow DOM
+        // peut avoir été reconstruit pendant la navigation (ex. retour de la prairie).
         cachedCanvasRect = null;
+
+        // Re-fetch glassContainer depuis le container courant — si le Shadow DOM
+        // a été recréé, l'ancienne référence pointe vers un nœud orphelin et
+        // querySelector('.tube-front-glass') renverrait null, bloquant bindGlassInteractions.
+        if (lastContainer) {
+            const freshGlass = getGlassContainer(lastContainer);
+            if (freshGlass && freshGlass !== glassContainer) {
+                glassContainer = freshGlass;
+                // frontGlass sera re-fetché par ensureFrontLayers ci-dessous
+                frontGlass = null;
+            }
+        }
 
         // Case 1: engine is alive (was stopped with engine.stop()).
         // Just restart the render loop and the motion controller in place —
         // the slime nodes keep their exact positions, no respawn needed.
         if (engine && canvas && currentBlueprint) {
             ensureFrontLayers();
+            // Invalider le cachedCanvasRect une frame plus tard pour que le DOM
+            // soit réellement visible avant la première lecture de getBoundingClientRect.
+            requestAnimationFrame(() => {
+                cachedCanvasRect = canvas ? canvas.getBoundingClientRect() : null;
+            });
             bindGlassInteractions();
             engine.start();
             motionStartedAt = performance.now();
@@ -755,11 +790,11 @@ export function createIncubatorSlimePreview() {
 
         // Case 2: engine was destroyed during a cycle gap while we were away
         // (e.g. purge finished but next candidate not yet spawned).
-        // ensureRuntimeAvailable will rebuild and spawn with the correct layout.
         if (canvas && currentBlueprint) {
             requestAnimationFrame(() => {
                 if (!canvas || !currentBlueprint) return;
                 ensureFrontLayers();
+                cachedCanvasRect = canvas.getBoundingClientRect();
                 bindGlassInteractions();
                 mountPreviewRuntime({ startMotion: 'extruding', spawnImpulseY: -13.2 });
             });

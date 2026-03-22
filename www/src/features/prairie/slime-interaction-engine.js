@@ -13,6 +13,90 @@
 import { getPerformanceTier } from '../../utils/device-performance-profile.js';
 import { recordSlimeEvent } from '../../vendor/inku-slime-v3/engine/lifecycle/livingState.js';
 
+// ═══════════════════════════════════════════════════════════════════════════
+//  PER-FRAME PATCHES (applied once on first brain creation)
+//
+//  PATCH 1 — AI Drive:
+//  applyHorizontalInput is called once per AI tick (~50ms) but ground
+//  friction kills all velocity in ~3 frames. We store the intention
+//  (_aiMoveDir, _aiSpeedMul) and re-apply it every physics frame.
+//
+//  PATCH 2 — Face Override:
+//  updateAnimationController rebuilds faceAnimation from scratch every frame
+//  at 60fps, wiping any values set by driveFace() (which runs at 20fps).
+//  We patch updateAnimationController to lerp-in _aiFaceOverride fields
+//  AFTER the built-in calculation, producing smooth blended expressions.
+//
+//  PATCH 3 — Move squash reduction:
+//  The built-in move locomotion sets scaleX up to 1.28 and skewX aggressively,
+//  making AI slimes look like squashed slugs. We dampen those after the fact.
+// ═══════════════════════════════════════════════════════════════════════════
+let _patchesApplied = false;
+function ensureAIDrivePatch(SlimeProto) {
+  if (_patchesApplied || !SlimeProto?.applyKeyboardControls) return;
+  _patchesApplied = true;
+
+  // ── Patch 1: per-frame horizontal drive ──
+  const origKeyboard = SlimeProto.applyKeyboardControls;
+  SlimeProto.applyKeyboardControls = function patchedKeyboard() {
+    origKeyboard.call(this);
+    if (this.draggedNode) return;
+    const dir = this._aiMoveDir;
+    if (!dir) return;
+    const saved    = this.moveAcceleration;
+    const savedMax = this.maxMoveSpeed;
+    this.moveAcceleration = saved    * (this._aiSpeedMul || 1);
+    this.maxMoveSpeed     = savedMax * (this._aiSpeedMul || 1);
+    this.applyHorizontalInput(dir);
+    this.moveAcceleration = saved;
+    this.maxMoveSpeed     = savedMax;
+  };
+
+  // ── Patch 2 + 3: face override blend & move squash fix ──
+  const origAnim = SlimeProto.updateAnimationController;
+  SlimeProto.updateAnimationController = function patchedAnim() {
+    origAnim.call(this);
+
+    // ── Patch 3: dampen move-locomotion squash/stretch & slug skew ──
+    if (this.locomotionState === 'move' && this.renderPose) {
+      const p = this.renderPose;
+      // Pull scaleX back toward 1 (was up to 1.28 — reduce by 60%)
+      p.scaleX = 1 + (p.scaleX - 1) * 0.4;
+      // Pull scaleY back toward 1 (was as low as 0.78 — reduce by 50%)
+      p.scaleY = 1 + (p.scaleY - 1) * 0.5;
+      // Halve the skew (main cause of the "leaning slug" look)
+      p.skewX  = p.skewX * 0.45;
+      // Keep roll subtle
+      p.roll   = p.roll  * 0.6;
+    }
+
+    // ── Patch 2: blend AI face override into the built-in face ──
+    const ov = this._aiFaceOverride;
+    if (!ov || !this.faceAnimation) return;
+    const f  = this.faceAnimation;
+    // Smooth blend speed: 0.18 per frame ≈ reaches 90% in ~12 frames (~200ms)
+    const T  = 0.18;
+    // Only blend fields that the override has set (non-null)
+    if (ov.eyeScaleX       != null) f.eyeScaleX       = f.eyeScaleX       + (ov.eyeScaleX       - f.eyeScaleX)       * T;
+    if (ov.eyeScaleY       != null) f.eyeScaleY       = f.eyeScaleY       + (ov.eyeScaleY       - f.eyeScaleY)       * T;
+    if (ov.browLift        != null) f.browLift        = f.browLift        + (ov.browLift        - f.browLift)        * T;
+    if (ov.browTilt        != null) f.browTilt        = f.browTilt        + (ov.browTilt        - f.browTilt)        * T;
+    if (ov.lookBiasX       != null) f.lookBiasX       = f.lookBiasX       + (ov.lookBiasX       - f.lookBiasX)       * T;
+    if (ov.lookBiasY       != null) f.lookBiasY       = f.lookBiasY       + (ov.lookBiasY       - f.lookBiasY)       * T;
+    if (ov.mouthScaleX     != null) f.mouthScaleX     = f.mouthScaleX     + (ov.mouthScaleX     - f.mouthScaleX)     * T;
+    // Overrides — only apply when the override is actually set to a string
+    if (typeof ov.overrideEyeStyle   === 'string') f.overrideEyeStyle   = ov.overrideEyeStyle;
+    if (typeof ov.overrideMouthStyle === 'string') f.overrideMouthStyle = ov.overrideMouthStyle;
+    // Clamp final values
+    f.eyeScaleX  = Math.max(0.7,  Math.min(1.28, f.eyeScaleX));
+    f.eyeScaleY  = Math.max(0.15, Math.min(1.28, f.eyeScaleY));
+    f.browLift   = Math.max(-0.2, Math.min(0.72, f.browLift));
+    f.browTilt   = Math.max(-0.1, Math.min(0.8,  f.browTilt));
+    f.lookBiasX  = Math.max(-10,  Math.min(10,   f.lookBiasX));
+    f.lookBiasY  = Math.max(-8,   Math.min(8,    f.lookBiasY));
+  };
+}
+
 // TICK_MS adapts to the active performance tier
 function getTickMs() {
     const tier = getPerformanceTier();
@@ -68,6 +152,8 @@ class SlimeBrain {
     // Reckless chase: set when a combatant refuses to let prey escape
     this._recklessChaseTargetId = null;
     this._lastRecklessChaseAt   = 0;
+    // Pending conversational reply (set when another slime speaks to us)
+    this._pendingReply = null;
   }
   getBias(id) { return this.biasByTarget.get(id) || 0; }
   addBias(id, d) {
@@ -444,20 +530,21 @@ function statSpeed(slime) {
 function moveToward(slime, brain, tx, speedMul) {
   const cx = getCenter(slime).x;
   const dx = tx - cx;
-  if (Math.abs(dx) < 5) { brain.intentDir *= 0.7; return; }
+  if (Math.abs(dx) < 5) {
+    brain.intentDir  *= 0.7;
+    slime._aiMoveDir  = 0;
+    slime._aiSpeedMul = 0;
+    return;
+  }
   const dir = Math.sign(dx);
-  brain.intentDir = lerp(brain.intentDir, dir, 0.3);
+  // Smooth the intent direction for gradual acceleration feel
+  brain.intentDir = lerp(brain.intentDir, dir, 0.25);
   if (Math.abs(brain.intentDir) > 0.04) {
     slime.facing = Math.sign(brain.intentDir);
-    const saved      = slime.moveAcceleration;
-    const savedMax   = slime.maxMoveSpeed;
-    const ss         = statSpeed(slime);
-    // Amplify both acceleration and top speed by stat profile
-    slime.moveAcceleration = saved    * Math.max(0.4, speedMul) * ss * 1.6;
-    slime.maxMoveSpeed     = savedMax * Math.max(0.4, speedMul) * ss;
-    slime.applyHorizontalInput(Math.sign(brain.intentDir));
-    slime.moveAcceleration = saved;
-    slime.maxMoveSpeed     = savedMax;
+    const ss = statSpeed(slime);
+    // Store intention — the per-frame patch will apply it every physics frame
+    slime._aiMoveDir  = Math.sign(brain.intentDir);
+    slime._aiSpeedMul = Math.max(0.4, speedMul) * ss;
   }
 }
 
@@ -467,7 +554,19 @@ function moveAway(slime, brain, fromX, speedMul, world) {
   moveToward(slime, brain, tx, speedMul);
 }
 
-function brake(brain) { brain.intentDir *= 0.65; }
+/** Called when a slime should stop moving — clears the per-frame drive. */
+function clearAIDrive(slime) {
+  slime._aiMoveDir  = 0;
+  slime._aiSpeedMul = 0;
+}
+
+function brake(brain, slime) {
+  brain.intentDir *= 0.55;
+  if (slime) {
+    slime._aiMoveDir  = 0;
+    slime._aiSpeedMul = 0;
+  }
+}
 
 function faceTo(slime, target) {
   const sc = getCenter(slime), tc = getCenter(target);
@@ -501,6 +600,186 @@ function keepAction(slime, action, intensity) {
     slime.actionUntil = now + 800;  // long enough to survive between ticks
     // Ramp up intensity, never below the requested level
     slime.actionIntensity = Math.min(1.3, Math.max(intensity, slime.actionIntensity * 0.7 + intensity * 0.3));
+  }
+}
+
+/**
+ * driveFace — writes target values into slime._aiFaceOverride each AI tick.
+ * The per-frame patch in updateAnimationController lerp-blends these values
+ * into the final faceAnimation smoothly at 60fps, preventing any flicker.
+ *
+ * We only set fields we want to override; null means "don't touch".
+ */
+function driveFace(slime, behavior, brain, target, dist, now) {
+  // Ensure the override object exists and is reset each tick
+  if (!slime._aiFaceOverride) slime._aiFaceOverride = {};
+  const ov = slime._aiFaceOverride;
+
+  // Clear all fields first — we'll set only what this behavior needs
+  ov.eyeScaleX       = null;
+  ov.eyeScaleY       = null;
+  ov.browLift        = null;
+  ov.browTilt        = null;
+  ov.lookBiasX       = null;
+  ov.lookBiasY       = null;
+  ov.mouthScaleX     = null;
+  ov.overrideEyeStyle   = null;
+  ov.overrideMouthStyle = null;
+
+  const elapsed = now - brain.startedAt;
+  // Ramp 0→1 over 1.0s — expression builds in gradually
+  const ramp = Math.min(1, elapsed / 1000);
+
+  switch (behavior) {
+
+    case 'romance': {
+      ov.eyeScaleX       = 1 + ramp * 0.16;
+      ov.eyeScaleY       = 1 + ramp * 0.18;
+      ov.browLift        = 0.25 + ramp * 0.2;
+      ov.browTilt        = 0;
+      ov.mouthScaleX     = 1 + ramp * 0.1;
+      ov.lookBiasY       = -2 * ramp;
+      ov.overrideEyeStyle   = ramp > 0.65 && dist < 80 ? 'heart' : null;
+      ov.overrideMouthStyle = ramp > 0.55 ? 'kiss' : null;
+      break;
+    }
+
+    case 'bond': {
+      ov.eyeScaleX       = 1 + ramp * 0.12;
+      ov.eyeScaleY       = 1 + ramp * 0.14;
+      ov.browLift        = 0.18 + ramp * 0.18;
+      ov.overrideMouthStyle = ramp > 0.6 ? 'candy_smile' : null;
+      break;
+    }
+
+    case 'fight_clash': {
+      ov.eyeScaleY       = Math.max(0.2, 1 - ramp * 0.65);
+      ov.browTilt        = slime.facing * 0.65 * ramp;
+      ov.browLift        = -0.18 * ramp;
+      ov.lookBiasX       = slime.facing * 9 * ramp;
+      ov.overrideEyeStyle   = ramp > 0.45 ? 'angry_arc' : null;
+      ov.overrideMouthStyle = ramp > 0.35 ? 'fangs'     : null;
+      break;
+    }
+
+    case 'reckless_chase': {
+      ov.eyeScaleY       = Math.max(0.35, 1 - ramp * 0.45);
+      ov.browTilt        = slime.facing * 0.5 * ramp;
+      ov.browLift        = -0.12 * ramp;
+      ov.lookBiasX       = slime.facing * 7 * ramp;
+      ov.overrideEyeStyle   = ramp > 0.55 ? 'half_lid' : null;
+      ov.overrideMouthStyle = ramp > 0.5  ? 'smirk'   : null;
+      break;
+    }
+
+    case 'challenge':
+    case 'intimidate': {
+      ov.eyeScaleY       = Math.max(0.3, 1 - ramp * 0.5);
+      ov.browTilt        = slime.facing * 0.55 * ramp;
+      ov.browLift        = -0.08 * ramp;
+      ov.lookBiasX       = slime.facing * 6 * ramp;
+      ov.overrideEyeStyle   = ramp > 0.5  ? 'slit'      : null;
+      ov.overrideMouthStyle = ramp > 0.55 ? 'wide_gape' : null;
+      break;
+    }
+
+    case 'flee':
+    case 'teleport_flee': {
+      const lookBack = target
+        ? -Math.sign(getCenter(target).x - getCenter(slime).x)
+        : slime.facing;
+      ov.eyeScaleX       = 1 + ramp * 0.24;
+      ov.eyeScaleY       = 1 + ramp * 0.28;
+      ov.browLift        = 0.5 + ramp * 0.18;
+      ov.browTilt        = 0.28 * ramp;
+      ov.lookBiasX       = lookBack * 7 * ramp;
+      ov.overrideMouthStyle = ramp > 0.4 ? 'tiny_frown' : null;
+      break;
+    }
+
+    case 'recoil': {
+      ov.eyeScaleY       = Math.max(0.22, 1 - ramp * 0.55);
+      ov.browLift        = 0.45 * ramp;
+      ov.browTilt        = -0.3 * ramp;
+      ov.overrideMouthStyle = 'tiny_frown';
+      break;
+    }
+
+    case 'observe':
+    case 'investigate': {
+      ov.eyeScaleX       = 1 + ramp * 0.14;
+      ov.eyeScaleY       = 1 + ramp * 0.16;
+      ov.browLift        = 0.3 + ramp * 0.12;
+      ov.browTilt        = slime.facing * 0.18 * ramp;
+      ov.lookBiasX       = target
+        ? Math.sign(getCenter(target).x - getCenter(slime).x) * 5 * ramp
+        : 0;
+      ov.overrideMouthStyle = ramp > 0.65 ? 'hmm' : null;
+      break;
+    }
+
+    case 'approach': {
+      ov.eyeScaleX       = 1 + ramp * 0.1;
+      ov.eyeScaleY       = 1 + ramp * 0.12;
+      ov.browLift        = 0.18 + ramp * 0.12;
+      ov.lookBiasX       = target
+        ? Math.sign(getCenter(target).x - getCenter(slime).x) * 5 * ramp
+        : 0;
+      ov.overrideMouthStyle = ramp > 0.55 ? 'open_smile' : null;
+      break;
+    }
+
+    case 'follow': {
+      ov.eyeScaleY       = 1 + ramp * 0.08;
+      ov.browLift        = 0.12 + ramp * 0.08;
+      ov.lookBiasX       = target
+        ? Math.sign(getCenter(target).x - getCenter(slime).x) * 4 * ramp
+        : 0;
+      ov.overrideMouthStyle = ramp > 0.65 ? 'smile' : null;
+      break;
+    }
+
+    case 'orbit': {
+      const orbitPhase   = Math.sin(brain.orbitAngle);
+      ov.eyeScaleX       = 1 + Math.abs(orbitPhase) * 0.08;
+      ov.eyeScaleY       = 1 + ramp * 0.06;
+      ov.browTilt        = orbitPhase * 0.22;
+      ov.browLift        = 0.08 + ramp * 0.1;
+      break;
+    }
+
+    case 'calm': {
+      ov.eyeScaleY       = 1 - ramp * 0.06;
+      ov.browLift        = 0.08 + ramp * 0.12;
+      ov.mouthScaleX     = 1 + ramp * 0.07;
+      ov.overrideMouthStyle = ramp > 0.75 ? 'smile' : null;
+      break;
+    }
+
+    case 'explore_jump': {
+      ov.eyeScaleY       = 1 + ramp * 0.12;
+      ov.browLift        = 0.18 + ramp * 0.15;
+      ov.overrideMouthStyle = ramp > 0.5 ? 'open_smile' : null;
+      break;
+    }
+
+    case 'play_ball': {
+      ov.eyeScaleX       = 1 + ramp * 0.14;
+      ov.eyeScaleY       = 1 + ramp * 0.16;
+      ov.browLift        = 0.22 + ramp * 0.18;
+      ov.overrideMouthStyle = 'grin';
+      break;
+    }
+
+    case 'sit_stump': {
+      ov.eyeScaleY       = Math.max(0.5, 1 - ramp * 0.3);
+      ov.browLift        = -0.04;
+      ov.overrideEyeStyle   = ramp > 0.75 ? 'sleepy' : null;
+      ov.overrideMouthStyle = ramp > 0.65 ? 'flat'   : null;
+      break;
+    }
+
+    default: break;
   }
 }
 
@@ -806,7 +1085,7 @@ function execBehavior(brain, slime, others, world, now) {
         if (sigmoid(s.curiosity) > 0.55 && Math.random() < 0.012 * energy)
           tryJump(slime, brain, now);
       } else {
-        brake(brain);
+        brake(brain, slime);
         faceTo(slime, target);
       }
       if (dist < 300) keepAction(slime, 'observe', 0.65 + clamp01(1 - dist / 300) * 0.5);
@@ -815,7 +1094,7 @@ function execBehavior(brain, slime, others, world, now) {
 
     case 'observe': {
       if (!tc) break;
-      brake(brain);
+      brake(brain, slime);
       faceTo(slime, target);
       // Gentle sway
       const sway = Math.sin(now * 0.002 + brain.seed * 10) * 6;
@@ -840,7 +1119,7 @@ function execBehavior(brain, slime, others, world, now) {
           resolveObstacle(slime, brain, followBlocker, world, now);
         moveToward(slime, brain, goalX, 0.65 * energy);
       } else {
-        brake(brain);
+        brake(brain, slime);
         faceTo(slime, target);
       }
       keepAction(slime, 'study', 0.65 + clamp01(1 - dist / 200) * 0.35);
@@ -866,7 +1145,7 @@ function execBehavior(brain, slime, others, world, now) {
       if (!tc) break;
       if (dist > 55) moveToward(slime, brain, tc.x, 0.4 * energy);
       else {
-        brake(brain);
+        brake(brain, slime);
         faceTo(slime, target);
         // Gentle bob
         const bob = Math.sin(now * 0.003 + brain.seed * 6) * 3;
@@ -890,7 +1169,7 @@ function execBehavior(brain, slime, others, world, now) {
       if (!tc) break;
       if (dist > 45) moveToward(slime, brain, tc.x, 0.25 * energy);
       else {
-        brake(brain);
+        brake(brain, slime);
         faceTo(slime, target);
         const sway = Math.sin(now * 0.0025 + brain.seed * 8) * 4;
         if (Math.abs(sway) > 2) {
@@ -916,7 +1195,7 @@ function execBehavior(brain, slime, others, world, now) {
         const side = sc.x > tc.x ? 1 : -1;
         moveToward(slime, brain, tc.x + side * (90 + Math.sin(now * 0.001) * 40), 0.55 * energy);
       } else {
-        brake(brain);
+        brake(brain, slime);
         faceTo(slime, target);
       }
       keepAction(slime, 'question', 0.7 + Math.abs(phase) * 0.3);
@@ -934,7 +1213,7 @@ function execBehavior(brain, slime, others, world, now) {
         const push = Math.sin(now * 0.005 + brain.seed * 4);
         if (push > 0.2)       moveToward(slime, brain, tc.x, 0.5 * energy * ferBoost);
         else if (push < -0.2) moveAway(slime, brain, tc.x, 0.2, world);
-        else { brake(brain); faceTo(slime, target); }
+        else { brake(brain, slime); faceTo(slime, target); }
       }
       keepAction(slime, 'attack', Math.min(1.3, 0.8 + clamp01(1 - dist / 150) * 0.4 + ferBoost * 0.15));
       // Trigger reactions
@@ -1010,7 +1289,7 @@ function execBehavior(brain, slime, others, world, now) {
       if (!tc) break;
       if (dist > 130) moveToward(slime, brain, tc.x, 0.4 * energy);
       else {
-        brake(brain);
+        brake(brain, slime);
         faceTo(slime, target);
         const lurch = Math.sin(now * 0.004 + brain.seed * 3);
         if (lurch > 0.5) {
@@ -1067,11 +1346,11 @@ function execBehavior(brain, slime, others, world, now) {
 
     case 'teleport_flee': {
       // Post-teleport recovery: slime lands with a stagger then sprints away
-      if (!tc) { brake(brain); break; }
+      if (!tc) { brake(brain, slime); break; }
       const elapsed = now - brain.startedAt;
       if (elapsed < 350) {
         // Stagger: brief disoriented shake
-        brake(brain);
+        brake(brain, slime);
         keepAction(slime, 'hurt', 1.2 - elapsed / 350);
       } else {
         // Sprint away hard
@@ -1128,7 +1407,7 @@ function execBehavior(brain, slime, others, world, now) {
       if (!tc) break;
       if (dist > 85) moveToward(slime, brain, tc.x, 0.35 * energy);
       else {
-        brake(brain);
+        brake(brain, slime);
         faceTo(slime, target);
         const sway = Math.sin(now * 0.002 + brain.seed * 7) * 3;
         if (Math.abs(sway) > 1.5) {
@@ -1151,7 +1430,7 @@ function execBehavior(brain, slime, others, world, now) {
 
     case 'wander': {
       if (brain.pauseUntil > now) {
-        brake(brain);
+        brake(brain, slime);
         // Look around
         const look = Math.sin(now * 0.001 + brain.seed * 12);
         if (Math.abs(look) > 0.5) slime.facing = Math.sign(look);
@@ -1163,7 +1442,7 @@ function execBehavior(brain, slime, others, world, now) {
           sc.x + (Math.random() - 0.5) * range * 2));
         if (Math.random() < 0.22 && (now - brain.startedAt) > 600) {
           brain.pauseUntil = now + randRange(800, 2500);
-          brake(brain);
+          brake(brain, slime);
           break;
         }
       }
@@ -1176,7 +1455,7 @@ function execBehavior(brain, slime, others, world, now) {
     }
 
     case 'idle_look': {
-      brake(brain);
+      brake(brain, slime);
       const phase = Math.sin(now * 0.0008 + brain.seed * 9);
       slime.facing = phase > 0.1 ? 1 : phase < -0.1 ? -1 : slime.facing;
       if (Math.abs(phase) > 0.6)
@@ -1209,7 +1488,7 @@ function execBehavior(brain, slime, others, world, now) {
       if (objDist > 45) {
         moveToward(slime, brain, obj.x, 0.45 * energy);
       } else {
-        brake(brain);
+        brake(brain, slime);
         if (sc.x !== obj.x) slime.facing = Math.sign(obj.x - sc.x);
         // Sway while studying
         const sway = Math.sin(now * 0.003 + brain.seed * 7) * 3;
@@ -1256,7 +1535,7 @@ function execBehavior(brain, slime, others, world, now) {
       if (sDist > 35) {
         moveToward(slime, brain, obj.x, 0.35 * energy);
       } else {
-        brake(brain);
+        brake(brain, slime);
         // Just chill, look around
         const look = Math.sin(now * 0.0006 + brain.seed * 11);
         slime.facing = look > 0 ? 1 : -1;
@@ -1264,6 +1543,9 @@ function execBehavior(brain, slime, others, world, now) {
       break;
     }
   }
+
+  // ── Drive face expressions based on current behavior ──────────────────────
+  driveFace(slime, brain.behavior, brain, target, dist, now);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1281,16 +1563,26 @@ export class SlimeInteractionEngine {
 
     const pObjects = prairieObjects || [];
 
-    // Ensure brains
+    // Ensure brains + apply per-frame drive patch once
     for (const { id, slime } of entries) {
       if (!slime._prairieBrain) {
         slime._prairieBrain = new SlimeBrain(id);
         startBehavior(slime._prairieBrain, 'wander', null, now);
+        // Patch the prototype once on first brain creation
+        ensureAIDrivePatch(Object.getPrototypeOf(slime));
       }
+      // Init AI drive fields if missing
+      if (slime._aiMoveDir  === undefined) slime._aiMoveDir  = 0;
+      if (slime._aiSpeedMul === undefined) slime._aiSpeedMul = 0;
     }
 
     for (const { id, slime } of entries) {
-      if (slime.draggedNode) continue;
+      if (slime.draggedNode) {
+        // Clear drive while player is dragging — don't fight the input
+        slime._aiMoveDir  = 0;
+        slime._aiSpeedMul = 0;
+        continue;
+      }
       const brain = slime._prairieBrain;
       brain.decayBias();
 
@@ -1418,6 +1710,8 @@ export class SlimeInteractionEngine {
     }
   }
 
-  removeSlime(id) {}
+  removeSlime(id) {
+    // Drive fields will be GC'd with the slime object — nothing to do
+  }
   reset() { this._lastTick = 0; }
 }

@@ -1937,58 +1937,173 @@ export function createPrairieFeature() {
     // Tiny speech bubbles in incomprehensible Inkübus language
     // that reflect the creature's current emotion/behavior
     const INKUBUS_VOCAB = {
-        // emotion → array of gibberish words reflecting that mood
-        happy:    ['möki!', 'puu~', 'nyah♪', 'buu☆', 'kiki!', 'pyoo~', 'wah!', 'myu♡'],
-        curious:  ['hm?', 'nuu?', 'eeh~', 'kö?', 'mhh..', 'öö?', 'wha~?', 'nn?'],
-        angry:    ['GRR!', 'bakh!', 'TSK!', 'rrgh!', 'HMPH!', 'kha!', 'BAH!'],
-        scared:   ['hiih!', 'kyaa!', 'eep!', 'nuu!', 'waa!', 'mmh!', 'iii!'],
-        love:     ['doki♡', 'muu~♡', 'kyuu♡', 'poki~', 'nyuu♡', 'fuwa~♡'],
-        thinking: ['mm...', 'nrr..', 'huu~', 'zzz..', 'hmm~', 'fuu..', 'nn~'],
-        pain:     ['ow!', 'itai!', 'gah!', 'ngh!', 'ouch!', 'kuh!'],
-        playful:  ['yay!', 'wee!', 'hehe~', 'pya!', 'boing!', 'wheee!', 'yipee!'],
-        combat:   ['RAGH!', 'krakh!', 'YAKH!', 'HRR!', 'BRAK!', 'kuh-HA!', 'GHK!', 'SRAK!'],
+        happy:    [
+            'möki!', 'puu~', 'nyah♪', 'buu☆', 'kiki!', 'pyoo~', 'wah!', 'myu♡',
+            'yupii!', 'pöpö~', 'nihi!', 'füü☆', 'möö möö!', 'kya kya!',
+            'wuiii~', 'pipipi!', 'boing~', 'nyuu nyuu!', 'füfü♪', 'hoho~',
+            'yayy!', 'möki möki!', 'puu puu~', 'tehee~', 'wiiii!',
+        ],
+        curious:  [
+            'hm?', 'nuu?', 'eeh~', 'kö?', 'mhh..', 'öö?', 'wha~?', 'nn?',
+            'hmmm~?', 'nani?', 'kökö?', 'öhö?', 'fufu?', 'waah?',
+            'müü?', 'eh eh?', 'nnh?', 'oooh?', 'köh?', 'mmh mmh?',
+            'nüh?', 'hhh~?', 'buhh?', 'wuuh?',
+        ],
+        angry:    [
+            'GRR!', 'bakh!', 'TSK!', 'rrgh!', 'HMPH!', 'kha!', 'BAH!',
+            'RRRH!', 'ngh NGH!', 'GRRKH!', 'bha BHA!', 'KHF!',
+            'hhrrgh!', 'PFFT!', 'GRKH GRKH!', 'ngrr..', 'BAKBAK!',
+            'tskkk!', 'RRRHH!', 'khaa!', 'hmph HMPH!',
+        ],
+        scared:   [
+            'hiih!', 'kyaa!', 'eep!', 'nuu!', 'waa!', 'mmh!', 'iii!',
+            'hyaa hyaa!', 'niiih!', 'wawa!', 'eeep eep!', 'hiii~',
+            'yuuu!', 'kyuu kyuu!', 'nooo!', 'mmmh!', 'hiiii~!',
+            'waaah!', 'eeep!', 'piiih!', 'nyaa nyaa!',
+        ],
+        love:     [
+            'doki♡', 'muu~♡', 'kyuu♡', 'poki~', 'nyuu♡', 'fuwa~♡',
+            'nyon♡', 'popo~♡', 'kyuu kyuu♡', 'mochi♡', 'doki doki♡',
+            'füüh~♡', 'nyu nyu♡', 'wawa♡', 'hnnn♡', 'hehehe♡',
+            'mmmm♡', 'pyuu♡', 'hoho♡', 'fufu~♡',
+        ],
+        thinking: [
+            'mm...', 'nrr..', 'huu~', 'zzz..', 'hmm~', 'fuu..', 'nn~',
+            'müü..', 'öhm..', 'nnnh~', 'buh..', 'hrrm..', 'ehhh..',
+            'nnn nnn..', 'köh..', 'fmm..', 'öhö..', 'wuu..',
+            'mhmm..', 'nhh..', 'hnng..',
+        ],
+        pain:     [
+            'ow!', 'itai!', 'gah!', 'ngh!', 'ouch!', 'kuh!',
+            'oww oww!', 'nghh!', 'itch!', 'augh!', 'kkhh!',
+            'hnngh!', 'yowch!', 'ggkh!', 'nrgh!', 'ahhk!',
+        ],
+        playful:  [
+            'yay!', 'wee!', 'hehe~', 'pya!', 'boing!', 'wheee!', 'yipee!',
+            'pyoing!', 'yatta!', 'wiii~', 'bwee!', 'hihihi!', 'pyon pyon!',
+            'nyahaha!', 'weehee!', 'boingo!', 'yippii!', 'pii pii!',
+            'wheehe~', 'keke!', 'ahahah~',
+        ],
+        combat:   [
+            'RAGH!', 'krakh!', 'YAKH!', 'HRR!', 'BRAK!', 'kuh-HA!', 'GHK!', 'SRAK!',
+            'GRAKH GRAKH!', 'HYARR!', 'KRSH!', 'BAKK!', 'RRAAA!',
+            'YAHHH!', 'krakrak!', 'HRRAKH!', 'NNGHH!', 'THWAK!',
+            'BRKK!', 'HAAAKH!', 'RRRAH!',
+        ],
+        greeting: [
+            'nyu~!', 'möki!', 'pöpö!', 'heyy~', 'nyaa!', 'wuuh!',
+            'öhi!', 'pyuu!', 'koko!', 'mömö!', 'füfu!', 'yooh~',
+            'heee~', 'nyooo!', 'pippi!', 'möh möh!',
+        ],
+        farewell: [
+            'möki..', 'byuu~', 'nnn..', 'puu..', 'kö kö..', 'füü..',
+            'nyah..', 'öhh..', 'myu~..',  'bweh..', 'hnnn..',
+        ],
+        // Replies — used when a slime "responds" to another's bubble
+        reply_happy:   ['puu~!', 'möki möki!', 'nyu nyuu!', 'yahh!', 'mhm!', 'fufu~', 'wee!'],
+        reply_curious: ['hm hm!', 'nn nn?', 'öhö?', 'wuuh?', 'nani nani?', 'köh?', 'mmh!'],
+        reply_angry:   ['EEP!', 'nuu!', 'bakh!', 'HMPH!', 'grh..', 'rrgh!', 'ngrr!'],
+        reply_love:    ['doki♡', 'nyon♡', 'muu♡', 'füfü♡', 'popo~♡', 'kyuu!♡'],
+        reply_combat:  ['GRAKH!', 'YAKH!', 'HRR!', 'BRAK!', 'RAGH!', 'krsh!'],
+    };
+
+    // Multi-word Inkubus "sentences" for longer interactions
+    const INKUBUS_SENTENCES = {
+        bond:       ['möki möki puu~', 'nyu nyu köh?', 'füfu~ myu♡', 'pöpö kiki!', 'wuu wuu mhm'],
+        romance:    ['doki doki puu♡', 'nyu~ möki♡', 'füfu~ nyon♡', 'muu~ kyuu♡', 'popo~ wuuh♡'],
+        fight_clash:['GRAKH RAGH!', 'BAKK KRSH!', 'HRR BRAK!', 'YAKH GRAKH!', 'NNGH RRAH!'],
+        challenge:  ['HMPH ngrr!', 'GRR bakh!', 'TSK HMPH!', 'rrgh RRRH!'],
+        flee:       ['waa waa nuu!', 'hiih kyaa!', 'eep eep waa!', 'nuu nuu hiih!'],
+        reckless_chase: ['HAAKH GRAKH!', 'RAGH RAGH!', 'RRRAH YAKH!'],
+        investigate:['hm? nani?', 'öö? köh?', 'nn nn mmh?', 'wuuh? nuu?'],
+        orbit:      ['nyu~? möki?', 'köh köh?', 'puu~? hm?'],
+        calm:       ['mhm~ puu..', 'nnu~ füfu', 'öhö~ möki', 'huu~ nrr'],
     };
 
     function getEmotionForBehavior(behavior) {
         const map = {
-            approach: 'curious', observe: 'curious', investigate: 'curious',
-            follow: 'happy', orbit: 'curious', bond: 'love',
-            romance: 'love', calm: 'happy', idle_look: 'thinking',
-            challenge: 'angry', intimidate: 'angry',
-            flee: 'scared', recoil: 'pain', flee_short: 'scared',
-            wander: 'happy', explore_jump: 'playful',
-            sniff_object: 'curious', play_ball: 'playful', sit_stump: 'thinking',
-            fight_clash: 'combat',
+            approach:       'curious',
+            observe:        'curious',
+            investigate:    'curious',
+            follow:         'happy',
+            orbit:          'curious',
+            bond:           'love',
+            romance:        'love',
+            calm:           'happy',
+            idle_look:      'thinking',
+            challenge:      'angry',
+            intimidate:     'angry',
+            flee:           'scared',
+            teleport_flee:  'scared',
+            recoil:         'pain',
+            flee_short:     'scared',
+            wander:         'happy',
+            explore_jump:   'playful',
+            sniff_object:   'curious',
+            play_ball:      'playful',
+            sit_stump:      'thinking',
+            fight_clash:    'combat',
+            reckless_chase: 'combat',
         };
         return map[behavior] || 'thinking';
     }
 
+    // Returns a reply emotion appropriate to the speaker's emotion
+    function getReplyEmotion(speakerEmotion) {
+        const map = {
+            happy:   'reply_happy',
+            curious: 'reply_curious',
+            angry:   'reply_angry',
+            combat:  'reply_combat',
+            love:    'reply_love',
+            scared:  'reply_happy',  // reassurance
+            pain:    'reply_curious',
+            playful: 'reply_happy',
+            thinking:'reply_curious',
+        };
+        return map[speakerEmotion] || 'reply_curious';
+    }
+
     function getEmotionColor(emotion) {
         const colors = {
-            happy: 'rgba(180, 255, 210, 0.92)',
-            curious: 'rgba(200, 230, 255, 0.92)',
-            angry: 'rgba(255, 180, 170, 0.92)',
-            scared: 'rgba(220, 200, 255, 0.92)',
-            love: 'rgba(255, 200, 220, 0.92)',
-            thinking: 'rgba(220, 225, 240, 0.88)',
-            pain: 'rgba(255, 190, 170, 0.92)',
-            playful: 'rgba(255, 240, 180, 0.92)',
-            combat: 'rgba(255, 100, 80, 0.95)',
+            happy:         'rgba(180, 255, 210, 0.92)',
+            curious:       'rgba(200, 230, 255, 0.92)',
+            angry:         'rgba(255, 180, 170, 0.92)',
+            scared:        'rgba(220, 200, 255, 0.92)',
+            love:          'rgba(255, 200, 220, 0.92)',
+            thinking:      'rgba(220, 225, 240, 0.88)',
+            pain:          'rgba(255, 190, 170, 0.92)',
+            playful:       'rgba(255, 240, 180, 0.92)',
+            combat:        'rgba(255, 100, 80, 0.95)',
+            greeting:      'rgba(180, 255, 220, 0.93)',
+            farewell:      'rgba(210, 210, 240, 0.88)',
+            reply_happy:   'rgba(160, 255, 200, 0.93)',
+            reply_curious: 'rgba(190, 225, 255, 0.93)',
+            reply_angry:   'rgba(255, 160, 150, 0.93)',
+            reply_love:    'rgba(255, 185, 215, 0.93)',
+            reply_combat:  'rgba(255, 80,  60, 0.97)',
         };
         return colors[emotion] || 'rgba(220, 230, 240, 0.9)';
     }
 
     function getEmotionBorder(emotion) {
         const colors = {
-            happy: 'rgba(80, 200, 120, 0.5)',
-            curious: 'rgba(100, 170, 220, 0.5)',
-            angry: 'rgba(220, 80, 70, 0.5)',
-            scared: 'rgba(160, 120, 220, 0.5)',
-            love: 'rgba(220, 100, 140, 0.5)',
-            thinking: 'rgba(140, 150, 180, 0.4)',
-            pain: 'rgba(200, 90, 70, 0.5)',
-            playful: 'rgba(220, 180, 60, 0.5)',
-            combat: 'rgba(200, 40, 20, 0.7)',
+            happy:         'rgba(80,  200, 120, 0.5)',
+            curious:       'rgba(100, 170, 220, 0.5)',
+            angry:         'rgba(220, 80,  70,  0.5)',
+            scared:        'rgba(160, 120, 220, 0.5)',
+            love:          'rgba(220, 100, 140, 0.5)',
+            thinking:      'rgba(140, 150, 180, 0.4)',
+            pain:          'rgba(200, 90,  70,  0.5)',
+            playful:       'rgba(220, 180, 60,  0.5)',
+            combat:        'rgba(200, 40,  20,  0.7)',
+            greeting:      'rgba(60,  200, 130, 0.55)',
+            farewell:      'rgba(130, 130, 180, 0.4)',
+            reply_happy:   'rgba(60,  190, 110, 0.55)',
+            reply_curious: 'rgba(80,  155, 210, 0.55)',
+            reply_angry:   'rgba(210, 60,  50,  0.6)',
+            reply_love:    'rgba(210, 80,  130, 0.6)',
+            reply_combat:  'rgba(190, 20,  10,  0.8)',
         };
         return colors[emotion] || 'rgba(150, 160, 180, 0.4)';
     }
@@ -1996,77 +2111,143 @@ export function createPrairieFeature() {
     // Active bubbles: { slimeId, text, emotion, startedAt, duration, x, y }
     let activeBubbles = [];
 
+    function spawnBubble(canonicalId, text, emotion, now, yOffset) {
+        const entry = runtimeById.get(canonicalId);
+        if (!entry) return;
+        const center = entry.slime.getVisualCenter?.() || entry.slime.getRawVisualCenter?.();
+        if (!center) return;
+        activeBubbles = activeBubbles.filter(b => b.slimeId !== canonicalId);
+        const duration = 1600 + text.length * 55 + Math.random() * 600;
+        activeBubbles.push({
+            slimeId: canonicalId,
+            text, emotion, duration,
+            startedAt: now,
+            x: center.x,
+            y: center.y - entry.slime.baseRadius * (yOffset || 1.6),
+        });
+    }
+
     function maybeSpawnBubble(entry, now) {
         const brain = entry.slime._prairieBrain;
         if (!brain) return;
 
-        // ── Forced post-fight bubble (bypasses normal throttle) ──
+        // ── Forced pending bubble (post-fight, teleport, etc.) ──
         if (brain._pendingBubble) {
             const { emotion } = brain._pendingBubble;
             brain._pendingBubble = null;
             const vocab = INKUBUS_VOCAB[emotion] || INKUBUS_VOCAB.thinking;
             const text = vocab[Math.floor(Math.random() * vocab.length)];
-            const center = entry.slime.getVisualCenter?.() || entry.slime.getRawVisualCenter?.();
-            if (center) {
-                activeBubbles = activeBubbles.filter(b => b.slimeId !== entry.canonicalId);
-                activeBubbles.push({
-                    slimeId: entry.canonicalId,
-                    text, emotion, duration: 2200 + Math.random() * 800,
-                    startedAt: now,
-                    x: center.x,
-                    y: center.y - entry.slime.baseRadius * 1.6,
-                });
+            spawnBubble(entry.canonicalId, text, emotion, now);
+            // Trigger reply from target if close
+            if (brain.targetId) {
+                const targetEntry = runtimeById.get(brain.targetId);
+                if (targetEntry) {
+                    const tb = targetEntry.slime._prairieBrain;
+                    if (tb && !tb._pendingReply) {
+                        const replyEmo = getReplyEmotion(emotion);
+                        tb._pendingReply = { emotion: replyEmo, at: now + 500 + Math.random() * 700 };
+                    }
+                }
             }
             return;
         }
 
-        // Don't spam: one bubble per slime at a time, min 2.5s between
-        const existing = activeBubbles.find(b => b.slimeId === entry.canonicalId);
-        if (existing && now < existing.startedAt + 1800) return;
-
-        // Only spawn on active social or interesting behaviors
-        const behavior = brain.behavior;
-        const silent = ['wander', 'idle_look', 'sit_stump'];
-        if (silent.includes(behavior)) {
-            // Very rare chance for idle chatter
-            if (Math.random() > 0.0008) return;
-        } else if (behavior === 'fight_clash') {
-            // Combat is loud — much higher bubble rate
-            if (Math.random() > 0.12) return;
-        } else {
-            // ~1.5% chance per tick (every 50ms → roughly every 3-4 seconds)
-            if (Math.random() > 0.015) return;
+        // ── Pending reply (response to another slime's bubble) ──
+        if (brain._pendingReply && now >= brain._pendingReply.at) {
+            const { emotion } = brain._pendingReply;
+            brain._pendingReply = null;
+            const vocab = INKUBUS_VOCAB[emotion] || INKUBUS_VOCAB.reply_curious;
+            const text = vocab[Math.floor(Math.random() * vocab.length)];
+            spawnBubble(entry.canonicalId, text, emotion, now);
+            return;
         }
 
+        // ── Cooldown: min gap depends on behavior intensity ──
+        const behavior = brain.behavior;
+        const existing = activeBubbles.find(b => b.slimeId === entry.canonicalId);
+        const GAPS = {
+            fight_clash:    600,
+            reckless_chase: 700,
+            challenge:      900,
+            flee:           800,
+            teleport_flee:  700,
+            bond:           1200,
+            romance:        1400,
+            approach:       1600,
+            orbit:          1800,
+            follow:         1600,
+            investigate:    1500,
+            calm:           2000,
+            wander:         4000,
+            idle_look:      5000,
+            sit_stump:      6000,
+        };
+        const minGap = GAPS[behavior] ?? 2000;
+        if (existing && now < existing.startedAt + minGap) return;
+
+        // ── Spawn probability per tick ──
+        const RATES = {
+            fight_clash:    0.22,
+            reckless_chase: 0.18,
+            challenge:      0.10,
+            flee:           0.09,
+            teleport_flee:  0.15,
+            bond:           0.07,
+            romance:        0.06,
+            approach:       0.05,
+            orbit:          0.04,
+            follow:         0.04,
+            investigate:    0.05,
+            intimidate:     0.06,
+            calm:           0.04,
+            explore_jump:   0.03,
+            play_ball:      0.04,
+            sniff_object:   0.04,
+            recoil:         0.12,
+            wander:         0.003,
+            idle_look:      0.001,
+            sit_stump:      0.001,
+        };
+        const rate = RATES[behavior] ?? 0.025;
+        if (Math.random() > rate) return;
+
+        // ── Pick text: sentence (20%) or word ──
         const emotion = getEmotionForBehavior(behavior);
-        const vocab = INKUBUS_VOCAB[emotion] || INKUBUS_VOCAB.thinking;
-        const text = vocab[Math.floor(Math.random() * vocab.length)];
-        const duration = 1800 + Math.random() * 1200;
+        let text;
+        const sentences = INKUBUS_SENTENCES[behavior];
+        if (sentences && Math.random() < 0.22) {
+            text = sentences[Math.floor(Math.random() * sentences.length)];
+        } else {
+            const vocab = INKUBUS_VOCAB[emotion] || INKUBUS_VOCAB.thinking;
+            text = vocab[Math.floor(Math.random() * vocab.length)];
+        }
 
-        const center = entry.slime.getVisualCenter?.() || entry.slime.getRawVisualCenter?.();
-        if (!center) return;
+        spawnBubble(entry.canonicalId, text, emotion, now);
 
-        // Remove old bubble for this slime
-        activeBubbles = activeBubbles.filter(b => b.slimeId !== entry.canonicalId);
-
-        activeBubbles.push({
-            slimeId: entry.canonicalId,
-            text, emotion, duration,
-            startedAt: now,
-            x: center.x,
-            y: center.y - entry.slime.baseRadius * 1.6,
-        });
+        // ── Trigger conversational reply from the social target ──
+        if (brain.targetId) {
+            const socialBehaviors = ['approach','observe','follow','orbit','bond','romance','investigate','calm','challenge','intimidate'];
+            if (socialBehaviors.includes(behavior)) {
+                const targetEntry = runtimeById.get(brain.targetId);
+                if (targetEntry) {
+                    const tb = targetEntry.slime._prairieBrain;
+                    if (tb && !tb._pendingReply && !tb._pendingBubble) {
+                        const replyEmo = getReplyEmotion(emotion);
+                        tb._pendingReply = { emotion: replyEmo, at: now + 400 + Math.random() * 900 };
+                    }
+                }
+            }
+        }
     }
 
     function drawSpeechBubbles() {
         if (!ctx) return;
         const now = performance.now();
 
-        // Update positions & cull expired
         activeBubbles = activeBubbles.filter(b => now < b.startedAt + b.duration);
 
         for (const b of activeBubbles) {
-            // Track slime position
+            // Track slime position live
             const entry = runtimeById.get(activeCanonicalIds.find(id => {
                 const e = runtimeById.get(id);
                 return e && e.canonicalId === b.slimeId;
@@ -2079,54 +2260,79 @@ export function createPrairieFeature() {
                 }
             }
 
-            const age = now - b.startedAt;
-            const fadeIn = Math.min(1, age / 200);
-            const fadeOut = Math.min(1, (b.duration - age) / 300);
-            const alpha = fadeIn * fadeOut;
+            const age      = now - b.startedAt;
+            // Pop-in: fast scale from 0 → 1.12 → 1 in first 220ms
+            const popT     = Math.min(1, age / 220);
+            const popScale = popT < 0.7
+                ? 0.5 + popT / 0.7 * 0.65
+                : 1.15 - (popT - 0.7) / 0.3 * 0.15;
+            const fadeIn   = Math.min(1, age / 120);
+            const fadeOut  = Math.min(1, (b.duration - age) / 280);
+            const alpha    = fadeIn * fadeOut;
             if (alpha < 0.01) continue;
 
-            // Float up slightly over time
-            const floatY = b.y - age * 0.008;
+            // Float up gently
+            const floatY = b.y - age * 0.006;
+
+            // Font size: combat/angry bigger, love/thinking smaller
+            const bigEmotions   = new Set(['combat','angry','reply_combat','reply_angry']);
+            const smallEmotions = new Set(['thinking','farewell','reply_curious']);
+            const fontSize = bigEmotions.has(b.emotion) ? 11 : smallEmotions.has(b.emotion) ? 9 : 10;
+            const fontWeight = bigEmotions.has(b.emotion) ? '900' : 'bold';
 
             ctx.save();
             ctx.globalAlpha = alpha;
+            ctx.translate(b.x, floatY);
+            ctx.scale(popScale, popScale);
+            ctx.translate(-b.x, -floatY);
 
-            // Measure text
-            ctx.font = 'bold 9px "Segoe UI", system-ui, sans-serif';
+            ctx.font = `${fontWeight} ${fontSize}px "Segoe UI", system-ui, sans-serif`;
             const metrics = ctx.measureText(b.text);
-            const tw = metrics.width;
-            const pad = 5;
-            const bw = tw + pad * 2;
-            const bh = 15;
-            const bx = b.x - bw / 2;
-            const by = floatY - bh / 2;
+            const tw  = metrics.width;
+            const pad = 6;
+            const bw  = tw + pad * 2;
+            const bh  = fontSize + 8;
+            const bx  = b.x - bw / 2;
+            const by  = floatY - bh / 2;
+            const r   = 7;
+
+            // Shadow for depth
+            ctx.shadowColor   = 'rgba(0,0,0,0.18)';
+            ctx.shadowBlur    = 4;
+            ctx.shadowOffsetY = 2;
 
             // Bubble background
-            ctx.fillStyle = getEmotionColor(b.emotion);
+            ctx.fillStyle   = getEmotionColor(b.emotion);
             ctx.strokeStyle = getEmotionBorder(b.emotion);
-            ctx.lineWidth = 1;
+            ctx.lineWidth   = bigEmotions.has(b.emotion) ? 1.5 : 1;
+
             ctx.beginPath();
-            const r = 6;
             ctx.moveTo(bx + r, by);
             ctx.lineTo(bx + bw - r, by);
-            ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + r);
+            ctx.quadraticCurveTo(bx + bw, by,      bx + bw, by + r);
             ctx.lineTo(bx + bw, by + bh - r);
             ctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - r, by + bh);
-            // Little tail pointing down
-            ctx.lineTo(b.x + 4, by + bh);
-            ctx.lineTo(b.x, by + bh + 5);
-            ctx.lineTo(b.x - 3, by + bh);
-            ctx.lineTo(bx + r, by + bh);
+            // Tail pointing down toward slime
+            ctx.lineTo(b.x + 5, by + bh);
+            ctx.lineTo(b.x,     by + bh + 6);
+            ctx.lineTo(b.x - 4, by + bh);
+            ctx.lineTo(bx + r,  by + bh);
             ctx.quadraticCurveTo(bx, by + bh, bx, by + bh - r);
             ctx.lineTo(bx, by + r);
             ctx.quadraticCurveTo(bx, by, bx + r, by);
             ctx.closePath();
             ctx.fill();
+            ctx.shadowColor = 'transparent';
             ctx.stroke();
 
-            // Text
-            ctx.fillStyle = 'rgba(30, 30, 40, 0.85)';
-            ctx.textAlign = 'center';
+            // Text — darker for combat/angry, softer for love
+            const loveEmotions = new Set(['love','reply_love','greeting']);
+            ctx.fillStyle = bigEmotions.has(b.emotion)
+                ? 'rgba(90, 10, 10, 0.95)'
+                : loveEmotions.has(b.emotion)
+                    ? 'rgba(140, 30, 80, 0.9)'
+                    : 'rgba(25, 25, 40, 0.88)';
+            ctx.textAlign    = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText(b.text, b.x, floatY);
 

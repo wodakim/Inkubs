@@ -1421,8 +1421,9 @@ export function installRender(Slime) {
       : `hsl(${irisHue},90%,${isCute ? 70 : 60}%)`;
 
     const eyeDist    = Math.min(faceWidth * (0.72 + this.eyeSpacingBias * 0.22), this.baseRadius * 0.46);
-    let eyeSize      = isCute ? 7.5 : (isScary ? 5 : 5.8);
-    eyeSize = Math.min(eyeSize * (1 + this.eyeSizeBias * 0.5), Math.max(4, faceHeight * 0.36));
+    let eyeSize      = isCute ? 7.0 : (isScary ? 5.2 : 5.5);
+    // Cap eyeSize more tightly so eyes don't overwhelm the face
+    eyeSize = Math.min(eyeSize * (1 + this.eyeSizeBias * 0.4), Math.max(3.5, faceHeight * 0.30));
     eyeSize = Math.max(3.5, eyeSize);
 
     // Read live animation values from faceAnimation
@@ -1464,8 +1465,13 @@ export function installRender(Slime) {
     }
 
     // ── Cheeks / blush — rich radial gradient ───────────────────────────────
-    if (isCute || this.detailTrait === 'blush' || this.mood === 'lovesick' || this.mood === 'shy') {
-      const blushAlpha = 0.30 + (this.mood === 'lovesick' ? 0.14 : 0) + (this.mood === 'shy' ? 0.12 : 0);
+    const showBlush = isCute || this.detailTrait === 'blush' || this.mood === 'lovesick' || this.mood === 'shy' || (!isScary && (this.mood === 'joyful' || this.mood === 'dreamy'));
+    if (showBlush) {
+      const blushAlpha = (isCute ? 0.30 : 0.18)
+        + (this.mood === 'lovesick' ? 0.14 : 0)
+        + (this.mood === 'shy'      ? 0.12 : 0)
+        + (this.mood === 'joyful'   ? 0.06 : 0)
+        + (this.mood === 'dreamy'   ? 0.04 : 0);
       const blushW = 5 + this.cheekIntensity * 4;
       const blushH = 3 + this.cheekIntensity * 1.5;
       [-1,1].forEach(side => {
@@ -1492,30 +1498,39 @@ export function installRender(Slime) {
     ctx.strokeStyle = eyeColor;
     ctx.lineWidth = 2.4;
 
-    // drawOpenRoundEye — upgraded: iris gradient + pupil + sparkles
+    // drawOpenRoundEye — kawaii for ALL types: sclera always, proportioned pupil, sparkle
     const drawOpenRoundEye = (x, y, r, withSparkle = false) => {
       const rSafe = Math.max(1, r);
-      // Sclera (white of eye for cute)
-      if (isCute) {
-        ctx.fillStyle = 'rgba(255,255,255,0.92)';
-        ctx.beginPath(); ctx.arc(x, y, rSafe + 1.5, 0, Math.PI*2); ctx.fill();
-      }
-      // Iris gradient
-      const ig = ctx.createRadialGradient(x - rSafe*0.2, y - rSafe*0.2, 0, x, y, rSafe*1.0);
-      ig.addColorStop(0,   irisLight);
-      ig.addColorStop(0.55, irisColor);
-      ig.addColorStop(1,   eyeColor);
+
+      // ── Sclera (white) — always visible, not just for cute ──
+      ctx.fillStyle = isScary ? 'rgba(220,200,200,0.88)' : 'rgba(255,255,255,0.94)';
+      ctx.beginPath(); ctx.arc(x, y, rSafe + (isCute ? 1.8 : 1.2), 0, Math.PI*2); ctx.fill();
+
+      // ── Iris gradient — vivid but not dark ──
+      // For normal slimes: use a lighter, more saturated iris so it reads as cute
+      const irisLightAdj = isScary ? irisLight : `hsl(${irisHue},90%,${isCute ? 72 : 65}%)`;
+      const irisColorAdj = isScary ? irisColor : `hsl(${irisHue},80%,${isCute ? 52 : 48}%)`;
+      const ig = ctx.createRadialGradient(x - rSafe*0.18, y - rSafe*0.22, 0, x, y, rSafe);
+      ig.addColorStop(0,    irisLightAdj);
+      ig.addColorStop(0.55, irisColorAdj);
+      ig.addColorStop(1,    `hsl(${irisHue},60%,${isScary ? 20 : 32}%)`);
       ctx.fillStyle = ig;
       ctx.beginPath(); ctx.arc(x, y, rSafe, 0, Math.PI*2); ctx.fill();
-      // Pupil (dark center)
+
+      // ── Pupil — smaller ratio, more kawaii ──
       ctx.fillStyle = eyeColor;
-      ctx.beginPath(); ctx.arc(x, y, rSafe * 0.42, 0, Math.PI*2); ctx.fill();
-      // Primary sparkle
-      ctx.fillStyle = 'rgba(255,255,255,0.95)';
-      ctx.beginPath(); ctx.arc(x - rSafe*0.3, y - rSafe*0.3, Math.max(1.5, rSafe*0.32), 0, Math.PI*2); ctx.fill();
-      // Secondary tiny sparkle
-      ctx.fillStyle = 'rgba(255,255,255,0.6)';
-      ctx.beginPath(); ctx.arc(x + rSafe*0.22, y - rSafe*0.18, Math.max(0.8, rSafe*0.16), 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y, rSafe * 0.32, 0, Math.PI*2); ctx.fill();
+
+      // ── Primary sparkle ──
+      ctx.fillStyle = 'rgba(255,255,255,0.97)';
+      ctx.beginPath(); ctx.arc(x - rSafe*0.28, y - rSafe*0.28, Math.max(1.4, rSafe*0.30), 0, Math.PI*2); ctx.fill();
+
+      // ── Secondary tiny sparkle ──
+      if (withSparkle || isCute) {
+        ctx.fillStyle = 'rgba(255,255,255,0.65)';
+        ctx.beginPath(); ctx.arc(x + rSafe*0.2, y - rSafe*0.15, Math.max(0.7, rSafe*0.14), 0, Math.PI*2); ctx.fill();
+      }
+
       ctx.fillStyle = eyeColor;
     };
 
@@ -1535,6 +1550,8 @@ export function installRender(Slime) {
       ctx.strokeStyle = 'rgba(20,15,10,0.7)';
       ctx.lineWidth = isCute ? 1.8 : 1.4;
       ctx.lineCap = 'round';
+      // Sclera offset: cute gets +1.8, normal gets +1.2 (matches drawOpenRoundEye)
+      const scleraR = eyeSize + (isCute ? 1.8 : 1.2);
       [-1,1].forEach(side => {
         const ex = side * eyeDist / 2;
         const lashAngles = [-0.38, 0, 0.38];
@@ -1542,8 +1559,8 @@ export function installRender(Slime) {
           const baseA = -Math.PI/2 + a * side;
           const lashLen = isCute ? eyeSize*0.7 + i*0.5 : eyeSize*0.5;
           ctx.beginPath();
-          ctx.moveTo(ex + Math.cos(baseA)*(eyeSize+0.5), Math.sin(baseA)*(eyeSize+0.5));
-          ctx.lineTo(ex + Math.cos(baseA)*(eyeSize+lashLen), Math.sin(baseA)*(eyeSize+lashLen));
+          ctx.moveTo(ex + Math.cos(baseA)*(scleraR + 0.5), Math.sin(baseA)*(scleraR + 0.5));
+          ctx.lineTo(ex + Math.cos(baseA)*(scleraR + lashLen), Math.sin(baseA)*(scleraR + lashLen));
           ctx.stroke();
         });
       });
@@ -1677,53 +1694,93 @@ export function installRender(Slime) {
 
     switch (safeStyle) {
       case 'dot':
-        drawEye(-eyeDist/2, 0, R); drawEye(eyeDist/2, 0, R); break;
+        // Kawaii upgrade: use full iris+sparkle eyes instead of flat dots
+        drawOpenRound(-eyeDist/2, 0, R,     true);
+        drawOpenRound( eyeDist/2, 0, R,     true); break;
       case 'sparkle':
-        drawEye(-eyeDist/2, 0, R+0.8, true); drawEye(eyeDist/2, 0, R+0.8, true); break;
+        drawOpenRound(-eyeDist/2, 0, R+1.2, true);
+        drawOpenRound( eyeDist/2, 0, R+1.2, true); break;
       case 'big_round':
-        drawEye(-eyeDist/2, 0, R+1.8, this.type!=='scary'); drawEye(eyeDist/2, 0, R+1.8, this.type!=='scary'); break;
+        drawOpenRound(-eyeDist/2, 0, R+2.2, true);
+        drawOpenRound( eyeDist/2, 0, R+2.2, true); break;
       case 'sleepy': {
-        const h = Math.max(0.5, R*scy * 0.5);
-        ctx.lineWidth=2.8;
+        // Draw eye ball first then droopy lid
+        drawOpenRound(-eyeDist/2, 0, R*scy+0.5, false);
+        drawOpenRound( eyeDist/2, 0, R*scy+0.5, false);
+        ctx.fillStyle   = eyeColor;
+        ctx.strokeStyle = eyeColor;
+        const h = Math.max(0.5, R*scy * 0.55);
+        ctx.lineWidth = 2.8;
+        // Upper lid covers top half
         ctx.beginPath(); ctx.ellipse(-eyeDist/2, 0, R*scx+0.5, h, 0, Math.PI, Math.PI*2); ctx.stroke();
         ctx.beginPath(); ctx.ellipse( eyeDist/2, 0, R*scx+0.5, h, 0, Math.PI, Math.PI*2); ctx.stroke(); break;
       }
       case 'happy_arc': {
-        const h = Math.max(0.5, R*scy * 0.8);
-        ctx.lineWidth=2.8;
-        ctx.beginPath(); ctx.ellipse(-eyeDist/2, 0, R*scx+0.5, h, 0, 0, Math.PI); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse( eyeDist/2, 0, R*scx+0.5, h, 0, 0, Math.PI); ctx.stroke(); break;
+        const h = Math.max(0.5, R*scy * 0.9);
+        ctx.lineWidth = 3.2;
+        // Thick happy arc — kawaii ^^ eyes
+        ctx.beginPath(); ctx.ellipse(-eyeDist/2, 0, R*scx+0.8, h, 0, 0, Math.PI); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse( eyeDist/2, 0, R*scx+0.8, h, 0, 0, Math.PI); ctx.stroke();
+        // Small sparkle dots above arcs
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath(); ctx.arc(-eyeDist/2 - R*0.3, -h*0.6, 1.2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc( eyeDist/2 - R*0.3, -h*0.6, 1.2, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = eyeColor; break;
       }
       case 'wide':
-        ctx.beginPath(); ctx.ellipse(-eyeDist/2, 0, R*scx+3, Math.max(0.5, R*scy), 0, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse( eyeDist/2, 0, R*scx+3, Math.max(0.5, R*scy), 0, 0, Math.PI*2); ctx.fill(); break;
+        drawOpenRound(-eyeDist/2, 0, R*scx+2.5, true);
+        drawOpenRound( eyeDist/2, 0, R*scx+2.5, true); break;
       case 'wink':
-        drawEye(-eyeDist/2, 0, R+0.5, true);
-        ctx.beginPath(); ctx.moveTo(eyeDist/2-R*scx, 0); ctx.lineTo(eyeDist/2+R*scx, 0); ctx.stroke(); break;
+        drawOpenRound(-eyeDist/2, 0, R+0.5, true);
+        ctx.lineWidth = 2.8;
+        ctx.beginPath();
+        ctx.moveTo(eyeDist/2 - R*scx, -R*scy*0.2);
+        ctx.quadraticCurveTo(eyeDist/2, -R*scy*0.9, eyeDist/2 + R*scx, -R*scy*0.2);
+        ctx.stroke(); break;
       case 'heart': {
         const dh = (x) => {
           ctx.beginPath(); ctx.moveTo(x, R*scy*0.8); ctx.bezierCurveTo(x-R*scx*1.2,-R*scy*0.4,x-R*scx*0.9,-R*scy*1.2,x,-R*scy*0.2); ctx.bezierCurveTo(x+R*scx*0.9,-R*scy*1.2,x+R*scx*1.2,-R*scy*0.4,x,R*scy*0.8); ctx.fill();
-        }; dh(-eyeDist/2); dh(eyeDist/2); break;
+        }; dh(-eyeDist/2); dh(eyeDist/2);
+        // sparkle on heart eyes
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.beginPath(); ctx.arc(-eyeDist/2 - R*0.2, -R*scy*0.3, R*0.3, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc( eyeDist/2 - R*0.2, -R*scy*0.3, R*0.3, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = eyeColor; break;
       }
       case 'droplet': {
         const dd = (x) => { ctx.beginPath(); ctx.moveTo(x,-R*scy-2); ctx.quadraticCurveTo(x-R*scx,-1,x,R*scy+2); ctx.quadraticCurveTo(x+R*scx,-1,x,-R*scy-2); ctx.fill(); };
-        dd(-eyeDist/2); dd(eyeDist/2); break;
+        dd(-eyeDist/2); dd(eyeDist/2);
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.beginPath(); ctx.arc(-eyeDist/2 - R*0.15, -R*scy*0.5, R*0.28, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc( eyeDist/2 - R*0.15, -R*scy*0.5, R*0.28, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = eyeColor; break;
       }
       case 'half_lid':
-        drawEye(-eyeDist/2, 0, R+0.6, this.type!=='scary'); drawEye(eyeDist/2, 0, R+0.6, this.type!=='scary');
-        ctx.strokeStyle='rgba(20,20,20,0.75)'; ctx.lineWidth=2.2;
-        ctx.beginPath(); ctx.ellipse(-eyeDist/2, 0, R*scx+0.5, Math.max(0.5,R*scy), 0, Math.PI, Math.PI*2); ctx.stroke();
-        ctx.beginPath(); ctx.ellipse( eyeDist/2, 0, R*scx+0.5, Math.max(0.5,R*scy), 0, Math.PI, Math.PI*2); ctx.stroke();
-        ctx.strokeStyle=eyeColor; break;
+        // Full iris under half lid — kawaii lazy look
+        drawOpenRound(-eyeDist/2, 0, R+0.8, true);
+        drawOpenRound( eyeDist/2, 0, R+0.8, true);
+        // Dark upper lid covers top ~40%
+        ctx.fillStyle = 'rgba(20,15,10,0.78)';
+        ctx.beginPath(); ctx.rect(-eyeDist/2 - R*scx - 2, -(R+1) - 4, (R*scx+2)*2 + 4, R*scy*0.75 + 4);
+        ctx.fill();
+        // Lid edge stroke
+        ctx.strokeStyle = eyeColor; ctx.lineWidth = 2.0;
+        ctx.beginPath(); ctx.ellipse(-eyeDist/2, -(R+1)*0.05, R*scx+0.5, Math.max(0.5,R*scy*0.5), 0, Math.PI, Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse( eyeDist/2, -(R+1)*0.05, R*scx+0.5, Math.max(0.5,R*scy*0.5), 0, Math.PI, Math.PI*2); ctx.stroke();
+        ctx.strokeStyle = eyeColor; break;
       case 'uneven':
-        drawEye(-eyeDist/2, 0, R+1.6, true); drawEye(eyeDist/2, 1, Math.max(2.5, R-1.4)); break;
+        drawOpenRound(-eyeDist/2, 0, R+1.8, true);
+        drawOpenRound( eyeDist/2, 1, Math.max(2.5, R-1.2), false); break;
       case 'slit':
         ctx.beginPath(); ctx.ellipse(-eyeDist/2, 0, R*scx+3, Math.max(0.8, R*scy*0.38), Math.PI/8, 0, Math.PI*2); ctx.fill();
         ctx.beginPath(); ctx.ellipse( eyeDist/2, 0, R*scx+3, Math.max(0.8, R*scy*0.38),-Math.PI/8, 0, Math.PI*2); ctx.fill(); break;
       case 'angry_arc':
-        ctx.lineWidth=3;
-        ctx.beginPath(); ctx.moveTo(-eyeDist/2-R*scx, 0); ctx.lineTo(-eyeDist/2+R*scx, -R*scy*0.5); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo( eyeDist/2-R*scx,-R*scy*0.5); ctx.lineTo( eyeDist/2+R*scx, 0); ctx.stroke(); break;
+        // Angry arcs with glowing eyes underneath
+        drawOpenRound(-eyeDist/2, 0, R*0.85, false);
+        drawOpenRound( eyeDist/2, 0, R*0.85, false);
+        ctx.strokeStyle = eyeColor; ctx.lineWidth = 3.2;
+        ctx.beginPath(); ctx.moveTo(-eyeDist/2-R*scx, 0); ctx.lineTo(-eyeDist/2+R*scx, -R*scy*0.55); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo( eyeDist/2-R*scx,-R*scy*0.55); ctx.lineTo( eyeDist/2+R*scx, 0); ctx.stroke(); break;
       case 'spiral': {
         const sp = (x, dir) => {
           ctx.beginPath();
@@ -1940,9 +1997,10 @@ export function installRender(Slime) {
     const strokeColor = isScary
       ? `hsl(${hue},60%,12%)`
       : `hsl(${hue},40%,18%)`;
-    const innerFill = isCute
-      ? `hsla(${(hue+10)%360},70%,80%,0.45)`
-      : (isScary ? `hsla(${(hue+180)%360},60%,15%,0.6)` : `hsla(${hue},50%,35%,0.3)`);
+    // Inner fill: always warm and visible — pink/peach tint for cute/normal, dark for scary
+    const innerFill = isScary
+      ? `hsla(${(hue+180)%360},60%,15%,0.65)`
+      : `hsla(${(hue+20)%360},65%,82%,0.55)`;
 
     // Shadow under mouth for depth
     ctx.shadowColor = 'rgba(0,0,0,0.18)';
@@ -1950,28 +2008,28 @@ export function installRender(Slime) {
     ctx.shadowOffsetY = 1.5;
 
     ctx.strokeStyle = strokeColor;
-    ctx.lineWidth   = isCute ? 3.2 : (isScary ? 2.8 : 2.6);
+    ctx.lineWidth   = isCute ? 3.4 : (isScary ? 3.0 : 2.8);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.beginPath();
     switch (mouthStyle) {
-      case 'smile':       ctx.moveTo(-5,mouthY-1); ctx.quadraticCurveTo(0,mouthY+5,5,mouthY-1); break;
-      case 'cat':         ctx.moveTo(-5,mouthY-1); ctx.quadraticCurveTo(-2.5,mouthY+4,0,mouthY-1); ctx.quadraticCurveTo(2.5,mouthY+4,5,mouthY-1); break;
-      case 'tiny_o':      ctx.ellipse(0,mouthY,3,4,0,0,Math.PI*2); break;
-      case 'grin':        ctx.moveTo(-7,mouthY); ctx.quadraticCurveTo(0,mouthY+7,7,mouthY); break;
-      case 'smirk':       ctx.moveTo(-4,mouthY); ctx.quadraticCurveTo(2,mouthY+3,7,mouthY-2); break;
-      case 'flat':        ctx.moveTo(-5,mouthY); ctx.lineTo(5,mouthY); break;
-      case 'fangs':       ctx.moveTo(-7,mouthY-2); ctx.lineTo(-3,mouthY+2); ctx.lineTo(0,mouthY-2); ctx.lineTo(3,mouthY+2); ctx.lineTo(7,mouthY-2); break;
+      case 'smile':       ctx.moveTo(-6,mouthY-1); ctx.quadraticCurveTo(0,mouthY+6,6,mouthY-1); break;
+      case 'cat':         ctx.moveTo(-6,mouthY-1); ctx.quadraticCurveTo(-3,mouthY+5,0,mouthY-1); ctx.quadraticCurveTo(3,mouthY+5,6,mouthY-1); break;
+      case 'tiny_o':      ctx.ellipse(0,mouthY,4,5,0,0,Math.PI*2); break;
+      case 'grin':        ctx.moveTo(-8,mouthY); ctx.quadraticCurveTo(0,mouthY+9,8,mouthY); break;
+      case 'smirk':       ctx.moveTo(-4,mouthY); ctx.quadraticCurveTo(2,mouthY+4,8,mouthY-2); break;
+      case 'flat':        ctx.moveTo(-6,mouthY); ctx.lineTo(6,mouthY); break;
+      case 'fangs':       ctx.moveTo(-7,mouthY-2); ctx.lineTo(-3,mouthY+3); ctx.lineTo(0,mouthY-2); ctx.lineTo(3,mouthY+3); ctx.lineTo(7,mouthY-2); break;
       case 'zigzag':      ctx.moveTo(-7,mouthY); ctx.lineTo(-3,mouthY-4); ctx.lineTo(0,mouthY); ctx.lineTo(3,mouthY-4); ctx.lineTo(7,mouthY); break;
-      case 'open_smile':  ctx.moveTo(-6,mouthY-1); ctx.quadraticCurveTo(0,mouthY+7,6,mouthY-1); break;
-      case 'pout':        ctx.moveTo(-4,mouthY+1); ctx.quadraticCurveTo(0,mouthY+4,4,mouthY+1); ctx.moveTo(-2,mouthY+1); ctx.quadraticCurveTo(0,mouthY-1,2,mouthY+1); break;
-      case 'tiny_frown':  ctx.moveTo(-4,mouthY+2); ctx.quadraticCurveTo(0,mouthY-1,4,mouthY+2); break;
-      case 'toothy':      ctx.rect(-6,mouthY-2,12,6); ctx.moveTo(-2,mouthY-2); ctx.lineTo(-2,mouthY+4); ctx.moveTo(2,mouthY-2); ctx.lineTo(2,mouthY+4); break;
-      case 'squiggle':    ctx.moveTo(-7,mouthY); ctx.quadraticCurveTo(-4,mouthY-3,-1,mouthY); ctx.quadraticCurveTo(2,mouthY+3,5,mouthY); ctx.quadraticCurveTo(6,mouthY-1,7,mouthY); break;
-      case 'bubble':      ctx.arc(0,mouthY,4,0,Math.PI*2); break;
+      case 'open_smile':  ctx.moveTo(-7,mouthY-1); ctx.quadraticCurveTo(0,mouthY+9,7,mouthY-1); break;
+      case 'pout':        ctx.moveTo(-5,mouthY+1); ctx.quadraticCurveTo(0,mouthY+5,5,mouthY+1); ctx.moveTo(-2,mouthY+1); ctx.quadraticCurveTo(0,mouthY-2,2,mouthY+1); break;
+      case 'tiny_frown':  ctx.moveTo(-5,mouthY+3); ctx.quadraticCurveTo(0,mouthY-1,5,mouthY+3); break;
+      case 'toothy':      ctx.rect(-7,mouthY-2,14,7); ctx.moveTo(-2,mouthY-2); ctx.lineTo(-2,mouthY+5); ctx.moveTo(2,mouthY-2); ctx.lineTo(2,mouthY+5); break;
+      case 'squiggle':    ctx.moveTo(-7,mouthY); ctx.quadraticCurveTo(-4,mouthY-4,-1,mouthY); ctx.quadraticCurveTo(2,mouthY+4,5,mouthY); ctx.quadraticCurveTo(6,mouthY-1,7,mouthY); break;
+      case 'bubble':      ctx.arc(0,mouthY,5,0,Math.PI*2); break;
       case 'kiss':        ctx.moveTo(-3,mouthY); ctx.arc(-3,mouthY,3,0,Math.PI); ctx.moveTo(3,mouthY); ctx.arc(3,mouthY,3,0,Math.PI); break;
-      case 'candy_smile': ctx.moveTo(-6,mouthY); ctx.quadraticCurveTo(0,mouthY+6,6,mouthY); break;
-      case 'laugh_open':  ctx.arc(0,mouthY,7,0,Math.PI); break;
+      case 'candy_smile': ctx.moveTo(-7,mouthY); ctx.quadraticCurveTo(0,mouthY+7,7,mouthY); break;
+      case 'laugh_open':  ctx.arc(0,mouthY,8,0,Math.PI); break;
       case 'starfish_mouth':
         for (let i=0;i<5;i++) {
           const a=-Math.PI/2+i*(Math.PI*2/5); const ia=a+Math.PI/5;
@@ -1980,28 +2038,31 @@ export function installRender(Slime) {
           ctx.lineTo(Math.cos(ia)*2,mouthY+Math.sin(ia)*2);
         }
         ctx.closePath(); break;
-      case 'whistle':     ctx.ellipse(0,mouthY,2.5,4,0,0,Math.PI*2); break;
-      case 'chew':        ctx.moveTo(-5,mouthY); ctx.lineTo(5,mouthY); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-3,mouthY+2); ctx.bezierCurveTo(-1,mouthY+4,1,mouthY+4,3,mouthY+2); break;
-      case 'hmm':         ctx.moveTo(-5,mouthY); ctx.quadraticCurveTo(-2,mouthY-2,0,mouthY); ctx.quadraticCurveTo(2,mouthY+2,5,mouthY); break;
-      case 'drool':       ctx.moveTo(-6,mouthY-1); ctx.quadraticCurveTo(0,mouthY+5,6,mouthY-1); break;
-      case 'wide_gape':   ctx.rect(-8,mouthY-1,16,8); break;
-      case 'venom_drip':  ctx.moveTo(-7,mouthY-1); ctx.lineTo(-3,mouthY+2); ctx.lineTo(0,mouthY-1); ctx.lineTo(3,mouthY+2); ctx.lineTo(7,mouthY-1); break;
-      case 'abyss_mouth': ctx.arc(0,mouthY,7,0,Math.PI*2); break;
-      default:            ctx.moveTo(-4,mouthY); ctx.quadraticCurveTo(0,mouthY+4,4,mouthY); break;
+      case 'whistle':     ctx.ellipse(0,mouthY,3,4.5,0,0,Math.PI*2); break;
+      case 'chew':        ctx.moveTo(-5,mouthY); ctx.lineTo(5,mouthY); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-3,mouthY+2); ctx.bezierCurveTo(-1,mouthY+5,1,mouthY+5,3,mouthY+2); break;
+      case 'hmm':         ctx.moveTo(-6,mouthY); ctx.quadraticCurveTo(-2,mouthY-3,0,mouthY); ctx.quadraticCurveTo(2,mouthY+3,6,mouthY); break;
+      case 'drool':       ctx.moveTo(-7,mouthY-1); ctx.quadraticCurveTo(0,mouthY+7,7,mouthY-1); break;
+      case 'wide_gape':   ctx.rect(-9,mouthY-1,18,9); break;
+      case 'venom_drip':  ctx.moveTo(-7,mouthY-1); ctx.lineTo(-3,mouthY+3); ctx.lineTo(0,mouthY-1); ctx.lineTo(3,mouthY+3); ctx.lineTo(7,mouthY-1); break;
+      case 'abyss_mouth': ctx.arc(0,mouthY,8,0,Math.PI*2); break;
+      default:            ctx.moveTo(-5,mouthY); ctx.quadraticCurveTo(0,mouthY+5,5,mouthY); break;
     }
     ctx.stroke();
     ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
 
-    // Inner fill for open mouths
-    if (['open_smile','laugh_open','wide_gape','abyss_mouth','grin'].includes(mouthStyle)) {
+    // Inner fill for open mouths — extended to more styles
+    if (['open_smile','laugh_open','wide_gape','abyss_mouth','grin','smile','candy_smile','drool'].includes(mouthStyle)) {
       ctx.fillStyle = innerFill;
       ctx.beginPath();
       switch (mouthStyle) {
-        case 'open_smile': ctx.moveTo(-6,mouthY-1); ctx.quadraticCurveTo(0,mouthY+7,6,mouthY-1); ctx.closePath(); break;
-        case 'laugh_open': ctx.arc(0,mouthY,7,0,Math.PI); ctx.closePath(); break;
-        case 'wide_gape':  ctx.rect(-8,mouthY-1,16,8); break;
-        case 'abyss_mouth': ctx.arc(0,mouthY,7,0,Math.PI*2); break;
-        case 'grin':       ctx.moveTo(-7,mouthY); ctx.quadraticCurveTo(0,mouthY+7,7,mouthY); ctx.closePath(); break;
+        case 'open_smile':  ctx.moveTo(-7,mouthY-1); ctx.quadraticCurveTo(0,mouthY+9,7,mouthY-1); ctx.closePath(); break;
+        case 'laugh_open':  ctx.arc(0,mouthY,8,0,Math.PI); ctx.closePath(); break;
+        case 'wide_gape':   ctx.rect(-9,mouthY-1,18,9); break;
+        case 'abyss_mouth': ctx.arc(0,mouthY,8,0,Math.PI*2); break;
+        case 'grin':        ctx.moveTo(-8,mouthY); ctx.quadraticCurveTo(0,mouthY+9,8,mouthY); ctx.closePath(); break;
+        case 'smile':       ctx.moveTo(-6,mouthY-1); ctx.quadraticCurveTo(0,mouthY+6,6,mouthY-1); ctx.closePath(); break;
+        case 'candy_smile': ctx.moveTo(-7,mouthY); ctx.quadraticCurveTo(0,mouthY+7,7,mouthY); ctx.closePath(); break;
+        case 'drool':       ctx.moveTo(-7,mouthY-1); ctx.quadraticCurveTo(0,mouthY+7,7,mouthY-1); ctx.closePath(); break;
       }
       ctx.fill();
     }
