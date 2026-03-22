@@ -48,7 +48,7 @@ const PATTERN_RARITY_SCORE = {
 };
 
 // Bonus de multiplicateur quand plusieurs éléments rares se cumulent
-const CUMULATION_BONUS = [0, 0, 1.08, 1.18, 1.32]; // index = nb d'éléments rares (score>20)
+const CUMULATION_BONUS = [1.0, 1.0, 1.08, 1.18, 1.32]; // index = nb d'éléments rares (score>20)
 
 function elementRarityScore(genome) {
   const shape   = SHAPE_RARITY_SCORE[genome.bodyShape]   ?? 0;

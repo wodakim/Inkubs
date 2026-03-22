@@ -85,3 +85,10 @@ export const ACQUISITION_COST_CONFIG = Object.freeze({
 
 /** Solde de départ du joueur en inkübits. */
 export const STARTING_INKUBITS = 500;
+
+/**
+ * Nombre de minutes de génération de revenu pour récupérer le coût d'achat.
+ * price = incomeRate(slime) × PRICE_RECOVERY_MINUTES
+ * Garantit une cohérence directe entre prix et revenu.
+ */
+export const PRICE_RECOVERY_MINUTES = 100;
