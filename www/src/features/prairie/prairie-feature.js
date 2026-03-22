@@ -2167,76 +2167,80 @@ export function createPrairieFeature() {
         // quality (DPR, particles, visual effects), never frame rate. Capping FPS
         // hurts the user on low/medium tiers without any actual GPU/CPU benefit.
 
-        if (pointerMode === 'slime-drag' && edgeScrollPointer) {
-            applyEdgeScroll(edgeScrollPointer.clientX, edgeScrollPointer.clientY);
-        }
-
-        const now = performance.now();
-        for (const entry of getActiveEntries()) {
-            entry.slime.update();
-            if (!entry.slime.draggedNode && !wasRecentlyManipulated(entry, now)) {
-                softlyKeepSlimeNearPrairie(entry.slime);
+        try {
+            if (pointerMode === 'slime-drag' && edgeScrollPointer) {
+                applyEdgeScroll(edgeScrollPointer.clientX, edgeScrollPointer.clientY);
             }
-        }
-        resolveSlimeCollisions();
 
-        // ── Autonomous behavior engine ──────────────────────────────────────
-        {
-            const engineEntries = activeCanonicalIds
-                .map((id) => ({ id, slime: runtimeById.get(id)?.slime }))
-                .filter((e) => e.slime && !e.slime.draggedNode);
-            if (engineEntries.length >= 1) {
-                interactionEngine.tick(engineEntries, world, prairieObjects);
+            const now = performance.now();
+            for (const entry of getActiveEntries()) {
+                entry.slime.update();
+                if (!entry.slime.draggedNode && !wasRecentlyManipulated(entry, now)) {
+                    softlyKeepSlimeNearPrairie(entry.slime);
+                }
             }
-        }
+            resolveSlimeCollisions();
 
-        // ── Idle braking: stop residual sliding when no AI intent ──────────
-        for (const entry of getActiveEntries()) {
-            const slime = entry.slime;
-            if (slime.draggedNode || wasRecentlyManipulated(entry, now)) continue;
-            const brain = slime._prairieBrain;
-            if (brain && Math.abs(brain.intentDir) > 0.05) continue;
-            const gr = slime.getGroundedRatio?.() ?? 0;
-            if (gr < 0.15) continue;
-            const avgV = slime.getAverageVelocity?.();
-            if (!avgV || Math.abs(avgV.x) > 1.5) continue;
-            if (slime.locomotionState !== 'idle' && slime.locomotionState !== 'land') continue;
-            for (const node of slime.nodes || []) {
-                if (node === slime.draggedNode) continue;
-                const vx = node.x - node.oldX;
-                if (Math.abs(vx) < 0.1) node.oldX = node.x;
-                else if (Math.abs(vx) < 0.5) node.oldX = node.x - vx * 0.15;
+            // ── Autonomous behavior engine ──────────────────────────────────────
+            {
+                const engineEntries = activeCanonicalIds
+                    .map((id) => ({ id, slime: runtimeById.get(id)?.slime }))
+                    .filter((e) => e.slime && !e.slime.draggedNode);
+                if (engineEntries.length >= 1) {
+                    interactionEngine.tick(engineEntries, world, prairieObjects);
+                }
             }
-        }
 
-        for (const canonicalId of [...activeCanonicalIds]) {
-            const entry = runtimeById.get(canonicalId);
-            if (!entry) {
-                continue;
+            // ── Idle braking: stop residual sliding when no AI intent ──────────
+            for (const entry of getActiveEntries()) {
+                const slime = entry.slime;
+                if (slime.draggedNode || wasRecentlyManipulated(entry, now)) continue;
+                const brain = slime._prairieBrain;
+                if (brain && Math.abs(brain.intentDir) > 0.05) continue;
+                const gr = slime.getGroundedRatio?.() ?? 0;
+                if (gr < 0.15) continue;
+                const avgV = slime.getAverageVelocity?.();
+                if (!avgV || Math.abs(avgV.x) > 1.5) continue;
+                if (slime.locomotionState !== 'idle' && slime.locomotionState !== 'land') continue;
+                for (const node of slime.nodes || []) {
+                    if (node === slime.draggedNode) continue;
+                    const vx = node.x - node.oldX;
+                    if (Math.abs(vx) < 0.1) node.oldX = node.x;
+                    else if (Math.abs(vx) < 0.5) node.oldX = node.x - vx * 0.15;
+                }
             }
-            if (isSlimeOutOfPrairieBounds(entry.slime)) {
-                if (entry.slime.draggedNode || wasRecentlyManipulated(entry, now)) {
-                    entry.outOfBoundsFrames = 0;
+
+            for (const canonicalId of [...activeCanonicalIds]) {
+                const entry = runtimeById.get(canonicalId);
+                if (!entry) {
                     continue;
                 }
-                entry.outOfBoundsFrames = (entry.outOfBoundsFrames || 0) + 1;
-                if (entry.outOfBoundsFrames >= OUT_OF_BOUNDS_FRAME_THRESHOLD) {
-                    respawnOutOfBounds(canonicalId);
+                if (isSlimeOutOfPrairieBounds(entry.slime)) {
+                    if (entry.slime.draggedNode || wasRecentlyManipulated(entry, now)) {
+                        entry.outOfBoundsFrames = 0;
+                        continue;
+                    }
+                    entry.outOfBoundsFrames = (entry.outOfBoundsFrames || 0) + 1;
+                    if (entry.outOfBoundsFrames >= OUT_OF_BOUNDS_FRAME_THRESHOLD) {
+                        respawnOutOfBounds(canonicalId);
+                    }
+                    continue;
                 }
-                continue;
+                entry.outOfBoundsFrames = 0;
             }
-            entry.outOfBoundsFrames = 0;
-        }
 
-        syncSceneTransform();
-        updatePrairieObjects();
+            syncSceneTransform();
+            updatePrairieObjects();
 
-        // Spawn speech bubbles
-        const bubbleNow = performance.now();
-        for (const entry of getActiveEntries()) {
-            if (!entry.slime.draggedNode) {
-                maybeSpawnBubble(entry, bubbleNow);
+            // Spawn speech bubbles
+            const bubbleNow = performance.now();
+            for (const entry of getActiveEntries()) {
+                if (!entry.slime.draggedNode) {
+                    maybeSpawnBubble(entry, bubbleNow);
+                }
             }
+        } catch (_stepErr) {
+            // Physics/AI error — still render the frame so the canvas never freezes
         }
 
         drawFrame();
@@ -2248,10 +2252,23 @@ export function createPrairieFeature() {
             stopLoop();
             stopBackgroundTick();
         } else if (!isSuspended) {
+            // Ensure canvas is properly sized after returning from background,
+            // then restart the render loop.
+            resize();
             startLoop();
         } else {
             // Prairie suspendue mais device revenu — relancer le background tick
             startBackgroundTick();
+        }
+    }
+
+    // pageshow fires on iOS Safari/Chrome when the app comes back from the
+    // background (BFCache restore). visibilitychange alone is not reliable on
+    // all mobile browsers, so this acts as an additional safety net.
+    function handlePageShow() {
+        if (!isSuspended && !rafId) {
+            resize();
+            startLoop();
         }
     }
 
@@ -2261,6 +2278,7 @@ export function createPrairieFeature() {
         }
         // addEventListener deduplicates – safe to call multiple times.
         document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('pageshow', handlePageShow);
         window.addEventListener('inku:perf-tier-changed', handlePerfTierChanged);
         rafId = window.requestAnimationFrame(step);
     }
@@ -2311,6 +2329,7 @@ export function createPrairieFeature() {
         stopLoop();
         stopBackgroundTick();
         document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('pageshow', handlePageShow);
     }
 
     function handlePerfTierChanged() {
