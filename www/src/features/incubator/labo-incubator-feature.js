@@ -302,6 +302,8 @@ export function createLaboIncubatorFeature({ store } = {}) {
             return;
         }
         root.hidden = false;
+        // Retirer l'inline display:none !important posé par hideFeature
+        root.style.removeProperty('display');
         root.style.visibility = 'visible';
         root.style.opacity = '1';
         root.style.pointerEvents = 'auto';
@@ -314,17 +316,16 @@ export function createLaboIncubatorFeature({ store } = {}) {
         if (!root) {
             return;
         }
-        // Réinitialiser l'inline visibility du wrapper slime pour qu'il hérite
-        // du root. Sans ça, un visibility:visible posé par reviveCandidate ou
-        // le listener prairie passerait à travers le visibility:hidden du root.
-        const w = wrapper_ref();
-        if (w) w.style.visibility = '';
-        root.hidden = false;
-        root.style.visibility = 'hidden';
-        root.style.opacity = '0';
-        root.style.pointerEvents = 'none';
-        root.style.position = 'absolute';
-        root.style.inset = '0';
+        // root.hidden = true ne suffit PAS dans ce contexte : Tailwind définit
+        // [hidden] { display: none } SANS !important, donc la règle CSS auteur
+        // `.labo-incubator-feature { display: flex }` l'écrase.
+        // On pose un inline style !important — priorité absolue dans la cascade
+        // CSS, impossible à contourner par n'importe quelle règle de feuille de
+        // style. Combiné à position:fixed + top négatif comme filet de sécurité
+        // (si un futur refactor retire le removeProperty de showFeature, l'élément
+        // reste caché hors du viewport plutôt que de réapparaître).
+        root.hidden = true;
+        root.style.setProperty('display', 'none', 'important');
         root.setAttribute('aria-hidden', 'true');
     }
 
@@ -364,9 +365,14 @@ export function createLaboIncubatorFeature({ store } = {}) {
                     },
                 }));
             } else {
-                // Révéler le wrapper original quand le panel aperçu se ferme
+                // Réinitialiser la visibilité du wrapper (héritage depuis root) — ne pas
+                // forcer visibility:visible car root a visibility:hidden quand suspendu.
+                // Un visibility:visible explicite sur l'enfant outrepasserait le parent
+                // et ferait apparaître le slime de l'incubateur en arrière-plan.
                 const w = wrapper_ref();
-                if (w) w.style.visibility = 'visible';
+                if (w) w.style.visibility = '';
+                // Remettre l'orchestrateur en pause si l'incubateur est suspendu
+                if (isSuspended) orchestrator?.pause?.();
                 window.dispatchEvent(new CustomEvent('inku:labo-source-canvas', {
                     detail: { getBlueprint: null },
                 }));

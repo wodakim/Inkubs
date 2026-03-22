@@ -163,26 +163,11 @@ export function createPrairieFeature() {
     let pinchAnchor = null;
     let activeDrag = null;
     let edgeScrollPointer = null;
+    // Rect du viewport mis en cache pour éviter getBoundingClientRect() chaque frame
+    // dans applyEdgeScroll. Mis à jour dans resize() seulement.
+    let viewportEdgeRect = null;
 
     // ── Observation Loupe state ──────────────────────────────────────────
-    let laboPeekBtn = null;
-    let laboPeekActive = false;
-    let laboPanelEl = null;
-    let laboPanelDragHandle = null;
-    let laboPanelClose = null;
-    let laboPanelViewport = null;
-    let laboPanelHint = null;
-    let laboPanelDrag = null;  // { pid, sx, sy, pt, pl }
-    let laboPanelResize = null; // { pid, sx, sy, pw, ph, pt, pl, corner }
-    let laboPanelPos = null;    // { top, left, width, height }
-    // Mini-engine indépendant pour afficher le slime de l'incubateur (Solution A)
-    let laboPanelPreviewSlime = null;   // instance Slime locale (read-only, pas de grab)
-    let laboPanelPreviewCanvas = null;  // canvas dédié dans le viewport du panel
-    let laboPanelPreviewCtx = null;
-    let laboPanelGetBlueprint = null;   // fn → blueprint courant de l'incubateur
-    let laboPanelCurrentSeed = null;    // seed du blueprint actuellement rendu
-    let laboPanelPreviewFloatT = 0;     // temps pour animation de flottement
-    let laboPanelSourceCanvasListener = null;
     let loupeBtn = null;
     let obsPanel = null;
     let obsClose = null;
@@ -232,29 +217,6 @@ export function createPrairieFeature() {
                     <div class="prairie-minimap-wrapper">
                         <div class="prairie-minimap glass-panel">
                             <canvas class="prairie-minimap__canvas" data-prairie-minimap width="152" height="86" aria-label="${t('prairie.minimap_aria')}"></canvas>
-                        </div>
-                        <button type="button" class="prairie-labo-peek glass-panel" data-prairie-labo-peek aria-pressed="false" aria-label="Aperçu incubateur">
-                            <svg width="15" height="11" viewBox="0 0 15 11" fill="none" aria-hidden="true">
-                                <path d="M7.5 1C4 1 1.2 3.8 1 5.5c.2 1.7 3 4.5 6.5 4.5s6.3-2.8 6.5-4.5C13.8 3.8 11 1 7.5 1z" stroke="currentColor" stroke-width="1.4" fill="none"/>
-                                <circle cx="7.5" cy="5.5" r="2" fill="currentColor"/>
-                            </svg>
-                        </button>
-                    </div>
-                    <!-- Panneau flottant aperçu incubateur -->
-                    <div class="prairie-labo-panel" data-prairie-labo-panel hidden>
-                        <div class="prairie-labo-panel__corner" data-labo-corner="tl"></div>
-                        <div class="prairie-labo-panel__corner" data-labo-corner="tr"></div>
-                        <div class="prairie-labo-panel__corner" data-labo-corner="bl"></div>
-                        <div class="prairie-labo-panel__corner" data-labo-corner="br"></div>
-                        <div class="prairie-labo-panel__surface">
-                            <header class="prairie-labo-panel__header" data-prairie-labo-drag>
-                                <span class="prairie-labo-panel__title">APERÇU LABO</span>
-                                <span class="prairie-labo-panel__dot" aria-hidden="true"></span>
-                                <button type="button" class="prairie-labo-panel__close" data-prairie-labo-close aria-label="Fermer l'aperçu">×</button>
-                            </header>
-                            <div class="prairie-labo-panel__viewport" data-prairie-labo-viewport>
-                                <div class="prairie-labo-panel__hint" data-prairie-labo-hint hidden>Aucun spécimen en cours d'incubation</div>
-                            </div>
                         </div>
                     </div>
                     <div class="prairie-drone">
@@ -327,12 +289,6 @@ export function createPrairieFeature() {
         scene = root.querySelector('[data-prairie-scene]');
         canvas = root.querySelector('[data-prairie-canvas]');
         minimapCanvas = root.querySelector('[data-prairie-minimap]');
-        laboPeekBtn = root.querySelector('[data-prairie-labo-peek]');
-        laboPanelEl = root.querySelector('[data-prairie-labo-panel]');
-        laboPanelDragHandle = root.querySelector('[data-prairie-labo-drag]');
-        laboPanelClose = root.querySelector('[data-prairie-labo-close]');
-        laboPanelViewport = root.querySelector('[data-prairie-labo-viewport]');
-        laboPanelHint = root.querySelector('[data-prairie-labo-hint]');
         droneToggle = root.querySelector('[data-prairie-drone-toggle]');
         dronePanel = root.querySelector('[data-prairie-drone-panel]');
         droneClose = root.querySelector('[data-prairie-drone-close]');
@@ -964,7 +920,7 @@ export function createPrairieFeature() {
         if (!viewport) {
             return;
         }
-        const rect = viewport.getBoundingClientRect();
+        const rect = viewportEdgeRect || viewport.getBoundingClientRect();
         let deltaX = 0;
         let deltaY = 0;
         if (clientX < rect.left + EDGE_SCROLL_ZONE) {
@@ -1360,135 +1316,6 @@ export function createPrairieFeature() {
         }
         interactionsBound = true;
         bindObsInteractions();
-
-        // ── Panneau flottant aperçu Labo ────────────────────────────────────
-        function applyLaboPanelLayout() {
-            if (!laboPanelEl || !laboPanelPos) return;
-            const vp = getViewportSize();
-            laboPanelPos.width  = Math.max(130, Math.min(laboPanelPos.width,  vp.width  - 10));
-            laboPanelPos.height = Math.max(140, Math.min(laboPanelPos.height, vp.height - 60));
-            laboPanelPos.top    = Math.max(0,   Math.min(laboPanelPos.top,    vp.height - laboPanelPos.height - 10));
-            laboPanelPos.left   = Math.max(0,   Math.min(laboPanelPos.left,   vp.width  - laboPanelPos.width  - 4));
-            laboPanelEl.style.setProperty('--lp-top',  `${laboPanelPos.top}px`);
-            laboPanelEl.style.setProperty('--lp-left', `${laboPanelPos.left}px`);
-            laboPanelEl.style.setProperty('--lp-w',    `${laboPanelPos.width}px`);
-            laboPanelEl.style.setProperty('--lp-h',    `${laboPanelPos.height}px`);
-        }
-
-        function initLaboPanelPos() {
-            if (laboPanelPos || !laboPanelEl) return;
-            const vp = getViewportSize();
-            // Default position: under the minimap, left side
-            laboPanelPos = {
-                top:    110,
-                left:   8,
-                width:  Math.min(148, Math.round(vp.width * 0.38)),
-                height: Math.min(180, Math.round(vp.height * 0.24)),
-            };
-        }
-
-        // Écouter le blueprint envoyé par le labo
-        const onLaboSourceCanvas = (ev) => {
-            const getBlueprint = ev?.detail?.getBlueprint ?? null;
-            if (getBlueprint && laboPeekActive) {
-                if (laboPanelHint) laboPanelHint.hidden = true;
-                startPreviewEngine(getBlueprint);
-            } else {
-                stopPreviewEngine();
-                if (laboPanelHint) laboPanelHint.hidden = !laboPeekActive;
-            }
-        };
-        laboPanelSourceCanvasListener = onLaboSourceCanvas;
-        window.addEventListener('inku:labo-source-canvas', onLaboSourceCanvas);
-
-        function openLaboPanel() {
-            if (!laboPanelEl) return;
-            initLaboPanelPos();
-            laboPanelEl.hidden = false;
-            laboPeekBtn?.setAttribute('aria-pressed', 'true');
-            laboPeekBtn?.classList.add('is-active');
-            laboPeekActive = true;
-            requestAnimationFrame(() => laboPanelEl?.classList.add('is-open'));
-            applyLaboPanelLayout();
-            if (laboPanelHint) laboPanelHint.hidden = true;
-            window.dispatchEvent(new CustomEvent('inku:labo-preview-request', { detail: { active: true } }));
-        }
-
-        function closeLaboPanel() {
-            if (!laboPanelEl) return;
-            stopPreviewEngine();
-            laboPanelEl.classList.remove('is-open');
-            laboPeekBtn?.setAttribute('aria-pressed', 'false');
-            laboPeekBtn?.classList.remove('is-active');
-            laboPeekActive = false;
-            window.dispatchEvent(new CustomEvent('inku:labo-preview-request', { detail: { active: false } }));
-            setTimeout(() => { if (!laboPanelEl?.classList.contains('is-open')) laboPanelEl.hidden = true; }, 180);
-        }
-
-        if (laboPeekBtn) {
-            laboPeekBtn.addEventListener('click', () => {
-                if (laboPeekActive) { closeLaboPanel(); } else { openLaboPanel(); }
-            });
-        }
-
-        if (laboPanelClose) {
-            laboPanelClose.addEventListener('click', closeLaboPanel);
-        }
-
-        // Drag via header
-        laboPanelDragHandle?.addEventListener('pointerdown', (e) => {
-            if (e.target.closest('[data-prairie-labo-close]')) return;
-            initLaboPanelPos();
-            laboPanelDrag = { pid: e.pointerId, sx: e.clientX, sy: e.clientY, pt: laboPanelPos.top, pl: laboPanelPos.left };
-            laboPanelDragHandle.setPointerCapture(e.pointerId);
-            e.preventDefault();
-        }, { passive: false });
-        laboPanelDragHandle?.addEventListener('pointermove', (e) => {
-            if (!laboPanelDrag || laboPanelDrag.pid !== e.pointerId) return;
-            laboPanelPos.top  = laboPanelDrag.pt + (e.clientY - laboPanelDrag.sy);
-            laboPanelPos.left = laboPanelDrag.pl + (e.clientX - laboPanelDrag.sx);
-            applyLaboPanelLayout();
-        }, { passive: true });
-        const releaseLaboDrag = (e) => {
-            if (!laboPanelDrag || laboPanelDrag.pid !== e.pointerId) return;
-            laboPanelDragHandle?.releasePointerCapture(e.pointerId);
-            laboPanelDrag = null;
-        };
-        laboPanelDragHandle?.addEventListener('pointerup',    releaseLaboDrag, { passive: true });
-        laboPanelDragHandle?.addEventListener('pointercancel', releaseLaboDrag, { passive: true });
-
-        // 4-corner resize
-        for (const corner of (laboPanelEl?.querySelectorAll('[data-labo-corner]') || [])) {
-            corner.addEventListener('pointerdown', (e) => {
-                initLaboPanelPos();
-                laboPanelResize = {
-                    pid: e.pointerId, sx: e.clientX, sy: e.clientY,
-                    pw: laboPanelPos.width, ph: laboPanelPos.height,
-                    pt: laboPanelPos.top,   pl: laboPanelPos.left,
-                    corner: corner.dataset.laboCorner,
-                };
-                corner.setPointerCapture(e.pointerId);
-                e.preventDefault(); e.stopPropagation();
-            }, { passive: false });
-            corner.addEventListener('pointermove', (e) => {
-                if (!laboPanelResize || laboPanelResize.pid !== e.pointerId) return;
-                const dx = e.clientX - laboPanelResize.sx;
-                const dy = e.clientY - laboPanelResize.sy;
-                const c  = laboPanelResize.corner;
-                if (c === 'br' || c === 'tr') laboPanelPos.width  = laboPanelResize.pw + dx;
-                if (c === 'bl' || c === 'tl') { laboPanelPos.width = laboPanelResize.pw - dx; laboPanelPos.left = laboPanelResize.pl + dx; }
-                if (c === 'br' || c === 'bl') laboPanelPos.height = laboPanelResize.ph + dy;
-                if (c === 'tr' || c === 'tl') { laboPanelPos.height = laboPanelResize.ph - dy; laboPanelPos.top = laboPanelResize.pt + dy; }
-                applyLaboPanelLayout();
-            }, { passive: true });
-            const releaseLaboCorner = (e) => {
-                if (!laboPanelResize || laboPanelResize.pid !== e.pointerId) return;
-                corner.releasePointerCapture(e.pointerId);
-                laboPanelResize = null;
-            };
-            corner.addEventListener('pointerup',    releaseLaboCorner, { passive: true });
-            corner.addEventListener('pointercancel', releaseLaboCorner, { passive: true });
-        }
 
         const closeDrone = () => {
             window.clearTimeout(dronePanelCloseTimeout);
@@ -2307,187 +2134,6 @@ export function createPrairieFeature() {
         }
     }
 
-    // ── Preview labo indépendant (Solution A) ────────────────────────────────
-    // startPreviewEngine / stopPreviewEngine sont à la portée externe pour
-    // pouvoir être appelées depuis suspend() et unmount().
-
-    function startPreviewEngine(getBlueprintFn) {
-        laboPanelGetBlueprint = getBlueprintFn;
-
-        // Créer le canvas si besoin
-        if (!laboPanelPreviewCanvas && laboPanelViewport) {
-            laboPanelPreviewCanvas = document.createElement('canvas');
-            laboPanelPreviewCanvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;';
-            laboPanelPreviewCtx = laboPanelPreviewCanvas.getContext('2d', { alpha: true });
-            laboPanelViewport.appendChild(laboPanelPreviewCanvas);
-        }
-
-        // Spawner le slime avec le blueprint courant
-        const bp = laboPanelGetBlueprint?.();
-        if (bp) _spawnPreviewSlime(bp);
-    }
-
-    function stopPreviewEngine() {
-        laboPanelGetBlueprint = null;
-        laboPanelPreviewSlime = null;
-        laboPanelCurrentSeed = null;
-    }
-
-    function _spawnPreviewSlime(blueprint) {
-        if (!laboPanelPreviewCanvas || !blueprint) return;
-
-        const vw = laboPanelViewport?.clientWidth  || 140;
-        const vh = laboPanelViewport?.clientHeight || 160;
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const pw = Math.round(vw * dpr);
-        const ph = Math.round(vh * dpr);
-
-        if (laboPanelPreviewCanvas.width !== pw || laboPanelPreviewCanvas.height !== ph) {
-            laboPanelPreviewCanvas.width  = pw;
-            laboPanelPreviewCanvas.height = ph;
-            laboPanelPreviewCanvas.style.width  = vw + 'px';
-            laboPanelPreviewCanvas.style.height = vh + 'px';
-        }
-
-        const baseRadius = blueprint.baseRadius || 34;
-        const spawnX = pw * 0.5;
-        const spawnY = ph * 0.72;
-
-        laboPanelPreviewSlime = new Slime({
-            blueprint: deepClone(blueprint),
-            spawnX,
-            spawnY,
-            spawnImpulseY: -6,
-            spawnImpulseX: 0,
-            boxPadding: Math.max(4, baseRadius * 0.12),
-            worldBounds: { left: 4, top: 4, right: pw - 4, bottom: ph - 4 },
-            surfaceIntegrityExplosionEnabled: false,
-        });
-        // Désactiver le grab — lecture seule, aucune interaction joueur
-        laboPanelPreviewSlime.checkGrab = () => {};
-        laboPanelPreviewSlime.updateGrab = () => {};
-        laboPanelPreviewSlime.releaseGrab = () => {};
-        // Supprimer l'ombre (trop sombre sur fond sombre)
-        const origDraw = laboPanelPreviewSlime.draw.bind(laboPanelPreviewSlime);
-        laboPanelPreviewSlime.draw = function patchedDraw(...args) {
-            if (this.renderPose) this.renderPose.shadowAlphaBoost = -4;
-            return origDraw(...args);
-        };
-        laboPanelCurrentSeed = blueprint.proceduralSeed || null;
-        laboPanelPreviewFloatT = 0;
-    }
-
-    // Dessine le mini-engine du panel aperçu labo en swappant temporairement
-    // le contexte global de runtimeState — entièrement read-only pour le joueur.
-    function drawLaboPreview() {
-        if (!laboPeekActive || !laboPanelPreviewCanvas || !laboPanelPreviewCtx) return;
-
-        const dst = laboPanelPreviewCanvas;
-        const dstCtx = laboPanelPreviewCtx;
-
-        // ── Synchronisation blueprint ────────────────────────────────────────
-        // Appelée chaque frame : détecte immédiatement tout changement de candidat
-        // (nouveau cycle après retour au labo, ou premier candidat disponible).
-        if (laboPanelGetBlueprint) {
-            const bp = laboPanelGetBlueprint();
-            const seed = bp?.proceduralSeed || null;
-            if (seed !== laboPanelCurrentSeed) {
-                if (seed) {
-                    // Nouveau candidat → spawner le slime local
-                    _spawnPreviewSlime(bp);
-                    if (laboPanelHint) laboPanelHint.hidden = true;
-                } else {
-                    // Plus de candidat (entre deux cycles) → effacer et afficher hint
-                    laboPanelPreviewSlime = null;
-                    laboPanelCurrentSeed = null;
-                    if (laboPanelHint) laboPanelHint.hidden = false;
-                    // Effacer le canvas
-                    dstCtx.setTransform(1, 0, 0, 1, 0, 0);
-                    dstCtx.clearRect(0, 0, dst.width, dst.height);
-                    return;
-                }
-            }
-        }
-
-        if (!laboPanelPreviewSlime) return;
-
-        // ── Redimensionner si besoin ─────────────────────────────────────────
-        const vw = laboPanelViewport?.clientWidth  || 140;
-        const vh = laboPanelViewport?.clientHeight || 160;
-        const dpr = Math.min(window.devicePixelRatio || 1, 2);
-        const pw = Math.round(vw * dpr);
-        const ph = Math.round(vh * dpr);
-        if (dst.width !== pw || dst.height !== ph) {
-            dst.width  = pw;
-            dst.height = ph;
-            dst.style.width  = vw + 'px';
-            dst.style.height = vh + 'px';
-            if (laboPanelPreviewSlime) {
-                laboPanelPreviewSlime.worldBounds = { left: 4, top: 4, right: pw - 4, bottom: ph - 4 };
-            }
-        }
-
-        // ── Sauvegarder le contexte global de runtimeState ──────────────────
-        const savedCanvas    = canvas;
-        const savedCtxGlobal = ctx;
-        const savedVW        = viewportWidth;
-        const savedVH        = viewportHeight;
-        const savedWW        = worldWidth;
-        const savedWH        = worldHeight;
-
-        // Swapper vers le canvas du panel
-        setCanvas(dst, dstCtx);
-        setViewport(pw, ph);
-        setWorldBounds(pw, ph);
-
-        // Effacer
-        dstCtx.setTransform(1, 0, 0, 1, 0, 0);
-        dstCtx.clearRect(0, 0, pw, ph);
-
-        // ── Flottement doux ──────────────────────────────────────────────────
-        laboPanelPreviewFloatT += 0.016;
-        const driftX = Math.sin(laboPanelPreviewFloatT * 1.1) * 1.8;
-        const driftY = Math.cos(laboPanelPreviewFloatT * 1.7) * 1.1;
-        const targetY = ph * 0.46;
-        const slime = laboPanelPreviewSlime;
-
-        // Garde NaN : si le slime a des positions invalides (ex. après resize), le respawner
-        const nodes = slime.nodes || [];
-        const hasNaN = nodes.some(n => !Number.isFinite(n.x) || !Number.isFinite(n.y));
-        if (hasNaN) {
-            const bp = laboPanelGetBlueprint?.();
-            if (bp) _spawnPreviewSlime(bp);
-            setCanvas(savedCanvas, savedCtxGlobal);
-            setViewport(savedVW, savedVH);
-            setWorldBounds(savedWW, savedWH);
-            return;
-        }
-
-        // Impulse verticale douce pour maintenir le slime centré
-        const center = slime.getVisualCenter?.() || slime.getRawVisualCenter?.();
-        if (center && Number.isFinite(center.y)) {
-            const dy = center.y - targetY;
-            if (dy > 5) {
-                const impulse = -Math.min(0.18 + dy * 0.022, 2.0);
-                for (const node of nodes) { node.oldY = node.y - impulse; }
-            } else if (dy < -10) {
-                const impulse = Math.min(0.06 + Math.abs(dy) * 0.003, 0.18);
-                for (const node of nodes) { node.oldY = node.y - impulse; }
-            }
-        }
-
-        // Update physique + dessin
-        slime.update();
-        dstCtx.setTransform(1, 0, 0, 1, driftX, driftY);
-        slime.draw();
-        dstCtx.setTransform(1, 0, 0, 1, 0, 0);
-
-        // ── Restaurer le contexte global ─────────────────────────────────────
-        setCanvas(savedCanvas, savedCtxGlobal);
-        setViewport(savedVW, savedVH);
-        setWorldBounds(savedWW, savedWH);
-    }
-
     function drawFrame() {
         if (!canvas || !ctx) {
             return;
@@ -2614,7 +2260,6 @@ export function createPrairieFeature() {
 
         drawFrame();
         renderMinimap();
-        drawLaboPreview();
     }
 
     function handleVisibilityChange() {
@@ -2713,6 +2358,8 @@ export function createPrairieFeature() {
         resizeCanvas();
         computeWorld();
         clampCamera();
+        // Mettre en cache le rect du viewport (une seule lecture par resize, pas par frame)
+        viewportEdgeRect = viewport ? viewport.getBoundingClientRect() : null;
         syncSceneTransform();
         applyPanelLayout();
         renderMinimap();
@@ -2846,20 +2493,6 @@ export function createPrairieFeature() {
                 return;
             }
             isSuspended = true;
-            // Fermer le panneau labo proprement avant de suspendre
-            if (laboPeekActive) {
-                laboPeekActive = false;
-                laboPeekBtn?.setAttribute('aria-pressed', 'false');
-                laboPeekBtn?.classList.remove('is-active');
-                if (laboPanelEl) {
-                    laboPanelEl.classList.remove('is-open');
-                    laboPanelEl.hidden = true;
-                }
-                stopPreviewEngine();
-                window.dispatchEvent(new CustomEvent('inku:labo-preview-request', {
-                    detail: { active: false },
-                }));
-            }
             persistAllActiveRecords('prairie_suspend');
             saveSession({ activeCanonicalIds: [...activeCanonicalIds], camera: { ...camera }, panel: panelLayout });
             stopLoop();
@@ -2878,13 +2511,6 @@ export function createPrairieFeature() {
             resize();
         },
         unmount() {
-            // Désactiver l'aperçu labo si actif
-            if (laboPeekActive) {
-                laboPeekActive = false;
-                window.dispatchEvent(new CustomEvent('inku:labo-preview-request', {
-                    detail: { active: false },
-                }));
-            }
             persistAllActiveRecords('prairie_unmount');
             saveSession({ activeCanonicalIds: [...activeCanonicalIds], camera: { ...camera }, panel: panelLayout });
             teardownLoop();
@@ -2905,26 +2531,10 @@ export function createPrairieFeature() {
             root?.remove?.();
             root = null;
             viewport = null;
+            viewportEdgeRect = null;
             scene = null;
             canvas = null;
             minimapCanvas = null;
-            laboPeekBtn = null;
-            laboPeekActive = false;
-            laboPanelEl = null;
-            laboPanelDragHandle = null;
-            laboPanelClose = null;
-            laboPanelViewport = null;
-            laboPanelHint = null;
-            laboPanelPos = null;
-            laboPanelDrag = null;
-            laboPanelResize = null;
-            stopPreviewEngine();
-            laboPanelPreviewCanvas = null;
-            laboPanelPreviewCtx = null;
-            if (laboPanelSourceCanvasListener) {
-                window.removeEventListener('inku:labo-source-canvas', laboPanelSourceCanvasListener);
-                laboPanelSourceCanvasListener = null;
-            }
             droneToggle = null;
             dronePanel = null;
             droneClose = null;

@@ -63,11 +63,6 @@ class SlimeBrain {
     this.statChangeLog = [];   // { time, stat, oldVal, newVal, cause }
     // Post-fight forced speech bubble (consumed by maybeSpawnBubble in prairie-feature.js)
     this._pendingBubble = null;
-    // Teleport flee cooldown (ms timestamp)
-    this._lastTeleportAt = 0;
-    // Reckless chase: set when a combatant refuses to let prey escape
-    this._recklessChaseTargetId = null;
-    this._lastRecklessChaseAt   = 0;
   }
   getBias(id) { return this.biasByTarget.get(id) || 0; }
   addBias(id, d) {
@@ -427,20 +422,6 @@ function getTemperament(slime) {
 }
 
 // ── Movement primitives ──────────────────────────────────────────────────────
-
-/**
- * Returns a 0..1 speed multiplier based on slime stats.
- * agility drives base speed; ferocity adds a combat burst; vitality sustains it.
- */
-function statSpeed(slime) {
-  const s = slime.stats || {};
-  const agi = sigmoid(s.agility  || 50);   // 0..1
-  const fer = sigmoid(s.ferocity || 50);   // 0..1
-  const vit = sigmoid(s.vitality || 50);   // 0..1
-  // Base: 0.7..2.2 range — fast slimes are genuinely fast
-  return 0.7 + agi * 0.9 + fer * 0.35 + vit * 0.25;
-}
-
 function moveToward(slime, brain, tx, speedMul) {
   const cx = getCenter(slime).x;
   const dx = tx - cx;
@@ -449,15 +430,12 @@ function moveToward(slime, brain, tx, speedMul) {
   brain.intentDir = lerp(brain.intentDir, dir, 0.3);
   if (Math.abs(brain.intentDir) > 0.04) {
     slime.facing = Math.sign(brain.intentDir);
-    const saved      = slime.moveAcceleration;
-    const savedMax   = slime.maxMoveSpeed;
-    const ss         = statSpeed(slime);
-    // Amplify both acceleration and top speed by stat profile
-    slime.moveAcceleration = saved    * Math.max(0.4, speedMul) * ss * 1.6;
-    slime.maxMoveSpeed     = savedMax * Math.max(0.4, speedMul) * ss;
+    const saved = slime.moveAcceleration;
+    // Stronger impulse: multiply by 1.8 base + speedMul
+    slime.moveAcceleration = saved * Math.max(0.4, speedMul) * 1.8;
     slime.applyHorizontalInput(Math.sign(brain.intentDir));
     slime.moveAcceleration = saved;
-    slime.maxMoveSpeed     = savedMax;
+    // NOTE: we do NOT reset idleFrames here — self-righting needs it
   }
 }
 
@@ -475,19 +453,11 @@ function faceTo(slime, target) {
   if (Math.abs(dx) > 3) slime.facing = Math.sign(dx);
 }
 
-function tryJump(slime, brain, now, forceMul) {
-  if (now - brain.lastJumpAt < 400) return;
+function tryJump(slime, brain, now) {
+  if (now - brain.lastJumpAt < 500) return;
   const gr = slime.getGroundedRatio?.() ?? 0;
   if (gr > 0.2 && slime.jumpCooldownFrames <= 0) {
-    const s   = slime.stats || {};
-    const agi = sigmoid(s.agility  || 50);
-    const vit = sigmoid(s.vitality || 50);
-    // Jump height scales with stats: 0.85..1.6 multiplier
-    const heightMul = (0.85 + agi * 0.45 + vit * 0.3) * (forceMul || 1);
-    const savedJump = slime.jumpImpulse;
-    slime.jumpImpulse = savedJump * heightMul;
     slime.tryJump();
-    slime.jumpImpulse = savedJump;
     brain.lastJumpAt = now;
   }
 }
@@ -653,9 +623,7 @@ const DUR = {
   sniff_object:  [2500, 5500],
   play_ball:     [3000, 7000],
   sit_stump:     [3000, 8000],
-  fight_clash:     [3000, 7000],
-  teleport_flee:   [1200, 2500],
-  reckless_chase:  [2500, 5500],
+  fight_clash:   [3000, 7000],
 };
 
 function startBehavior(brain, name, targetId, now, targetObj) {
@@ -682,12 +650,10 @@ const CHAINS = {
   investigate: ['approach', 'observe', 'orbit', 'wander'],
   challenge:   ['fight_clash', 'intimidate', 'wander'],
   intimidate:  ['challenge', 'wander'],
-  fight_clash:     ['wander', 'idle_look'],
-  flee:            ['wander', 'idle_look'],
-  teleport_flee:   ['flee', 'wander'],
-  recoil:          ['flee', 'wander'],
-  reckless_chase:  ['challenge', 'fight_clash', 'wander'],
-  calm:            ['bond', 'observe', 'wander'],
+  fight_clash: ['wander', 'idle_look'],
+  flee:        ['wander', 'idle_look'],
+  recoil:      ['flee', 'wander'],
+  calm:        ['bond', 'observe', 'wander'],
   wander:      null, // full re-pick
   idle_look:   null,
   explore_jump:null,
@@ -695,94 +661,6 @@ const CHAINS = {
   play_ball:   ['wander', 'explore_jump'],
   sit_stump:   ['idle_look', 'wander'],
 };
-
-/**
- * Instantly moves a slime to (tx, ty) using a Verlet teleport:
- * shift all nodes by the delta, preserve their velocity (oldX/oldY delta stays the same).
- * This avoids NaN and preserves physics integrity.
- */
-function teleportSlime(slime, tx, ty) {
-  const c = getCenter(slime);
-  const dx = tx - c.x;
-  const dy = ty - c.y;
-  if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
-  for (const node of slime.nodes) {
-    node.x    += dx;
-    node.y    += dy;
-    node.oldX += dx;
-    node.oldY += dy;
-  }
-}
-
-/**
- * Returns the first other slime blocking the path toward goalX, or null.
- * "Blocking" = same horizontal direction, within BLOCK_RANGE px, close vertically.
- */
-function detectObstacle(slime, brain, others, goalX) {
-  const sc  = getCenter(slime);
-  const dir = Math.sign(goalX - sc.x);
-  if (dir === 0) return null;
-  const BLOCK_RANGE = 70; // px ahead to check
-  const VERT_RANGE  = 55; // px vertical tolerance
-
-  for (const { id, slime: other } of others) {
-    if (id === brain.selfId) continue;
-    if (other.draggedNode) continue;
-    const oc = getCenter(other);
-    const ahead = (oc.x - sc.x) * dir; // positive = in the direction of travel
-    if (ahead < 8 || ahead > BLOCK_RANGE) continue;
-    if (Math.abs(oc.y - sc.y) > VERT_RANGE) continue;
-    return other; // first blocker found
-  }
-  return null;
-}
-
-/**
- * React to a slime blocking the path.
- * Picks a reaction based on dominant stat:
- *   ferocity > agility  → PUSH  (knockback + attack flash)
- *   agility  > ferocity → JUMP  (leap over)
- *   otherwise           → BUMP  (light shove + pause)
- * Throttled: one reaction per 900ms per slime to avoid spam.
- */
-function resolveObstacle(slime, brain, blocker, world, now) {
-  // Per-blocker cooldown stored on brain
-  if (!brain._obstacleCooldowns) brain._obstacleCooldowns = new Map();
-  const lastReact = brain._obstacleCooldowns.get(blocker) || 0;
-  if (now - lastReact < 900) return;
-  brain._obstacleCooldowns.set(blocker, now);
-
-  const s   = slime.stats   || {};
-  const fer = s.ferocity    || 50;
-  const agi = s.agility     || 50;
-  const sc  = getCenter(slime);
-  const bc  = getCenter(blocker);
-
-  if (fer > agi && fer > 45) {
-    // ── PUSH ── shove the blocker aside
-    const pushDir = Math.sign(bc.x - sc.x) || 1;
-    const force   = 3.5 + sigmoid(fer) * 4.0;
-    applyKnockbackToSlime(blocker, pushDir * force, -1.5);
-    blocker.triggerAction('hurt', 400, 0.8);
-    slime.triggerAction('attack', 350, 0.9);
-    // Agitate the blocker's brain too
-    const ob = blocker._prairieBrain;
-    if (ob && ob.behavior !== 'fight_clash' && ob.behavior !== 'flee') {
-      ob.addBias(brain.selfId, -0.04);
-    }
-  } else if (agi > fer && agi > 45) {
-    // ── JUMP OVER ── leap above the obstacle
-    tryJump(slime, brain, now - 9999, 1.3 + sigmoid(agi) * 0.5); // force cooldown bypass
-    brain.lastJumpAt = 0; // reset so next real jump isn't blocked
-    slime.triggerAction('observe', 300, 0.6);
-  } else {
-    // ── BUMP ── light shove and brief pause
-    const pushDir = Math.sign(bc.x - sc.x) || 1;
-    applyKnockbackToSlime(blocker, pushDir * 2.0, -0.8);
-    blocker.triggerAction('hurt', 250, 0.5);
-    brain.pauseUntil = now + randRange(150, 350);
-  }
-}
 
 // ── Execute behavior (called every tick ~50ms) ──────────────────────────────
 function execBehavior(brain, slime, others, world, now) {
@@ -799,9 +677,6 @@ function execBehavior(brain, slime, others, world, now) {
     case 'approach': {
       if (!tc) break;
       if (dist > 80) {
-        const approachBlocker = detectObstacle(slime, brain, others, tc.x);
-        if (approachBlocker && approachBlocker !== target)
-          resolveObstacle(slime, brain, approachBlocker, world, now);
         moveToward(slime, brain, tc.x, 0.75 * energy);
         if (sigmoid(s.curiosity) > 0.55 && Math.random() < 0.012 * energy)
           tryJump(slime, brain, now);
@@ -834,12 +709,9 @@ function execBehavior(brain, slime, others, world, now) {
       const followDist = 55 + agi * 25;
       const side = sc.x > tc.x ? 1 : -1;
       const goalX = tc.x + side * followDist;
-      if (Math.abs(sc.x - goalX) > 20) {
-        const followBlocker = detectObstacle(slime, brain, others, goalX);
-        if (followBlocker && followBlocker !== target)
-          resolveObstacle(slime, brain, followBlocker, world, now);
+      if (Math.abs(sc.x - goalX) > 20)
         moveToward(slime, brain, goalX, 0.65 * energy);
-      } else {
+      else {
         brake(brain);
         faceTo(slime, target);
       }
@@ -925,20 +797,19 @@ function execBehavior(brain, slime, others, world, now) {
 
     case 'challenge': {
       if (!tc) break;
-      const ferBoost = 0.7 + sigmoid(s.ferocity || 50) * 0.8;
       if (dist > 90) {
-        moveToward(slime, brain, tc.x, 0.95 * energy * ferBoost);
-        if (Math.random() < 0.03 * energy) tryJump(slime, brain, now, 1.0 + sigmoid(s.ferocity || 50) * 0.4);
+        moveToward(slime, brain, tc.x, 0.9 * energy);
+        if (Math.random() < 0.02 * energy) tryJump(slime, brain, now);
       } else {
-        // Stomp: push forward then back — fiercer for high-ferocity
+        // Stomp: push forward then back
         const push = Math.sin(now * 0.005 + brain.seed * 4);
-        if (push > 0.2)       moveToward(slime, brain, tc.x, 0.5 * energy * ferBoost);
-        else if (push < -0.2) moveAway(slime, brain, tc.x, 0.2, world);
+        if (push > 0.25) moveToward(slime, brain, tc.x, 0.35 * energy);
+        else if (push < -0.25) moveAway(slime, brain, tc.x, 0.25, world);
         else { brake(brain); faceTo(slime, target); }
       }
-      keepAction(slime, 'attack', Math.min(1.3, 0.8 + clamp01(1 - dist / 150) * 0.4 + ferBoost * 0.15));
+      keepAction(slime, 'attack', 0.8 + clamp01(1 - dist / 150) * 0.4);
       // Trigger reactions
-      if (dist < 100 && Math.random() < 0.012) {
+      if (dist < 100 && Math.random() < 0.01) {
         brain.addBias(brain.targetId, -0.05);
         const ob = target?._prairieBrain;
         if (ob) {
@@ -946,6 +817,7 @@ function execBehavior(brain, slime, others, world, now) {
           const otherStab = sigmoid(target.stats?.stability || 50);
           if (otherStab < 0.45 && ob.behavior !== 'flee' && ob.behavior !== 'recoil')
             startBehavior(ob, otherStab < 0.3 ? 'flee' : 'recoil', brain.selfId, now);
+          // Write conflict memories for both slimes
           writeConflictMemoryPair(
             slime, brain.selfId, getSlimeName(slime),
             target, brain.targetId, getSlimeName(target),
@@ -954,7 +826,7 @@ function execBehavior(brain, slime, others, world, now) {
         }
       }
       // ── Escalation to full fight_clash ──
-      if (dist < 72 && Math.random() < 0.009 &&
+      if (dist < 72 && Math.random() < 0.007 &&
           ((s.ferocity || 50) > 52 || brain.getBias(brain.targetId) < -0.35)) {
         const ob = target?._prairieBrain;
         if (ob && ob.behavior !== 'flee') {
@@ -974,32 +846,28 @@ function execBehavior(brain, slime, others, world, now) {
     case 'fight_clash': {
       if (!tc) break;
       const elapsed = now - brain.startedAt;
-      // Alternate attack (0) / hurt (1) phases every 380ms for ferocious slimes
-      const phaseDur = Math.max(220, 480 - (s.ferocity || 50) * 1.2);
-      const fightPhase = Math.floor(elapsed / phaseDur) % 2;
-      const ferBoost = 0.6 + sigmoid(s.ferocity || 50) * 0.8; // 0.6..1.4
+      // Alternate attack (0) / hurt (1) phases every 480ms
+      const fightPhase = Math.floor(elapsed / 480) % 2;
 
       if (dist > 65) {
-        // Close in fast — ferocious slimes rush harder
-        moveToward(slime, brain, tc.x, 1.2 * energy * ferBoost);
-        if (Math.random() < 0.025 * energy) tryJump(slime, brain, now, 1.1);
+        // Close in fast
+        moveToward(slime, brain, tc.x, 1.0 * energy);
+        if (Math.random() < 0.015 * energy) tryJump(slime, brain, now);
       } else {
         faceTo(slime, target);
         if (fightPhase === 0) {
-          // Attack phase: lunge forward
-          moveToward(slime, brain, tc.x, 0.7 * energy * ferBoost);
-          keepAction(slime, 'attack', Math.min(1.3, 0.9 + ferBoost * 0.2));
-          // Physical impact — harder knockback for ferocious slimes
-          if (dist < 48 && (elapsed % phaseDur) < 120) {
+          // Attack phase: lunge forward, deliver hit
+          moveToward(slime, brain, tc.x, 0.55 * energy);
+          keepAction(slime, 'attack', 1.0);
+          // Physical impact: knockback to target only at very close range, once per phase
+          if (dist < 48 && (elapsed % 480) < 100) {
             const kDir = Math.sign(tc.x - sc.x) || 1;
-            const kForce = 3.5 + sigmoid(s.ferocity || 50) * 4.0;
-            applyKnockbackToSlime(target, kDir * kForce, -2.5 - ferBoost);
+            applyKnockbackToSlime(target, kDir * 3.5, -2.0);
             target.triggerAction('hurt', 600, 1.0);
           }
         } else {
-          // Hurt phase: brief recoil, less retreat for high-ferocity fighters
-          const recoilMul = Math.max(0.15, 0.5 - sigmoid(s.ferocity || 50) * 0.35);
-          moveAway(slime, brain, tc.x, recoilMul, world);
+          // Hurt phase: brief recoil
+          moveAway(slime, brain, tc.x, 0.3, world);
           keepAction(slime, 'hurt', 0.9);
         }
       }
@@ -1026,59 +894,10 @@ function execBehavior(brain, slime, others, world, now) {
 
     case 'flee': {
       if (!tc) break;
-      const instab  = 1 - sigmoid(s.stability || 50);
-      // Panic sprint: unstable slimes run faster under threat
-      const panicMul = 1.1 + instab * 0.9;
-      moveAway(slime, brain, tc.x, panicMul * energy, world);
-
-      // Frequent jumps — unstable slimes jump more erratically
-      const jumpChance = 0.04 + instab * 0.06;
-      if (Math.random() < jumpChance * energy) tryJump(slime, brain, now, 1.0 + instab * 0.5);
-
-      // Double jump: if still grounded & very unstable & just jumped, jump again
-      if (instab > 0.6 && (now - brain.lastJumpAt) > 350 && (now - brain.lastJumpAt) < 650) {
-        tryJump(slime, brain, now, 0.75);
-      }
-
-      // ── Teleport escape: very unstable + being actively chased ──
-      // Trigger once per 8s max, only when the attacker is close & gaining
-      if (instab > 0.55
-          && dist < 180
-          && now - brain._lastTeleportAt > 8000
-          && Math.random() < 0.015 + instab * 0.02) {
-        // Pick a landing spot far away on the opposite side
-        const fleeDir = Math.sign(sc.x - tc.x) || (Math.random() > 0.5 ? 1 : -1);
-        const teleX = Math.max(world.left + 80,
-                       Math.min(world.right - 80,
-                         sc.x + fleeDir * randRange(220, 380)));
-        brain._lastTeleportAt = now;
-        // Visual flash: brief "hurt" burst then switch to teleport_flee
-        slime.triggerAction('flee', 300, 1.4);
-        teleportSlime(slime, teleX, sc.y);
-        brain._pendingBubble = { emotion: 'scared' };
-        startBehavior(brain, 'teleport_flee', brain.targetId, now);
-        break;
-      }
-
+      moveAway(slime, brain, tc.x, 1.1 * energy, world);
+      if (Math.random() < 0.03 * energy) tryJump(slime, brain, now);
       keepAction(slime, 'flee', 0.85 + clamp01(1 - dist / 200) * 0.3);
       if (dist > 350) brain.endsAt = now + 300;
-      break;
-    }
-
-    case 'teleport_flee': {
-      // Post-teleport recovery: slime lands with a stagger then sprints away
-      if (!tc) { brake(brain); break; }
-      const elapsed = now - brain.startedAt;
-      if (elapsed < 350) {
-        // Stagger: brief disoriented shake
-        brake(brain);
-        keepAction(slime, 'hurt', 1.2 - elapsed / 350);
-      } else {
-        // Sprint away hard
-        const instab = 1 - sigmoid(s.stability || 50);
-        moveAway(slime, brain, tc.x, (1.3 + instab * 0.7) * energy, world);
-        keepAction(slime, 'flee', 0.7);
-      }
       break;
     }
 
@@ -1086,41 +905,6 @@ function execBehavior(brain, slime, others, world, now) {
       if (!tc) break;
       moveAway(slime, brain, tc.x, 0.7 * energy, world);
       keepAction(slime, 'hurt', 0.85 + clamp01(1 - (now - brain.startedAt) / 1000) * 0.3);
-      break;
-    }
-
-    case 'reckless_chase': {
-      // Combatant temperament refusing to let prey flee — full speed pursuit
-      if (!tc) { startBehavior(brain, 'wander', null, now); break; }
-      const ferBoost = 0.8 + sigmoid(s.ferocity || 50) * 0.7;
-
-      if (dist > 55) {
-        // Full-tilt chase — push anything in the way aside
-        const chaseBlocker = detectObstacle(slime, brain, others, tc.x);
-        if (chaseBlocker && chaseBlocker !== target)
-          resolveObstacle(slime, brain, chaseBlocker, world, now);
-        moveToward(slime, brain, tc.x, 1.3 * energy * ferBoost);
-        // Leap to close distance gaps
-        if (dist > 180 && Math.random() < 0.04 * energy)
-          tryJump(slime, brain, now, 1.2 + sigmoid(s.ferocity || 50) * 0.3);
-      } else {
-        // Cornered — immediately escalate to fight_clash
-        const ob = target?._prairieBrain;
-        if (ob && ob.behavior !== 'fight_clash') {
-          const fightScoreA = computeFightScore(slime)  + Math.random() * 20;
-          const fightScoreB = computeFightScore(target) + Math.random() * 20;
-          startBehavior(brain, 'fight_clash', brain.targetId, now);
-          startBehavior(ob,    'fight_clash', brain.selfId,   now);
-          brain._fightScore    = fightScoreA;
-          brain._fightTargetId = brain.targetId;
-          ob._fightScore       = fightScoreB;
-          ob._fightTargetId    = brain.selfId;
-        }
-      }
-      keepAction(slime, 'attack', Math.min(1.3, 0.85 + ferBoost * 0.2));
-
-      // If prey teleported out of sight, end chase
-      if (dist > 500) brain.endsAt = now + 200;
       break;
     }
 
@@ -1167,9 +951,6 @@ function execBehavior(brain, slime, others, world, now) {
           break;
         }
       }
-      // Obstacle check
-      const wanderBlocker = detectObstacle(slime, brain, others, brain.moveGoalX);
-      if (wanderBlocker) resolveObstacle(slime, brain, wanderBlocker, world, now);
       moveToward(slime, brain, brain.moveGoalX, 0.5 * energy);
       if (Math.random() < 0.006 * energy) tryJump(slime, brain, now);
       break;
@@ -1187,15 +968,10 @@ function execBehavior(brain, slime, others, world, now) {
     case 'explore_jump': {
       if (!brain.moveGoalX || Math.abs(sc.x - brain.moveGoalX) < 30) {
         brain.moveGoalX = Math.max(world.left + 80, Math.min(world.right - 80,
-          sc.x + (Math.random() - 0.5) * 500));
+          sc.x + (Math.random() - 0.5) * 400));
       }
-      // Obstacle check — explorers prefer jumping over, fits the behavior
-      const jumpBlocker = detectObstacle(slime, brain, others, brain.moveGoalX);
-      if (jumpBlocker) resolveObstacle(slime, brain, jumpBlocker, world, now);
-      moveToward(slime, brain, brain.moveGoalX, 0.8 * energy);
-      // More frequent, higher jumps — this is the "bouncy explorer" behavior
-      const jumpFreq = 0.04 + sigmoid((slime.stats?.agility || 50)) * 0.05;
-      if (Math.random() < jumpFreq * energy) tryJump(slime, brain, now, 1.1 + sigmoid(slime.stats?.agility || 50) * 0.4);
+      moveToward(slime, brain, brain.moveGoalX, 0.7 * energy);
+      if (Math.random() < 0.03 * energy) tryJump(slime, brain, now);
       break;
     }
 
@@ -1369,27 +1145,6 @@ export class SlimeInteractionEngine {
       // Execute
       execBehavior(brain, slime, entries, world, now);
 
-      // ── Reckless chase trigger ─────────────────────────────────────────────
-      // A combatant temperament slime sees its prey fleeing/teleporting → refuses to let go.
-      // Conditions: combatant, high ferocity, target is fleeing/teleporting, cooldown elapsed.
-      if (brain.behavior === 'challenge' || brain.behavior === 'fight_clash') {
-        const temperament = getTemperament(slime);
-        const ferocity = slime.stats?.ferocity || 50;
-        if (temperament === 'combatant' && ferocity > 68
-            && brain.targetId
-            && now - brain._lastRecklessChaseAt > 12000) {
-          const prey = entries.find(e => e.id === brain.targetId)?.slime;
-          const preyBrain = prey?._prairieBrain;
-          if (preyBrain && (preyBrain.behavior === 'flee'
-                         || preyBrain.behavior === 'teleport_flee'
-                         || preyBrain.behavior === 'recoil')) {
-            brain._lastRecklessChaseAt = now;
-            startBehavior(brain, 'reckless_chase', brain.targetId, now);
-            brain._pendingBubble = { emotion: 'combat' };
-          }
-        }
-      }
-
       // Persistent social relationship updates (writes to livingState.relationshipLedger)
       if (brain.targetId) {
         updateSocialRelationship(brain, slime, entries, now);
@@ -1403,8 +1158,7 @@ export class SlimeInteractionEngine {
             observe: 'curiosity', approach: 'curiosity', investigate: 'curiosity',
             follow: 'empathy', bond: 'empathy', romance: 'empathy', calm: 'empathy',
             challenge: 'ferocity', flee: 'stability', recoil: 'stability',
-            fight_clash: 'ferocity', reckless_chase: 'ferocity',
-            teleport_flee: 'stability',
+            fight_clash: 'ferocity',
           };
           const stat = learnMap[brain.behavior];
           if (stat && slime.stats[stat] !== undefined) {
