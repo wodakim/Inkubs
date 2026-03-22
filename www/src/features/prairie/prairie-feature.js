@@ -131,6 +131,7 @@ export function createPrairieFeature() {
     let unsubscribeRepository = null;
     let currentMount = null;
     let rafId = 0;
+    let backgroundTickId = 0;
     let saveTimeout = 0;
     let isSuspended = false;
     let interactionsBound = false;
@@ -2177,8 +2178,12 @@ export function createPrairieFeature() {
     function handleVisibilityChange() {
         if (document.hidden) {
             stopLoop();
+            stopBackgroundTick();
         } else if (!isSuspended) {
             startLoop();
+        } else {
+            // Prairie suspendue mais device revenu — relancer le background tick
+            startBackgroundTick();
         }
     }
 
@@ -2190,6 +2195,37 @@ export function createPrairieFeature() {
         document.addEventListener('visibilitychange', handleVisibilityChange);
         window.addEventListener('inku:perf-tier-changed', handlePerfTierChanged);
         rafId = window.requestAnimationFrame(step);
+    }
+
+    /**
+     * Tick de logique léger pour la prairie en arrière-plan.
+     * Met à jour l'IA et les interactions sans aucun rendu canvas.
+     * Cadence : ~4 Hz pour un coût CPU quasi nul.
+     */
+    function backgroundTick() {
+        const now = performance.now();
+        for (const entry of getActiveEntries()) {
+            entry.slime.update();
+        }
+        resolveSlimeCollisions();
+        const engineEntries = activeCanonicalIds
+            .map((id) => ({ id, slime: runtimeById.get(id)?.slime }))
+            .filter((e) => e.slime && !e.slime.draggedNode);
+        if (engineEntries.length >= 1) {
+            interactionEngine.tick(engineEntries, world, prairieObjects);
+        }
+    }
+
+    function startBackgroundTick() {
+        if (backgroundTickId) return;
+        backgroundTickId = window.setInterval(backgroundTick, 250);
+    }
+
+    function stopBackgroundTick() {
+        if (backgroundTickId) {
+            window.clearInterval(backgroundTickId);
+            backgroundTickId = 0;
+        }
     }
 
     function stopLoop() {
@@ -2205,6 +2241,7 @@ export function createPrairieFeature() {
 
     function teardownLoop() {
         stopLoop();
+        stopBackgroundTick();
         document.removeEventListener('visibilitychange', handleVisibilityChange);
     }
 
@@ -2338,12 +2375,14 @@ export function createPrairieFeature() {
         mount(context) {
             ensureShell(context.mount);
             isSuspended = false;
+            stopBackgroundTick();
             showFeature();
             bootstrapPrairieRuntime();
         },
         resume(context) {
             ensureShell(context.mount);
             isSuspended = false;
+            stopBackgroundTick();
             showFeature();
             bootstrapPrairieRuntime();
         },
@@ -2355,6 +2394,8 @@ export function createPrairieFeature() {
             persistAllActiveRecords('prairie_suspend');
             saveSession({ activeCanonicalIds: [...activeCanonicalIds], camera: { ...camera }, panel: panelLayout });
             stopLoop();
+            // Continuer la logique IA en arrière-plan (sans rendu canvas)
+            startBackgroundTick();
             clearTimeout(saveTimeout);
             window.clearTimeout(dronePanelCloseTimeout);
             clearInterval(obsUpdateInterval);

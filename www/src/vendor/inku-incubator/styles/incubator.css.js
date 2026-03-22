@@ -155,7 +155,7 @@ const stylesheetText = `
   image-rendering: pixelated;
   display: flex;
   flex-direction: column;
-  gap: 0.28rem;
+  gap: 0.24rem;
 }
 
 /* Top row: label left, blinker right */
@@ -200,20 +200,24 @@ const stylesheetText = `
   margin: 0;
 }
 
-/* Candidate info — horizontal layout for mobile */
+/* Candidate info — vertical layout, full width */
 .display-panel__candidate-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto;
-  column-gap: 0.5rem;
-  row-gap: 0.12rem;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 0.16rem;
+}
+
+/* Row 1: Name + Price inline */
+.display-panel__top-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.35rem;
 }
 
 .display-panel__candidate-name {
-  grid-column: 1;
-  grid-row: 1;
-  font-size: 0.8rem;
+  flex: 1;
+  font-size: 0.78rem;
   font-weight: 900;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -226,29 +230,27 @@ const stylesheetText = `
   line-height: 1.2;
 }
 
-/* Price — top right, prominent */
+/* Price — top right */
 .display-panel__candidate-price {
-  grid-column: 2;
-  grid-row: 1 / 3;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  justify-content: center;
-  padding-left: 0.4rem;
+  flex-shrink: 0;
+  padding-left: 0.35rem;
   border-left: 1px solid hsla(var(--inku-accent-hue) 40% 35% / 0.2);
 }
 
 .display-panel__price-label {
-  font-size: 0.48rem;
-  letter-spacing: 0.2em;
-  color: rgba(148, 163, 184, 0.5);
+  font-size: 0.42rem;
+  letter-spacing: 0.18em;
+  color: rgba(148, 163, 184, 0.45);
   font-family: 'Courier New', monospace;
   text-transform: uppercase;
   line-height: 1;
 }
 
 .display-panel__price-value {
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: rgba(250, 220, 100, 0.95);
@@ -258,32 +260,156 @@ const stylesheetText = `
   line-height: 1.2;
 }
 
-/* Rarity + pattern — bottom left */
+/* Rarity + pattern + income on one line */
 .display-panel__candidate-meta {
-  grid-column: 1;
-  grid-row: 2;
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.3rem;
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .display-panel__candidate-rarity {
-  font-size: 0.58rem;
+  font-size: 0.52rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   font-family: 'Courier New', monospace;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .display-panel__candidate-pattern {
-  font-size: 0.54rem;
-  letter-spacing: 0.1em;
-  color: rgba(148, 163, 184, 0.6);
+  font-size: 0.46rem;
+  letter-spacing: 0.07em;
+  color: rgba(148, 163, 184, 0.5);
   font-family: 'Courier New', monospace;
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.display-panel__candidate-income {
+  font-size: 0.46rem;
+  letter-spacing: 0.05em;
+  color: rgba(52, 211, 153, 0.7);
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* Info row: trait + morpho */
+.display-panel__info-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.04rem;
+}
+
+.display-panel__info-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.04rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.display-panel__info-label {
+  font-size: 0.38rem;
+  letter-spacing: 0.18em;
+  color: rgba(148, 163, 184, 0.35);
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+}
+
+.display-panel__info-value {
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(220, 255, 230, 0.85);
+}
+
+/* Element tags */
+.display-panel__elements {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.18rem;
+  margin-top: 0.02rem;
+}
+
+.dp-element-tag {
+  font-size: 0.38rem;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.08rem 0.26rem;
+  border-radius: 2px;
+  border: 1px solid;
+  white-space: nowrap;
+}
+.dp-element-tag--common    { color: rgba(148,163,184,0.6); border-color: rgba(148,163,184,0.18); background: rgba(148,163,184,0.04); }
+.dp-element-tag--uncommon  { color: #4caf50; border-color: rgba(76,175,80,0.28); background: rgba(76,175,80,0.05); }
+.dp-element-tag--rare      { color: #42a5f5; border-color: rgba(66,165,245,0.28); background: rgba(66,165,245,0.05); }
+.dp-element-tag--epic      { color: #ba68c8; border-color: rgba(186,104,200,0.28); background: rgba(186,104,200,0.05); }
+.dp-element-tag--legendary { color: #ffb300; border-color: rgba(255,179,0,0.35); background: rgba(255,179,0,0.07); text-shadow: 0 0 5px rgba(255,179,0,0.35); }
+
+/* Stats section */
+.display-panel__stats-label {
+  font-size: 0.38rem;
+  letter-spacing: 0.2em;
+  color: rgba(148, 163, 184, 0.32);
+  font-family: 'Courier New', monospace;
+  text-transform: uppercase;
+  margin-top: 0.04rem;
+}
+
+.display-panel__stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.dp-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.dp-stat-label {
+  font-size: 0.38rem;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.08em;
+  color: rgba(148, 163, 184, 0.45);
+  width: 1.6rem;
+  flex-shrink: 0;
+}
+
+.dp-stat-bar-track {
+  flex: 1;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.dp-stat-bar-fill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 0.4s ease;
+}
+
+.dp-stat-val {
+  font-size: 0.38rem;
+  font-family: 'Courier New', monospace;
+  color: rgba(148, 163, 184, 0.4);
+  width: 1.4rem;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 .display-panel__idle-hint {
@@ -311,7 +437,7 @@ const stylesheetText = `
 
   .display-panel__screen {
     padding: 0.45rem 0.6rem 0.5rem;
-    gap: 0.22rem;
+    gap: 0.18rem;
   }
 
   .display-panel__label {
@@ -325,20 +451,37 @@ const stylesheetText = `
   }
 
   .display-panel__candidate-name {
-    font-size: 0.72rem;
+    font-size: 0.68rem;
     letter-spacing: 0.07em;
   }
 
   .display-panel__price-value {
-    font-size: 0.78rem;
+    font-size: 0.74rem;
   }
 
   .display-panel__candidate-rarity {
-    font-size: 0.52rem;
+    font-size: 0.50rem;
   }
 
   .display-panel__candidate-pattern {
-    font-size: 0.48rem;
+    font-size: 0.44rem;
+  }
+
+  .display-panel__info-value {
+    font-size: 0.56rem;
+  }
+
+  .dp-element-tag {
+    font-size: 0.40rem;
+    padding: 0.08rem 0.26rem;
+  }
+
+  .dp-stat-label {
+    font-size: 0.38rem;
+  }
+
+  .dp-stat-val {
+    font-size: 0.38rem;
   }
 
   .display-panel__idle-hint {
@@ -1264,25 +1407,15 @@ const stylesheetText = `
   min-height: 720px;
 }
 
+/* Le display-panel interne est masqué en embed :
+   il est rendu dans l'overlay externe (.labo-dp-overlay) */
+.inku-incubator[data-integration-embed-mode="true"] .display-panel {
+  display: none;
+}
+
 .inku-incubator[data-integration-embed-mode="true"] .frame {
   gap: 1.15rem;
   padding: 1.0rem 0.4rem 1.1rem;
-}
-
-.inku-incubator[data-integration-embed-mode="true"] .display-panel {
-  width: 340px;
-  min-width: 340px;
-  align-self: center;
-  margin-inline: auto;
-}
-
-.inku-incubator[data-integration-embed-mode="true"] .display-panel__screen {
-  /* Hauteur fixe : candidate-row et idle-hint sont toggles hidden/visible
-     pendant le cycle automatique. Sans min-height, le display-panel
-     rétrécit → le chassis remonte → tout le contenu de l'incubateur
-     "bouge". On fixe une hauteur plancher couvrant la state maximale
-     (candidate-row visible) pour que le chassis reste immobile. */
-  min-height: 110px;
 }
 
 .inku-incubator[data-integration-embed-mode="true"] .chassis {

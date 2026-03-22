@@ -16,17 +16,51 @@ export function createIncubatorTemplate(documentRef, t = (k) => k) {
             </div>
             <div class="display-panel__status js-status"></div>
             <div class="display-panel__divider"></div>
+
+            <!-- Candidate info block — hidden until a candidate is staged -->
             <div class="display-panel__candidate-row js-dp-candidate-row" hidden>
-              <div class="display-panel__candidate-name js-dp-name"></div>
+
+              <!-- Row 1: Name + Price -->
+              <div class="display-panel__top-row">
+                <div class="display-panel__candidate-name js-dp-name"></div>
+                <div class="display-panel__candidate-price">
+                  <span class="display-panel__price-label">${t('incubator.price_label')}</span>
+                  <span class="display-panel__price-value js-dp-price">—</span>
+                </div>
+              </div>
+
+              <!-- Row 2: Rarity + Pattern -->
               <div class="display-panel__candidate-meta">
                 <span class="display-panel__candidate-rarity js-dp-rarity"></span>
                 <span class="display-panel__candidate-pattern js-dp-pattern"></span>
+                <span class="display-panel__candidate-income js-dp-income"></span>
               </div>
-              <div class="display-panel__candidate-price">
-                <span class="display-panel__price-label">${t('incubator.price_label')}</span>
-                <span class="display-panel__price-value js-dp-price">—</span>
+
+              <div class="display-panel__divider"></div>
+
+              <!-- Row 3: Mood / Trait comportemental -->
+              <div class="display-panel__info-row">
+                <div class="display-panel__info-block">
+                  <span class="display-panel__info-label js-dp-trait-label">${t('incubator.dp.trait')}</span>
+                  <span class="display-panel__info-value js-dp-trait"></span>
+                </div>
+                <div class="display-panel__info-block">
+                  <span class="display-panel__info-label">${t('incubator.dp.morpho')}</span>
+                  <span class="display-panel__info-value js-dp-morpho"></span>
+                </div>
               </div>
+
+              <!-- Row 4: Elements (shape + acc + eye + pattern) -->
+              <div class="display-panel__elements js-dp-elements"></div>
+
+              <div class="display-panel__divider"></div>
+
+              <!-- Row 5: Stats bars -->
+              <div class="display-panel__stats-label">${t('incubator.dp.stats')}</div>
+              <div class="display-panel__stats js-dp-stats"></div>
+
             </div>
+
             <div class="display-panel__idle-hint js-dp-idle-hint">${t('incubator.no_entity')}</div>
           </div>
         </header>

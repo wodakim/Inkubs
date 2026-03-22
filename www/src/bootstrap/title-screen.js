@@ -11,7 +11,7 @@ export function createTitleScreen({ onPlay } = {}) {
 
     /* ── Settings ── */
     const SK = 'inku.settings.v1';
-    const DEF = { master: 80, music: 60, sfx: 90, quality: 'high', fps: false, motion: false, notif: false, vibr: true, lang: 'fr' };
+    const DEF = { master: 80, music: 60, sfx: 90, quality: 'high', fps: false, motion: false, notif: false, vibr: true, touch: true, lang: 'fr' };
     const loadS = () => { try { return { ...DEF, ...JSON.parse(localStorage.getItem(SK) || '{}') }; } catch { return { ...DEF }; } };
     const saveS = s => { try { localStorage.setItem(SK, JSON.stringify(s)); } catch {} };
     let S = loadS();
@@ -95,7 +95,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
 @media(max-height:650px){.safe-area-pb{padding-bottom:max(1rem,env(safe-area-inset-bottom))}.login-card-aaa{padding:0.75rem 1rem;border-radius:16px;max-width:290px}.title-glow{font-size:2.2rem}.incubator-container{max-height:280px}}
 
 /* ═══ MODAL PARAMÈTRES — STYLE POKÉMON ═══ */
-#ts-settings-modal{position:fixed;inset:0;z-index:100000;background:#070c18;opacity:0;pointer-events:none;transition:opacity 0.28s ease,transform 0.28s ease;display:flex;flex-direction:column;font-family:'Nunito',sans-serif;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(8px);}
+#ts-settings-modal{position:fixed;inset:0;z-index:100000;background:#070c18;opacity:0;pointer-events:none;transition:opacity 0.28s ease,transform 0.28s ease;display:flex;flex-direction:column;font-family:'Nunito',sans-serif;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(8px);touch-action:pan-y;}
 #ts-settings-modal.open{opacity:1;pointer-events:auto;transform:translateY(0);}
 /* Header */
 .pks-header{display:flex;align-items:center;gap:0.875rem;padding:1rem 1.25rem;background:rgba(16,185,129,0.04);border-bottom:2px solid rgba(16,185,129,0.18);flex-shrink:0;}
@@ -105,7 +105,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
 .pks-title{font-size:1.1rem;font-weight:900;color:white;letter-spacing:0.04em;}
 .pks-version{font-size:0.58rem;font-family:'JetBrains Mono','Fira Code',monospace;color:rgba(52,211,153,0.4);letter-spacing:0.18em;text-transform:uppercase;margin-top:1px;}
 /* Scrollable body */
-.pks-body{flex:1;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:1.5rem;scrollbar-width:none;}
+.pks-body{flex:1;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:1.5rem;scrollbar-width:none;touch-action:pan-y;}
 .pks-body::-webkit-scrollbar{display:none;}
 /* Section */
 .pks-section{padding:0 0.875rem;margin-top:1.25rem;}
@@ -351,6 +351,12 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
                 </div>
                 <div class="pks-divider"></div>
                 <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-green"><i class="ph ph-hand-tap"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.touch')}</div><div class="pks-row-sub">${t('ts.touch_sub')}</div></div>
+                    <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-touch"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row">
                     <div class="pks-row-icon pks-icon-amber"><i class="ph ph-bell"></i></div>
                     <div class="pks-row-body"><div class="pks-row-name">${t('ts.notifications')}</div><div class="pks-row-sub">${t('ts.notif_sub')}</div></div>
                     <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-notif"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
@@ -475,7 +481,8 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
         };
 
         const onMove = e => {
-            if(e.cancelable) e.preventDefault();
+            // Ne bloquer le scroll natif que si on drague réellement le slime
+            if(dragging && e.cancelable) e.preventDefault();
             const pt = getPoint(e);
             const cp = toCanvas(pt.x, pt.y);
             targetX = cp.x; targetY = cp.y;
@@ -591,8 +598,8 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
     /* ── Settings modal ── */
     function _initSettings() {
         const modal=root.querySelector('#ts-settings-modal');
-        const open=()=>modal.classList.add('open');
-        const close=()=>modal.classList.remove('open');
+        const open=()=>{ modal.classList.add('open'); root.style.touchAction='pan-y'; };
+        const close=()=>{ modal.classList.remove('open'); root.style.touchAction='none'; };
         root.querySelector('#ts-open-settings').addEventListener('click',open);
         root.querySelector('#ts-close-settings').addEventListener('click',close);
         [['sm-master','master'],['sm-music','music'],['sm-sfx','sfx']].forEach(([id,k])=>{
@@ -621,7 +628,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
                 });
             });
         });
-        [['sm-fps','fps'],['sm-motion','motion'],['sm-notif','notif'],['sm-vibr','vibr']].forEach(([id,k])=>{
+        [['sm-fps','fps'],['sm-motion','motion'],['sm-notif','notif'],['sm-vibr','vibr'],['sm-touch','touch']].forEach(([id,k])=>{
             const el=root.querySelector('#'+id);
             if(!el)return; el.checked=S[k];
             el.addEventListener('change',()=>{S[k]=el.checked;saveS(S);});

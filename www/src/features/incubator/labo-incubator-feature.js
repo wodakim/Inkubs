@@ -8,6 +8,7 @@ import { createStoragePanelController } from '../storage/storage-panel-controlle
 import { INCUBATOR_EVENTS } from '../../vendor/inku-incubator/core/IncubatorEvents.js';
 import { computeIncomeRate, computeAcquisitionCost } from '../economy/economy-calculator.js';
 import { notifyRareCandidate } from '../economy/rarity-notification-service.js';
+import { createExternalDisplayPanel } from './external-display-panel.js';
 
 export function createLaboIncubatorFeature({ store } = {}) {
     let root = null;
@@ -22,6 +23,7 @@ export function createLaboIncubatorFeature({ store } = {}) {
     let storageContext = null;
     let storagePanel = null;
     let controllerStateUnsubscribe = null;
+    let externalPanel = null;   // display panel flottant hors du shadow DOM
 
     // Economy panel (prix + revenu/min + bouton acquérir)
     let storeUnsubscribe = null;
@@ -221,12 +223,37 @@ export function createLaboIncubatorFeature({ store } = {}) {
             controller.on(INCUBATOR_EVENTS.CANDIDATE_ATTACHED, ({ candidate }) => {
                 updateEconomyPanel(candidate);
 
+                // Mettre à jour le prix ET le revenu dans le display panel interne
+                if (currentCandidatePrice !== null && controller?.view) {
+                    controller.view.updatePrice(currentCandidatePrice, currentCandidateIncomeRate ?? 0);
+                }
+
+                // Mettre à jour le panel externe
+                externalPanel?.updateCandidate(candidate);
+                externalPanel?.updatePrice(currentCandidatePrice, currentCandidateIncomeRate ?? 0);
+
                 // Trigger rare slime notification if player is on another section
                 const rarityTier = candidate?.metadata?.previewBlueprint?.genome?.rarityTier || 'common';
                 const activeSectionId = store?.getState?.()?.activeSectionId ?? 'labo';
                 void notifyRareCandidate(rarityTier, store, activeSectionId);
             });
             controllerStateUnsubscribe = controller.on(INCUBATOR_EVENTS.STATE_CHANGED, ({ state, previousState }) => {
+                // Sync statut dans le panel externe
+                const statusLabels = {
+                    idle: t('incubator.status.idle'), staging: t('incubator.status.staging'),
+                    intake: t('incubator.status.intake'), suspended: t('incubator.status.suspended'),
+                    purchasePending: t('incubator.status.purchasePending'),
+                    purchased: t('incubator.status.purchased'),
+                    purging: t('incubator.status.purging'), purged: t('incubator.status.purged'),
+                    error: t('incubator.status.error'),
+                };
+                externalPanel?.updateStatus(statusLabels[state] || state);
+
+                // Vider le candidat quand on revient en idle après purge/achat
+                if (state === 'idle' && (previousState === 'purged' || previousState === 'purchased')) {
+                    externalPanel?.updateCandidate(null);
+                }
+
                 if (state !== 'idle') {
                     return;
                 }
@@ -303,18 +330,23 @@ export function createLaboIncubatorFeature({ store } = {}) {
     }
 
     function suspendRuntime() {
-        orchestrator?.pause?.();
+        // Ne PAS pauser l'orchestrateur : les cycles continuent en arrière-plan
+        // (les timers setTimeout restent actifs, seul le rendu visuel est gelé).
         preview?.suspendForExternalRuntime?.();
     }
 
     function handleVisibilityChange() {
-        if (isSuspended) return;
         if (document.hidden) {
+            // Device en arrière-plan : pauser même si on est dans la section bar/prairie
             orchestrator?.pause?.();
             preview?.suspendForExternalRuntime?.();
         } else {
+            // Device revenu au premier plan
             preview?.resumeAfterExternalRuntime?.();
-            orchestrator?.resume?.();
+            // Ne reprendre l'orchestrateur que s'il n'est pas en état d'arrêt complet
+            if (!isSuspended || orchestrator) {
+                orchestrator?.resume?.();
+            }
         }
     }
 
@@ -369,6 +401,8 @@ export function createLaboIncubatorFeature({ store } = {}) {
             isSuspended = false;
             document.addEventListener('visibilitychange', handleVisibilityChange);
             currentMount?.classList.add('content-mount--allow-overlap', 'content-mount--labo-incubator');
+            if (!externalPanel) externalPanel = createExternalDisplayPanel();
+            externalPanel.mount();
             showFeature();
             applyLayout();
             startCycle();
@@ -380,35 +414,31 @@ export function createLaboIncubatorFeature({ store } = {}) {
             isSuspended = false;
             document.addEventListener('visibilitychange', handleVisibilityChange);
             currentMount?.classList.add('content-mount--allow-overlap', 'content-mount--labo-incubator');
+            if (!externalPanel) externalPanel = createExternalDisplayPanel();
+            externalPanel.mount();
             showFeature();
             applyLayout();
             startCycle();
         },
         suspend() {
-            if (!root) {
-                return;
-            }
+            if (!root) { return; }
             isSuspended = true;
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
             currentMount?.classList.remove('content-mount--allow-overlap', 'content-mount--labo-incubator');
             storagePanel?.close();
             suspendRuntime();
             hideFeature();
+            externalPanel?.hide();
         },
         syncLayout() {
-            if (isSuspended) {
-                return;
-            }
+            if (isSuspended) { return; }
             applyLayout();
         },
         unmount() {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             destroyRuntime();
-
             if (currentMount) {
                 currentMount.classList.remove('content-mount--allow-overlap', 'content-mount--labo-incubator');
             }
-
             root?.remove();
             root = null;
             stage = null;
@@ -418,6 +448,8 @@ export function createLaboIncubatorFeature({ store } = {}) {
             storagePanel = null;
             currentMount = null;
             isSuspended = false;
+            externalPanel?.destroy();
+            externalPanel = null;
         },
     };
 }
