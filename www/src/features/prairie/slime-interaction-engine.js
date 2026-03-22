@@ -11,7 +11,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { getPerformanceTier } from '../../utils/device-performance-profile.js';
-import { recordSlimeEvent } from '../../vendor/inku-slime-v3/engine/lifecycle/livingState.js';
+import { recordSlimeEvent, recordObjectInteraction, getObjectMemory } from '../../vendor/inku-slime-v3/engine/lifecycle/livingState.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  PER-FRAME PATCHES (applied once on first brain creation)
@@ -154,6 +154,22 @@ class SlimeBrain {
     this._lastRecklessChaseAt   = 0;
     // Pending conversational reply (set when another slime speaks to us)
     this._pendingReply = null;
+
+    // ── Needs system ─────────────────────────────────────────────────────────
+    // hunger: 0 (not hungry) → 100 (very hungry). Never kills the slime.
+    this.hunger = 10 + Math.random() * 20; // start slightly hungry
+    this._lastHungerTick = 0; // timestamp of last hunger increase
+
+    // ── Emotional state (for mood transfer) ──────────────────────────────────
+    // happiness & fear: 0..1 floats, influenced by nearby slimes via empathy.
+    this.emotionalState = { happiness: 0.5 + Math.random() * 0.3, fear: 0 };
+
+    // ── Memory: known food position (set when another slime communicates) ────
+    this.knownFoodPos = null; // { x, objectType } or null
+
+    // ── Hunt state ───────────────────────────────────────────────────────────
+    this._huntTargetId = null; // ID of the bird being hunted (index in prairieObjects)
+    this._huntJumpAt = 0;     // timestamp of the hunt jump attempt
   }
   getBias(id) { return this.biasByTarget.get(id) || 0; }
   addBias(id, d) {
@@ -870,6 +886,62 @@ function pickBehavior(brain, slime, others, world, now, prairieObjects) {
     }
   }
 
+  // ── Food-seeking behaviors (hunger-driven) ────────────────────────────────
+  const diet = slime.genome?.dietType || 'omnivore';
+  const laziness = slime.genome?.laziness ?? 0.5;
+  // Threshold: lazy slimes wait longer before seeking food
+  const hungerThreshold = 30 + laziness * 40;
+  if (brain.hunger >= hungerThreshold && prairieObjects) {
+    for (const obj of prairieObjects) {
+      const objDist = Math.hypot(sc.x - obj.x, sc.y - (obj.y || world.groundY));
+      if (objDist > 600) continue;
+
+      // Berry eating (herbivores + omnivores)
+      if (obj.type === 'berry_bush' && obj.berryCount > 0 && diet !== 'carnivore') {
+        // Check object memory: negative memory reduces interest
+        const mem = getObjectMemory(slime, `berry_${obj.berryType}`);
+        const memMod = mem ? (1 + mem.pleasurePain) : 1;
+        const hungerDrive = brain.hunger / 100;
+        const w = (0.3 + hungerDrive * 0.8) * memMod * clamp01(1 - objDist / 500);
+        if (w > 0.05) W.push(['seek_food', w, null, obj]);
+      }
+
+      // Bird hunting (carnivores + omnivores)
+      if (obj.type === 'bird' && obj.state === 'landed' && diet !== 'herbivore') {
+        const hungerDrive = brain.hunger / 100;
+        const ferBoost = sigmoid(s.ferocity || 50);
+        const w = (0.2 + hungerDrive * 0.7 + ferBoost * 0.3) * clamp01(1 - objDist / 500);
+        if (w > 0.05) W.push(['hunt_bird', w, null, obj]);
+      }
+    }
+
+    // Use known food position communicated by another slime
+    if (brain.knownFoodPos && diet !== 'carnivore') {
+      const kdist = Math.abs(sc.x - brain.knownFoodPos.x);
+      if (kdist < 700) {
+        W.push(['seek_food', 0.25 * (brain.hunger / 100), null, brain.knownFoodPos]);
+      } else {
+        brain.knownFoodPos = null; // too far, forget it
+      }
+    }
+  }
+
+  // ── Communication (share food knowledge) ─────────────────────────────────
+  // A slime that knows a food position and is near a hungry slime can share it
+  if (brain.knownFoodPos || (brain.hunger < 30 && brain.behavior === 'eat_berry')) {
+    for (const { id, slime: other } of others) {
+      if (id === brain.selfId) continue;
+      const oc = getCenter(other);
+      const dist2 = Math.hypot(sc.x - oc.x, sc.y - oc.y);
+      const ob = other._prairieBrain;
+      if (dist2 < 200 && ob && ob.hunger > hungerThreshold) {
+        const empDrive = sigmoid(s.empathy || 50);
+        W.push(['communicate', 0.15 + empDrive * 0.25, id]);
+        break;
+      }
+    }
+  }
+
   // Check if being challenged → boost flee/recoil
   for (const { id, slime: other } of others) {
     if (id === brain.selfId) continue;
@@ -935,6 +1007,10 @@ const DUR = {
   fight_clash:     [3000, 7000],
   teleport_flee:   [1200, 2500],
   reckless_chase:  [2500, 5500],
+  seek_food:       [4000, 9000],
+  eat_berry:       [1500, 3000],
+  hunt_bird:       [5000, 10000],
+  communicate:     [2000, 4000],
 };
 
 function startBehavior(brain, name, targetId, now, targetObj) {
@@ -973,6 +1049,10 @@ const CHAINS = {
   sniff_object:['wander', 'idle_look'],
   play_ball:   ['wander', 'explore_jump'],
   sit_stump:   ['idle_look', 'wander'],
+  seek_food:   ['eat_berry', 'hunt_bird', 'wander'],
+  eat_berry:   ['wander', 'idle_look'],
+  hunt_bird:   ['wander', 'idle_look'],
+  communicate: ['wander', 'idle_look'],
 };
 
 /**
@@ -1061,6 +1141,92 @@ function resolveObstacle(slime, brain, blocker, world, now) {
     blocker.triggerAction('hurt', 250, 0.5);
     brain.pauseUntil = now + randRange(150, 350);
   }
+}
+
+// ── Food gain resolver ────────────────────────────────────────────────────────
+// Applies stat gains/maluses when a slime eats, and records object memory.
+function _applyFoodGain(slime, brain, foodCategory, subType, diet, now) {
+  if (!slime?.stats) return;
+  const s = slime.stats;
+  const objectKey = foodCategory === 'berry' ? `berry_${subType}` : 'bird_meat';
+
+  // Reduce hunger regardless of diet
+  brain.hunger = Math.max(0, brain.hunger - 40 - Math.random() * 20);
+
+  if (foodCategory === 'berry') {
+    if (diet === 'herbivore') {
+      // Full gain: agility + stability
+      const agiGain  = 1.5 + Math.random() * 2.5;
+      const stabGain = 0.5 + Math.random() * 1.5;
+      const oldAgi  = s.agility;
+      const oldStab = s.stability;
+      s.agility   = Math.min(99, s.agility   + agiGain);
+      s.stability = Math.min(99, s.stability + stabGain);
+      brain.logStatChange('agility',   oldAgi,  s.agility,   'ate_berry');
+      brain.logStatChange('stability', oldStab, s.stability, 'ate_berry');
+      recordObjectInteraction(slime, objectKey, +0.4);
+      brain.logInteraction('eat_berry', null, `Délicieuses baies ! (+Agilité)`);
+    } else if (diet === 'omnivore') {
+      // Partial gain
+      const agiGain  = 0.5 + Math.random() * 1.5;
+      const oldAgi   = s.agility;
+      s.agility = Math.min(99, s.agility + agiGain);
+      brain.logStatChange('agility', oldAgi, s.agility, 'ate_berry');
+      recordObjectInteraction(slime, objectKey, +0.15);
+      brain.logInteraction('eat_berry', null, `Baies mangées. (+Agilité)`);
+    } else {
+      // Carnivore eating berries: MALUS
+      const agiLoss  = 0.5 + Math.random() * 1.0;
+      const stabLoss = 0.3 + Math.random() * 0.7;
+      const oldAgi   = s.agility;
+      const oldStab  = s.stability;
+      s.agility   = Math.max(1, s.agility   - agiLoss);
+      s.stability = Math.max(1, s.stability - stabLoss);
+      brain.logStatChange('agility',   oldAgi,  s.agility,   'ate_wrong_food');
+      brain.logStatChange('stability', oldStab, s.stability, 'ate_wrong_food');
+      // Strong negative memory: carnivore learns to avoid berries
+      recordObjectInteraction(slime, objectKey, -0.6);
+      brain.logInteraction('eat_berry', null, `Beurk... Ces baies me rendent malade.`);
+      slime.triggerAction('hurt', 600, 0.8);
+    }
+  } else if (foodCategory === 'bird') {
+    if (diet === 'carnivore') {
+      // Full gain: ferocity + vitality + empathy (charisme)
+      const ferGain = 1.5 + Math.random() * 2.5;
+      const vitGain = 0.8 + Math.random() * 2.0;
+      const empGain = 0.5 + Math.random() * 1.5;
+      const oldFer  = s.ferocity;
+      const oldVit  = s.vitality;
+      const oldEmp  = s.empathy;
+      s.ferocity = Math.min(99, s.ferocity + ferGain);
+      s.vitality = Math.min(99, s.vitality + vitGain);
+      s.empathy  = Math.min(99, s.empathy  + empGain);
+      brain.logStatChange('ferocity', oldFer, s.ferocity, 'ate_bird');
+      brain.logStatChange('vitality', oldVit, s.vitality, 'ate_bird');
+      brain.logStatChange('empathy',  oldEmp, s.empathy,  'ate_bird');
+      recordObjectInteraction(slime, objectKey, +0.5);
+      brain.logInteraction('hunt_bird', null, `Festin ! (+Férocité, +Vitalité)`);
+    } else if (diet === 'omnivore') {
+      // Partial gain
+      const ferGain = 0.5 + Math.random() * 1.5;
+      const vitGain = 0.3 + Math.random() * 1.0;
+      const oldFer  = s.ferocity;
+      const oldVit  = s.vitality;
+      s.ferocity = Math.min(99, s.ferocity + ferGain);
+      s.vitality = Math.min(99, s.vitality + vitGain);
+      brain.logStatChange('ferocity', oldFer, s.ferocity, 'ate_bird');
+      brain.logStatChange('vitality', oldVit, s.vitality, 'ate_bird');
+      recordObjectInteraction(slime, objectKey, +0.2);
+      brain.logInteraction('hunt_bird', null, `Oiseau mangé. (+Férocité)`);
+    }
+    // Herbivores can't hunt birds — they simply won't get the hunt_bird behavior
+  }
+
+  // Store last food position for communication
+  brain._lastFoodPos = { x: slime._prairieBrain ? getCenter(slime).x : 0, objectType: objectKey };
+  // Clear _ateThisBehavior flag for future eat_berry behaviors
+  brain._ateThisBehavior = false;
+  brain._communicatedThisBehavior = false;
 }
 
 // ── Execute behavior (called every tick ~50ms) ──────────────────────────────
@@ -1542,6 +1708,138 @@ function execBehavior(brain, slime, others, world, now) {
       }
       break;
     }
+
+    // ═══ FOOD & NEEDS ═══
+
+    case 'seek_food': {
+      // Move toward a food source (berry bush or via knownFoodPos)
+      const obj = brain.targetObj;
+      if (!obj) { brain.endsAt = now; break; }
+      const targetX = obj.x;
+      const foodDist = Math.abs(sc.x - targetX);
+
+      if (foodDist > 50) {
+        // Move toward food at moderate speed
+        const laziness2 = slime.genome?.laziness ?? 0.5;
+        moveToward(slime, brain, targetX, (0.55 - laziness2 * 0.2) * energy);
+      } else {
+        brake(brain, slime);
+        // Arrived at berry bush: switch to eat_berry if there are berries
+        if (obj.type === 'berry_bush' && obj.berryCount > 0) {
+          startBehavior(brain, 'eat_berry', null, now, obj);
+        } else {
+          // Nothing to eat, go wander
+          brain.endsAt = now;
+        }
+      }
+      keepAction(slime, 'observe', 0.6 + clamp01(1 - foodDist / 200) * 0.3);
+      break;
+    }
+
+    case 'eat_berry': {
+      const obj = brain.targetObj;
+      if (!obj || obj.type !== 'berry_bush' || obj.berryCount <= 0) {
+        brain.endsAt = now; break;
+      }
+      brake(brain, slime);
+      if (sc.x !== obj.x) slime.facing = Math.sign(obj.x - sc.x);
+
+      // Eat one berry at the START of the behavior (one-shot)
+      if (!brain._ateThisBehavior) {
+        brain._ateThisBehavior = true;
+        obj.berryCount = Math.max(0, obj.berryCount - 1);
+        obj._lastEatenAt = now;
+
+        const diet  = slime.genome?.dietType || 'omnivore';
+        const bType = obj.berryType || 'red';
+        _applyFoodGain(slime, brain, 'berry', bType, diet, now);
+      }
+
+      // Gentle eating sway
+      const sway = Math.sin(now * 0.004 + brain.seed * 6) * 3;
+      if (Math.abs(sway) > 1.5) {
+        const saved = slime.moveAcceleration;
+        slime.moveAcceleration = saved * 0.04;
+        slime.applyHorizontalInput(Math.sign(sway));
+        slime.moveAcceleration = saved;
+      }
+      keepAction(slime, 'study', 0.75);
+      break;
+    }
+
+    case 'hunt_bird': {
+      // Carnivore/omnivore hunts a landed bird stealthily, then jumps on it
+      const obj = brain.targetObj;
+      if (!obj || obj.type !== 'bird' || obj.state !== 'landed') {
+        brain.endsAt = now; break;
+      }
+      const birdDist = Math.hypot(sc.x - obj.x, sc.y - (obj.y || world.groundY));
+
+      if (birdDist > 120) {
+        // Approach slowly (stealth) — speed capped to avoid startling
+        moveToward(slime, brain, obj.x, 0.28 * energy);
+        keepAction(slime, 'observe', 0.55);
+      } else if (birdDist > 50) {
+        // Creep very slowly
+        moveToward(slime, brain, obj.x, 0.15 * energy);
+        keepAction(slime, 'observe', 0.65);
+      } else {
+        // Close enough — JUMP!
+        if (now - brain._huntJumpAt > 1200) {
+          brain._huntJumpAt = now;
+          const agi = sigmoid(s.agility || 50);
+          tryJump(slime, brain, now, 1.0 + agi * 0.5);
+
+          // Check if bird is still there and not startled
+          if (obj.state === 'landed') {
+            const roll = Math.random();
+            const captureChance = 0.35 + agi * 0.45; // 35-80% based on agility
+            if (roll < captureChance) {
+              // SUCCESS: bird captured
+              obj.state = 'captured';
+              obj._capturedAt = now;
+              const diet = slime.genome?.dietType || 'omnivore';
+              _applyFoodGain(slime, brain, 'bird', 'meat', diet, now);
+              slime.triggerAction('attack', 800, 1.1);
+              brain.logInteraction('hunt_bird', null, 'Oiseau capturé !');
+            } else {
+              // FAIL: bird startled and flies away
+              obj.state = 'startled';
+              obj._startledAt = now;
+              slime.triggerAction('question', 500, 0.8);
+              brain.logInteraction('hunt_bird', null, "L'oiseau s'est envolé...");
+            }
+            brain.endsAt = now + 500; // end behavior
+          }
+        }
+        brake(brain, slime);
+      }
+      break;
+    }
+
+    case 'communicate': {
+      // Share a known food position with a nearby hungry slime
+      if (!tc) break;
+      brake(brain, slime);
+      faceTo(slime, target);
+
+      if (!brain._communicatedThisBehavior) {
+        brain._communicatedThisBehavior = true;
+        const ob = target?._prairieBrain;
+        if (ob) {
+          // Share own food knowledge or last eaten position
+          const sharedPos = brain.knownFoodPos || brain._lastFoodPos;
+          if (sharedPos) {
+            ob.knownFoodPos = { ...sharedPos };
+            ob.logInteraction('communicate', brain.selfId, 'Position de nourriture reçue');
+          }
+          brain.addBias(brain.targetId, 0.04);
+        }
+        brain.logInteraction('communicate', brain.targetId, 'Partage la position d\'une source de nourriture');
+      }
+      keepAction(slime, 'question', 0.7);
+      break;
+    }
   }
 
   // ── Drive face expressions based on current behavior ──────────────────────
@@ -1707,6 +2005,54 @@ export class SlimeInteractionEngine {
           }
         }
       }
+    }
+
+    // ── Hunger tick ──────────────────────────────────────────────────────────
+    // Every 10 seconds, increase hunger based on laziness gene.
+    // Lazy slimes are less hungry (hunger rises slowly).
+    const HUNGER_INTERVAL = 10000; // 10s
+    if (now - brain._lastHungerTick > HUNGER_INTERVAL) {
+      brain._lastHungerTick = now;
+      const laziness = slime.genome?.laziness ?? 0.5;
+      // Active (laziness=0) → +3/tick, Lazy (laziness=1) → +0.8/tick
+      const gain = 0.8 + (1 - laziness) * 2.2;
+      brain.hunger = Math.min(100, brain.hunger + gain);
+    }
+
+    // ── Mood transfer (emotional contagion) ──────────────────────────────────
+    // Every tick, slimes within 150px influence each other's emotional state
+    // proportionally to the average empathy stat.
+    for (const { id: otherId, slime: other } of entries) {
+      if (otherId === brain.selfId) continue;
+      const oc = getCenter(other);
+      const sc2 = getCenter(slime);
+      const d2 = Math.hypot(sc2.x - oc.x, sc2.y - oc.y);
+      if (d2 > 150) continue;
+      const ob = other._prairieBrain;
+      if (!ob) continue;
+
+      // Blend rate based on average empathy (sociability proxy)
+      const empA = sigmoid(slime.stats?.empathy || 50);
+      const empB = sigmoid(other.stats?.empathy  || 50);
+      const blendRate = (empA + empB) * 0.5 * 0.04; // 0..0.04 per tick
+
+      // happiness: converge toward each other
+      const happyA = brain.emotionalState.happiness;
+      const happyB = ob.emotionalState.happiness;
+      brain.emotionalState.happiness = lerp(happyA, happyB, blendRate);
+      ob.emotionalState.happiness    = lerp(happyB, happyA, blendRate);
+
+      // fear: if one is fleeing, propagate fear to the other
+      const fearingA = brain.behavior === 'flee' || brain.behavior === 'recoil';
+      const fearingB = ob.behavior   === 'flee' || ob.behavior   === 'recoil';
+      if (fearingA) {
+        ob.emotionalState.fear = Math.min(1, ob.emotionalState.fear + blendRate * 0.5);
+      }
+      if (fearingB) {
+        brain.emotionalState.fear = Math.min(1, brain.emotionalState.fear + blendRate * 0.5);
+      }
+      // Fear decays when not near a threat
+      if (!fearingA) brain.emotionalState.fear = Math.max(0, brain.emotionalState.fear - 0.01);
     }
   }
 

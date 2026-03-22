@@ -180,6 +180,27 @@ export function createGenome(type, { rng = Math.random } = {}) {
   if (mood === 'frenzied')    { bounceDamping -= 0.05; rigidity += 0.015; eyeSizeBias += 0.15; }
   if (mood === 'enlightened') { lightness += 6; saturation -= 4; surfaceSmoothness += 0.012; }
 
+  // ── Behavioural genes ────────────────────────────────────────────────────────
+  // laziness: 0 (hyper-active) → 1 (very lazy) — affects hunger decay rate &
+  // food-seeking threshold.  Correlated loosely with mood.
+  let laziness = rng();
+  if (mood === 'sleepy')   laziness = Math.min(1, laziness + 0.35);
+  if (mood === 'calm')     laziness = Math.min(1, laziness + 0.15);
+  if (mood === 'frenzied') laziness = Math.max(0, laziness - 0.35);
+  if (mood === 'mischief') laziness = Math.max(0, laziness - 0.20);
+
+  // dietType: 'herbivore' | 'carnivore' | 'omnivore'
+  // Correlated with slime type but with variation.
+  const dietRoll = rng();
+  let dietType;
+  if (type === 'cute') {
+    dietType = dietRoll < 0.60 ? 'herbivore' : dietRoll < 0.85 ? 'omnivore' : 'carnivore';
+  } else if (type === 'scary') {
+    dietType = dietRoll < 0.60 ? 'carnivore' : dietRoll < 0.85 ? 'omnivore' : 'herbivore';
+  } else {
+    dietType = dietRoll < 0.20 ? 'herbivore' : dietRoll < 0.70 ? 'omnivore' : 'carnivore';
+  }
+
   const genome = {
     schemaVersion: GENOME_SCHEMA_VERSION,
     hue, hue2, sat2, lit2,
@@ -189,7 +210,8 @@ export function createGenome(type, { rng = Math.random } = {}) {
     friction, rigidity,
     bounceDamping: Math.max(0.1, bounceDamping),
     surfaceSmoothness, volumeBias, faceScale,
-    eyeSpacingBias, eyeSizeBias, mouthOffsetY, cheekIntensity, accessorySizeBias
+    eyeSpacingBias, eyeSizeBias, mouthOffsetY, cheekIntensity, accessorySizeBias,
+    laziness, dietType,
   };
 
   const rarityScore = computeRarityScore(genome);

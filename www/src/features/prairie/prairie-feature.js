@@ -176,6 +176,7 @@ export function createPrairieFeature() {
     let obsBody = null;
     let obsPageLog = null;
     let obsPageStats = null;
+    let obsPageJournal = null;
     let obsTabs = [];
     let obsSelectedSlimeId = null;
     let obsActiveTab = 'log';
@@ -273,6 +274,7 @@ export function createPrairieFeature() {
                             <div class="prairie-obs__tabs">
                                 <button type="button" class="prairie-obs__tab is-active" data-prairie-obs-tab="log">Activité</button>
                                 <button type="button" class="prairie-obs__tab" data-prairie-obs-tab="stats">Stats</button>
+                                <button type="button" class="prairie-obs__tab" data-prairie-obs-tab="journal">Journal</button>
                             </div>
                             <button type="button" class="prairie-obs__close" data-prairie-obs-close>×</button>
                         </header>
@@ -280,6 +282,7 @@ export function createPrairieFeature() {
                         <div class="prairie-obs__body" data-prairie-obs-body>
                             <div class="prairie-obs__page prairie-obs__page--log is-active" data-prairie-obs-page="log"></div>
                             <div class="prairie-obs__page prairie-obs__page--stats" data-prairie-obs-page="stats"></div>
+                            <div class="prairie-obs__page prairie-obs__page--journal" data-prairie-obs-page="journal"></div>
                         </div>
                     </div>
                 </div>
@@ -308,6 +311,7 @@ export function createPrairieFeature() {
         obsBody = root.querySelector('[data-prairie-obs-body]');
         obsPageLog = root.querySelector('[data-prairie-obs-page="log"]');
         obsPageStats = root.querySelector('[data-prairie-obs-page="stats"]');
+        obsPageJournal = root.querySelector('[data-prairie-obs-page="journal"]');
         obsTabs = [...root.querySelectorAll('[data-prairie-obs-tab]')];
     }
 
@@ -1100,6 +1104,8 @@ export function createPrairieFeature() {
 
         if (obsActiveTab === 'log') {
             renderLogPage(brain, entry);
+        } else if (obsActiveTab === 'journal') {
+            renderJournalPage(brain, entry);
         } else {
             renderStatsPage(brain, entry);
         }
@@ -1211,6 +1217,142 @@ export function createPrairieFeature() {
         obsPageStats.innerHTML = html;
     }
 
+    // ── generateLog : traduit l'état interne du slime en phrases naturelles ──
+    function generateLog(brain, slime) {
+        const lines = [];
+        const s = slime?.stats || {};
+        const genome = slime?.genome || {};
+        const diet = genome.dietType || 'omnivore';
+        const laziness = genome.laziness ?? 0.5;
+        const now = Date.now();
+        const hunger = brain.hunger ?? 0;
+        const em = brain.emotionalState || { happiness: 0.5, fear: 0 };
+        const objMem = slime?.livingState?.objectMemoryLedger || {};
+        const relLedger = slime?.livingState?.relationshipLedger;
+
+        // ── Faim ──────────────────────────────────────────────────────────────
+        if (hunger > 80) {
+            lines.push('J\'ai une faim dévorante... je dois trouver quelque chose à manger.');
+        } else if (hunger > 55) {
+            lines.push('J\'ai assez faim. Il faudrait que je mange bientôt.');
+        } else if (hunger > 30) {
+            lines.push('Je commence à avoir un petit creux.');
+        } else {
+            lines.push('Je me sens rassasié et content.');
+        }
+
+        // ── Objet de nourriture le plus proche dans la mémoire avec souvenir ─
+        const nearbyObjects = (window._prairiePrairieObjects || []).filter(o =>
+            (o.type === 'berry_bush' || o.type === 'bird') && o.interactive !== false
+        );
+        for (const obj of nearbyObjects) {
+            let memKey = null;
+            if (obj.type === 'berry_bush') memKey = `berry_${obj.berryType || 'red'}`;
+            else if (obj.type === 'bird')  memKey = 'bird_meat';
+            if (!memKey) continue;
+            const mem = objMem[memKey];
+            if (!mem) continue;
+            const pp = mem.pleasurePain;
+            if (pp <= -0.3 && hunger > 40) {
+                if (obj.type === 'berry_bush') {
+                    lines.push(`Ces baies ${obj.berryType || ''} sont là... mais elles me rappellent de mauvais souvenirs. Je préfère éviter.`);
+                } else {
+                    lines.push(`Il y a un oiseau là-bas, mais ma dernière chasse s'est mal terminée. Je reste prudent.`);
+                }
+            } else if (pp >= 0.3 && hunger > 30) {
+                if (obj.type === 'berry_bush') {
+                    lines.push(`Ces baies ont l'air délicieuses ! Je me souviens du bon goût.`);
+                } else {
+                    lines.push(`Cet oiseau... la dernière fois c'était un festin.`);
+                }
+            }
+        }
+
+        // ── Régime alimentaire ────────────────────────────────────────────────
+        if (diet === 'herbivore') {
+            lines.push('Je préfère les plantes et les fruits. La violence n\'est pas mon fort.');
+        } else if (diet === 'carnivore') {
+            lines.push('Je suis un chasseur dans l\'âme. Les proies m\'attirent naturellement.');
+        } else {
+            lines.push('Je mange de tout — baies ou oiseaux, peu importe.');
+        }
+
+        // ── Paresse ───────────────────────────────────────────────────────────
+        if (laziness > 0.75) {
+            lines.push('Honnêtement... j\'aimerais rester là et ne rien faire.');
+        } else if (laziness < 0.25) {
+            lines.push('Je suis toujours en mouvement. L\'inactivité me pèse.');
+        }
+
+        // ── Comportement actuel ───────────────────────────────────────────────
+        const bLabel = {
+            seek_food: 'chercher de la nourriture', eat_berry: 'manger des baies',
+            hunt_bird: 'chasser un oiseau', communicate: 'partager une information',
+            wander: 'me balader sans but', bond: 'tisser un lien', romance: 'courtiser quelqu\'un',
+            flee: 'fuir', challenge: 'défier quelqu\'un', fight_clash: 'me battre',
+            idle_look: 'observer autour de moi', orbit: 'tourner en rond',
+        }[brain.behavior] || brain.behavior;
+        lines.push(`En ce moment je suis occupé à ${bLabel}.`);
+
+        // ── État émotionnel ───────────────────────────────────────────────────
+        if (em.fear > 0.5) {
+            lines.push('J\'ai peur... quelque chose me menace et je le sens.');
+        } else if (em.happiness > 0.75) {
+            lines.push('Je me sens vraiment bien. La présence des autres m\'apaise.');
+        } else if (em.happiness < 0.3) {
+            lines.push('Je me sens un peu seul et mélancolique.');
+        }
+
+        // ── Relations ─────────────────────────────────────────────────────────
+        if (relLedger) {
+            const friends = Object.values(relLedger.affinities || {}).filter(r => r.type === 'friend' || r.type === 'lover');
+            const rivals  = Object.values(relLedger.affinities || {}).filter(r => r.type === 'rival' || r.type === 'hostile');
+            if (friends.length > 0) {
+                lines.push(`Je pense à ${friends[0].displayName}... sa compagnie me fait du bien.`);
+            }
+            if (rivals.length > 0) {
+                lines.push(`${rivals[0].displayName} me dérange. Je ferai mieux de l'éviter.`);
+            }
+        }
+
+        // Max 6 lignes pour ne pas surcharger
+        return lines.slice(0, 6);
+    }
+
+    function renderJournalPage(brain, entry) {
+        if (!obsPageJournal) return;
+        const slime = entry?.slime;
+        if (!slime) {
+            obsPageJournal.innerHTML = `<p class="prairie-obs__empty-msg">Aucun slime sélectionné.</p>`;
+            return;
+        }
+        // Expose prairie objects to generateLog via a window flag (safe, read-only reference)
+        window._prairiePrairieObjects = prairieObjects;
+
+        const thoughts = generateLog(brain, slime);
+        let html = '<div class="prairie-obs__journal">';
+        for (const line of thoughts) {
+            html += `<p class="prairie-obs__journal-line">💭 ${line}</p>`;
+        }
+        // Show hunger bar
+        const hunger = Math.round(brain.hunger ?? 0);
+        const hungerColor = hunger > 70 ? '#e05050' : hunger > 40 ? '#e09030' : '#50b070';
+        html += `<div class="prairie-obs__journal-hunger">
+            <span>Faim :</span>
+            <div class="prairie-obs__stat-bar" style="flex:1;margin-left:6px">
+                <div class="prairie-obs__stat-fill" style="width:${hunger}%;background:${hungerColor}"></div>
+            </div>
+            <span style="margin-left:4px;font-size:0.85em">${hunger}/100</span>
+        </div>`;
+        // Diet badge
+        const dietEmoji = { herbivore: '🌿', carnivore: '🥩', omnivore: '🍽️' };
+        const dietFr    = { herbivore: 'Herbivore', carnivore: 'Carnivore', omnivore: 'Omnivore' };
+        const diet = slime.genome?.dietType || 'omnivore';
+        html += `<div class="prairie-obs__journal-badge">${dietEmoji[diet] || '🍽️'} ${dietFr[diet] || diet}</div>`;
+        html += '</div>';
+        obsPageJournal.innerHTML = html;
+    }
+
     function formatTimeAgo(timestamp) {
         const sec = Math.round((Date.now() - timestamp) / 1000);
         if (sec < 5) return 'maintenant';
@@ -1304,6 +1446,7 @@ export function createPrairieFeature() {
                 for (const t of obsTabs) t.classList.toggle('is-active', t === tab);
                 obsPageLog?.classList.toggle('is-active', obsActiveTab === 'log');
                 obsPageStats?.classList.toggle('is-active', obsActiveTab === 'stats');
+                obsPageJournal?.classList.toggle('is-active', obsActiveTab === 'journal');
                 updateObsContent();
             });
         }
@@ -1665,7 +1808,7 @@ export function createPrairieFeature() {
         }
 
         // ── Small round bushes (3 overlapping circles, purely decorative) ─
-        const bushCount = 3 + Math.floor(rng() * 3);
+        const bushCount = 2 + Math.floor(rng() * 2);
         for (let i = 0; i < bushCount; i++) {
             const x = wL + 60 + rng() * (wSpan - 120);
             const r = 8 + rng() * 8;          // main ball radius 8-16
@@ -1674,6 +1817,48 @@ export function createPrairieFeature() {
                 type: 'bush', x, y: gY,
                 r, leafHue,
                 interactive: false,
+            });
+        }
+
+        // ── Berry bushes (interactive, slimes can eat berries) ───────────────
+        const BERRY_TYPES = ['red', 'blue', 'yellow'];
+        const berryBushCount = 4 + Math.floor(rng() * 5);
+        for (let i = 0; i < berryBushCount; i++) {
+            const x = wL + 80 + rng() * (wSpan - 160);
+            const berryType = BERRY_TYPES[Math.floor(rng() * BERRY_TYPES.length)];
+            const maxBerries = 3 + Math.floor(rng() * 5);
+            prairieObjects.push({
+                type: 'berry_bush', x, y: gY,
+                berryType,
+                berryCount: maxBerries,
+                maxBerries,
+                r: 12 + rng() * 8,
+                leafHue: 110 + rng() * 25,
+                _lastRegrowAt: 0,
+                _lastEatenAt: 0,
+                interactive: true,
+                interactRadius: 60,
+            });
+        }
+
+        // ── Birds (small entities that land, can be hunted) ──────────────────
+        const birdCount = 3 + Math.floor(rng() * 4);
+        for (let i = 0; i < birdCount; i++) {
+            const x = wL + 120 + rng() * (wSpan - 240);
+            prairieObjects.push({
+                type: 'bird',
+                x, y: gY,
+                state: 'landed', // 'landing'|'landed'|'startled'|'flying'|'captured'
+                vx: 0, vy: 0,
+                hue: 20 + rng() * 340,
+                size: 7 + rng() * 5,
+                _spawnX: x,
+                _nextLandAt: 0,
+                _startledAt: 0,
+                _capturedAt: 0,
+                alertRadius: 110 + rng() * 40,
+                interactive: true,
+                interactRadius: 55,
             });
         }
 
@@ -1722,6 +1907,95 @@ export function createPrairieFeature() {
                 // Walls
                 if (obj.x < world.left + obj.radius) { obj.x = world.left + obj.radius; obj.vx = Math.abs(obj.vx) * 0.5; }
                 if (obj.x > world.right - obj.radius) { obj.x = world.right - obj.radius; obj.vx = -Math.abs(obj.vx) * 0.5; }
+            }
+
+            // ── Berry bush: regrow berries over time ─────────────────────────
+            if (obj.type === 'berry_bush' && obj.berryCount < obj.maxBerries) {
+                const REGROW_INTERVAL = 30000; // 30s per berry
+                if (now - obj._lastRegrowAt > REGROW_INTERVAL) {
+                    obj._lastRegrowAt = now;
+                    obj.berryCount = Math.min(obj.maxBerries, obj.berryCount + 1);
+                }
+            }
+
+            // ── Bird AI ──────────────────────────────────────────────────────
+            if (obj.type === 'bird') {
+                _updateBird(obj, now);
+            }
+        }
+    }
+
+    // Bird AI: landing, alert detection, flying away, respawning
+    function _updateBird(bird, now) {
+        switch (bird.state) {
+            case 'landed': {
+                // Check if any carnivore/omnivore slime is too close AND moving too fast
+                let startled = false;
+                for (const entry of runtimeById.values()) {
+                    const slime = entry.slime;
+                    const diet = slime.genome?.dietType || 'omnivore';
+                    if (diet === 'herbivore') continue;
+                    const brain = slime._prairieBrain;
+                    if (!brain) continue;
+                    const sc = slime.getRawVisualCenter?.() || slime.getVisualCenter?.() || { x: 0, y: 0 };
+                    const d = Math.hypot(sc.x - bird.x, sc.y - bird.y);
+                    if (d < bird.alertRadius) {
+                        // Startled if slime is moving fast (not hunting stealthily)
+                        const movingFast = Math.abs(slime._aiSpeedMul || 0) > 0.8
+                            && brain.behavior !== 'hunt_bird';
+                        if (movingFast) { startled = true; break; }
+                    }
+                }
+                if (startled) {
+                    bird.state = 'startled';
+                    bird._startledAt = now;
+                }
+                break;
+            }
+            case 'startled': {
+                // Begin flying away
+                bird.vx = (Math.random() - 0.5) * 6;
+                bird.vy = -4 - Math.random() * 3;
+                bird.state = 'flying';
+                break;
+            }
+            case 'flying': {
+                bird.x += bird.vx;
+                bird.y += bird.vy;
+                bird.vy -= 0.1; // continue rising
+                bird.vx *= 0.98;
+                // Once far off-screen, schedule re-landing
+                if (bird.y < -200 || bird.x < world.left - 300 || bird.x > world.right + 300) {
+                    bird.state = 'landing';
+                    bird._nextLandAt = now + 15000 + Math.random() * 20000; // 15-35s
+                    // Reset position to somewhere in the world
+                    bird.x = world.left + 100 + Math.random() * (world.right - world.left - 200);
+                    bird.y = world.groundY - 500; // high up
+                }
+                break;
+            }
+            case 'captured': {
+                // Bird was captured — respawn after delay
+                if (!bird._nextLandAt || bird._nextLandAt === 0) {
+                    bird._nextLandAt = now + 20000 + Math.random() * 20000;
+                }
+                if (now > bird._nextLandAt) {
+                    bird.x = world.left + 100 + Math.random() * (world.right - world.left - 200);
+                    bird.y = world.groundY;
+                    bird.vx = 0; bird.vy = 0;
+                    bird.state = 'landed';
+                    bird._nextLandAt = 0;
+                }
+                break;
+            }
+            case 'landing': {
+                // Descend back to ground
+                if (now > bird._nextLandAt) {
+                    bird.y = world.groundY;
+                    bird.vx = 0; bird.vy = 0;
+                    bird.state = 'landed';
+                }
+                break;
             }
         }
     }
@@ -1875,6 +2149,115 @@ export function createPrairieFeature() {
                         ctx.arc(obj.x + p.dx - pr * 0.3, obj.y - pr * 0.7, pr * 0.28, 0, Math.PI * 2);
                         ctx.fill();
                     }
+                    break;
+                }
+
+                case 'berry_bush': {
+                    const bx = obj.x, by = obj.y;
+                    const r = obj.r;
+                    // Bush lobes (darker green than decorative bushes)
+                    ctx.fillStyle = `hsla(${obj.leafHue - 8}, 50%, 22%, 0.88)`;
+                    ctx.beginPath();
+                    ctx.arc(bx - r * 0.42, by - r * 0.5, r * 0.70, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = `hsla(${obj.leafHue}, 50%, 24%, 0.88)`;
+                    ctx.beginPath();
+                    ctx.arc(bx + r * 0.38, by - r * 0.48, r * 0.66, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = `hsla(${obj.leafHue + 8}, 52%, 28%, 0.90)`;
+                    ctx.beginPath();
+                    ctx.arc(bx, by - r * 0.72, r, 0, Math.PI * 2);
+                    ctx.fill();
+                    // Berries
+                    if (obj.berryCount > 0) {
+                        const BERRY_HUES = { red: 0, blue: 240, yellow: 55 };
+                        const bHue = BERRY_HUES[obj.berryType] ?? 0;
+                        const berryPositions = [
+                            { dx: -r * 0.28, dy: -r * 0.82 }, { dx: r * 0.3,  dy: -r * 0.95 },
+                            { dx: 0,          dy: -r * 1.12 }, { dx: -r * 0.5, dy: -r * 0.62 },
+                            { dx: r * 0.48,   dy: -r * 0.60 }, { dx: -r * 0.12, dy: -r * 1.30 },
+                            { dx: r * 0.18,   dy: -r * 1.35 },
+                        ];
+                        for (let bi = 0; bi < Math.min(obj.berryCount, berryPositions.length); bi++) {
+                            const bp = berryPositions[bi];
+                            ctx.fillStyle = `hsla(${bHue}, 70%, 48%, 0.92)`;
+                            ctx.beginPath();
+                            ctx.arc(bx + bp.dx, by + bp.dy, 3.5, 0, Math.PI * 2);
+                            ctx.fill();
+                            // Tiny shine
+                            ctx.fillStyle = `hsla(${bHue}, 60%, 72%, 0.5)`;
+                            ctx.beginPath();
+                            ctx.arc(bx + bp.dx - 1, by + bp.dy - 1, 1.2, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                    break;
+                }
+
+                case 'bird': {
+                    if (obj.state === 'captured') break; // don't render captured birds
+                    const bx = obj.x, by = obj.y;
+                    const sz = obj.size;
+                    const h = obj.hue;
+                    const inFlight = obj.state === 'flying' || obj.state === 'startled';
+
+                    ctx.save();
+                    ctx.translate(bx, by);
+
+                    if (inFlight) {
+                        // Flying: wings up
+                        const flap = Math.sin(now * 0.018) * 0.45;
+                        // Body
+                        ctx.fillStyle = `hsla(${h}, 55%, 42%, 0.90)`;
+                        ctx.beginPath();
+                        ctx.ellipse(0, -sz * 0.3, sz * 0.45, sz * 0.28, -0.3, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Wings
+                        ctx.fillStyle = `hsla(${h}, 48%, 36%, 0.82)`;
+                        ctx.beginPath();
+                        ctx.ellipse(-sz * 0.6, -sz * 0.35 - flap * sz, sz * 0.55, sz * 0.18, -0.5 - flap, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.beginPath();
+                        ctx.ellipse(sz * 0.6, -sz * 0.35 - flap * sz, sz * 0.55, sz * 0.18, 0.5 + flap, 0, Math.PI * 2);
+                        ctx.fill();
+                    } else {
+                        // Landed: small bird on ground
+                        // Body
+                        ctx.fillStyle = `hsla(${h}, 55%, 44%, 0.88)`;
+                        ctx.beginPath();
+                        ctx.ellipse(0, -sz * 0.38, sz * 0.42, sz * 0.32, 0, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Head
+                        ctx.fillStyle = `hsla(${h + 15}, 60%, 52%, 0.90)`;
+                        ctx.beginPath();
+                        ctx.arc(sz * 0.28, -sz * 0.68, sz * 0.22, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Beak
+                        ctx.fillStyle = `hsla(40, 70%, 60%, 0.88)`;
+                        ctx.beginPath();
+                        ctx.moveTo(sz * 0.48, -sz * 0.70);
+                        ctx.lineTo(sz * 0.70, -sz * 0.62);
+                        ctx.lineTo(sz * 0.48, -sz * 0.60);
+                        ctx.closePath();
+                        ctx.fill();
+                        // Eye
+                        ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                        ctx.beginPath();
+                        ctx.arc(sz * 0.34, -sz * 0.72, sz * 0.06, 0, Math.PI * 2);
+                        ctx.fill();
+                        // Feet
+                        ctx.strokeStyle = `hsla(40, 50%, 45%, 0.6)`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(-sz * 0.1, 0); ctx.lineTo(-sz * 0.1, sz * 0.1);
+                        ctx.moveTo(-sz * 0.1, sz * 0.1); ctx.lineTo(-sz * 0.25, sz * 0.18);
+                        ctx.moveTo(-sz * 0.1, sz * 0.1); ctx.lineTo(sz * 0.0, sz * 0.18);
+                        ctx.moveTo(sz * 0.1, 0); ctx.lineTo(sz * 0.1, sz * 0.1);
+                        ctx.moveTo(sz * 0.1, sz * 0.1); ctx.lineTo(-sz * 0.05, sz * 0.18);
+                        ctx.moveTo(sz * 0.1, sz * 0.1); ctx.lineTo(sz * 0.22, sz * 0.18);
+                        ctx.stroke();
+                    }
+                    ctx.restore();
                     break;
                 }
                 case 'stump': {

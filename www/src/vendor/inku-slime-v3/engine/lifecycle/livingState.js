@@ -154,6 +154,30 @@ function createEmptyEventJournal() {
   };
 }
 
+// ── Object Associative Memory ────────────────────────────────────────────────
+// Stores pleasure/pain scores for object types the slime has interacted with.
+// Schema: { [objectType]: { pleasurePain: -1..+1, encounterCount, lastAt } }
+function createEmptyObjectMemoryLedger() {
+  return {};
+}
+
+export function recordObjectInteraction(slime, objectType, delta) {
+  const ls = slime?.livingState;
+  if (!ls) return;
+  if (!ls.objectMemoryLedger) ls.objectMemoryLedger = {};
+  const mem = ls.objectMemoryLedger;
+  if (!mem[objectType]) {
+    mem[objectType] = { pleasurePain: 0, encounterCount: 0, lastAt: nowIso() };
+  }
+  mem[objectType].pleasurePain = Math.max(-1, Math.min(1, mem[objectType].pleasurePain + delta));
+  mem[objectType].encounterCount++;
+  mem[objectType].lastAt = nowIso();
+}
+
+export function getObjectMemory(slime, objectType) {
+  return slime?.livingState?.objectMemoryLedger?.[objectType] || null;
+}
+
 export function createLivingState({ proceduralSeed, type, genome, stats }) {
   return {
     schemaVersion: LIVING_STATE_SCHEMA_VERSION,
@@ -174,7 +198,8 @@ export function createLivingState({ proceduralSeed, type, genome, stats }) {
     memoryLedger: createEmptyMemoryLedger(),
     relationshipLedger: createEmptyRelationshipLedger(),
     progressionLedger: createEmptyProgressionLedger(),
-    eventJournal: createEmptyEventJournal()
+    eventJournal: createEmptyEventJournal(),
+    objectMemoryLedger: createEmptyObjectMemoryLedger(),
   };
 }
 
