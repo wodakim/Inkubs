@@ -35,7 +35,7 @@
     align-items: flex-end;
     justify-content: center;
     overflow: hidden;
-    contain: layout paint; /* isole les reflows internes sans bloquer le sizing % */
+    contain: layout paint;
 }
 
 .labo-incubator-frame {
@@ -243,4 +243,49 @@
     body > *:not(#rotate-prompt) {
         visibility: hidden;
     }
+}
+
+/* ── Overlay externe du display panel ─────────────────────────────────────────
+   Positionné en fixed au-dessus de l'incubateur.
+   Respecte le HUD (top) et la nav (bottom) avec les safe areas smartphone.
+   pointer-events: none sur le wrapper, auto sur le panel lui-même.
+   ─────────────────────────────────────────────────────────────────────────── */
+.labo-dp-overlay {
+    position: fixed;
+    /* Centré horizontalement, aligné avec l'app (max-width: 448px) */
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(100vw, 448px);
+    /* Espace sous le HUD : ~72px HUD height + safe-top */
+    top: calc(72px + max(1rem, env(safe-area-inset-top, 20px)));
+    /* Ne pas empiéter sur la nav : ~80px nav + safe-bottom */
+    max-height: calc(100dvh - 72px - max(1rem, env(safe-area-inset-top, 20px)) - 96px - max(1.5rem, env(safe-area-inset-bottom, 20px)));
+    z-index: 15;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Masqué quand pas en mode labo */
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.labo-dp-overlay.is-visible {
+    opacity: 1;
+    pointer-events: none; /* le wrapper reste non-interactif */
+}
+
+/* Le panel CRT lui-même : cliquable, scrollable */
+.labo-dp-overlay .display-panel-external {
+    pointer-events: auto;
+    width: min(82vw, 340px);
+    background: #0a0f1a;
+    border: 3px solid #1a2535;
+    border-bottom-width: 6px;
+    border-radius: 12px 12px 8px 8px;
+    padding: 6px;
+    box-shadow:
+        0 14px 32px rgba(0, 0, 0, 0.7),
+        inset 0 0 0 1px rgba(255,255,255,0.04);
+    overflow: hidden;
 }

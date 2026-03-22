@@ -25,6 +25,7 @@
     <link rel="stylesheet" href="./styles/features/storage.css">
     <link rel="stylesheet" href="./styles/features/prairie.css">
     <link rel="stylesheet" href="./styles/features/rarity-notifications.css">
+    <link rel="stylesheet" href="./styles/features/bar.css">
 </head>
 <body class="relative flex flex-col items-center justify-between max-w-md mx-auto w-full shadow-2xl overflow-hidden">
     <!-- Overlay paysage : affiché si l'API orientation.lock() échoue (ex. iOS Safari) -->
@@ -108,11 +109,10 @@
                     <span class="nav-text" data-i18n="nav.labo">Labo</span>
                 </button>
 
-                <button class="nav-btn group relative z-20 flex-1 h-full flex items-center justify-center" type="button" data-nav-index="3" data-section-id="bar" data-locked="true" aria-label="Bar" aria-disabled="true">
+                <button class="nav-btn group relative z-20 flex-1 h-full flex items-center justify-center" type="button" data-nav-index="3" data-section-id="bar" aria-label="Bar">
                     <span class="nav-hit-sheen"></span>
                     <div class="nav-icon-container text-gray-400 group-hover:text-white">
                         <i class="ph-duotone ph-martini text-[28px] leading-none"></i>
-                        <div class="nav-lock-badge" aria-hidden="true"></div>
                     </div>
                     <span class="nav-text" data-i18n="nav.bar">Bar</span>
                 </button>
