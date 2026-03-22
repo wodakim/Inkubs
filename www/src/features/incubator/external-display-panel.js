@@ -257,9 +257,8 @@ function injectCSS() {
 .labo-dp-stats-lbl { display: none; }
 .labo-dp-stats { display: none; }
 
-/* Idle hint */
-.labo-dp-idle { font-size: 0.65rem; letter-spacing: 0.2em; color: hsla(190,40%,45%,0.52); text-align: center; padding: 0.25rem 0; animation: dpIdlePulse 3s ease-in-out infinite; }
-@keyframes dpIdlePulse { 0%,100%{opacity:0.4} 50%{opacity:0.9} }
+/* Idle hint hidden — panel must never change dimensions */
+.labo-dp-idle { display: none; }
 `;
     document.head.appendChild(style);
 }
