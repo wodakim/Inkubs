@@ -113,6 +113,13 @@
 }
 
 /* ── Minimap ─────────────────────────────────────────────────────────── */
+.prairie-minimap-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.3rem;
+}
+
 .prairie-minimap {
     width: min(38vw, 166px);
     border-radius: var(--radius-lg);
@@ -124,6 +131,167 @@
     display: block;
     width: 100%; height: auto;
     border-radius: calc(var(--radius-lg) - 4px);
+}
+
+/* ── Bouton icône aperçu labo (sous la minimap) ──────────────────────── */
+.prairie-labo-peek {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 0.3rem 0;
+    border: 1px solid rgba(16, 185, 129, 0.12);
+    border-radius: var(--radius-sm);
+    color: rgba(167, 243, 208, 0.5);
+    background: linear-gradient(165deg, rgba(16, 38, 48, 0.75), rgba(8, 20, 32, 0.82));
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.03);
+    transition:
+        border-color var(--motion-fast) ease,
+        color var(--motion-fast) ease,
+        background var(--motion-fast) ease,
+        transform var(--motion-instant) ease;
+    pointer-events: auto;
+    cursor: pointer;
+}
+.prairie-labo-peek:active { transform: scale(0.93); }
+.prairie-labo-peek.is-active {
+    border-color: rgba(16, 185, 129, 0.38);
+    color: rgba(167, 243, 208, 0.95);
+    background: linear-gradient(165deg, rgba(8, 48, 36, 0.9), rgba(4, 26, 22, 0.95));
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.18), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* ── Panneau flottant incubateur ─────────────────────────────────────── */
+.prairie-labo-panel {
+    position: fixed;
+    top:    var(--lp-top,  110px);
+    left:   var(--lp-left,   8px);
+    width:  var(--lp-w,   148px);
+    height: var(--lp-h,   180px);
+    z-index: 28;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.94) translateY(4px);
+    transform-origin: top left;
+    transition: opacity 180ms ease, transform 200ms var(--ease-spring);
+}
+.prairie-labo-panel[hidden] { display: none !important; }
+.prairie-labo-panel.is-open {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+    pointer-events: auto;
+}
+
+/* 4-corner resize handles — même DA que prairie-obs */
+.prairie-labo-panel__corner {
+    position: absolute;
+    width: 16px; height: 16px;
+    z-index: 2;
+    touch-action: none;
+    opacity: 0.28;
+    transition: opacity 150ms ease;
+}
+.prairie-labo-panel__corner:hover { opacity: 0.9; }
+.prairie-labo-panel__corner::before,
+.prairie-labo-panel__corner::after {
+    content: '';
+    position: absolute;
+    background: rgba(16, 185, 129, 0.85);
+    border-radius: 1.5px;
+}
+.prairie-labo-panel__corner::before { width: 2px; height: 10px; }
+.prairie-labo-panel__corner::after  { width: 10px; height: 2px; }
+.prairie-labo-panel__corner[data-labo-corner="tl"] { top: 5px; left: 5px; cursor: nwse-resize; }
+.prairie-labo-panel__corner[data-labo-corner="tl"]::before { top: 0; left: 0; }
+.prairie-labo-panel__corner[data-labo-corner="tl"]::after  { top: 0; left: 0; }
+.prairie-labo-panel__corner[data-labo-corner="tr"] { top: 5px; right: 5px; cursor: nesw-resize; }
+.prairie-labo-panel__corner[data-labo-corner="tr"]::before { top: 0; right: 0; }
+.prairie-labo-panel__corner[data-labo-corner="tr"]::after  { top: 0; right: 0; }
+.prairie-labo-panel__corner[data-labo-corner="bl"] { bottom: 5px; left: 5px; cursor: nesw-resize; }
+.prairie-labo-panel__corner[data-labo-corner="bl"]::before { bottom: 0; left: 0; }
+.prairie-labo-panel__corner[data-labo-corner="bl"]::after  { bottom: 0; left: 0; }
+.prairie-labo-panel__corner[data-labo-corner="br"] { bottom: 5px; right: 5px; cursor: nwse-resize; }
+.prairie-labo-panel__corner[data-labo-corner="br"]::before { bottom: 0; right: 0; }
+.prairie-labo-panel__corner[data-labo-corner="br"]::after  { bottom: 0; right: 0; }
+
+.prairie-labo-panel__surface {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    border-radius: var(--radius-lg);
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.04), transparent 45%),
+        linear-gradient(168deg, rgba(10, 24, 34, 0.97), rgba(6, 16, 26, 0.99));
+    border: 1px solid rgba(16, 185, 129, 0.14);
+    box-shadow: 0 6px 28px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    overflow: hidden;
+}
+
+.prairie-labo-panel__header {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.42rem 0.6rem 0.36rem;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    border-bottom: 1px solid rgba(16, 185, 129, 0.07);
+    flex-shrink: 0;
+}
+.prairie-labo-panel__header:active { cursor: grabbing; }
+
+.prairie-labo-panel__title {
+    flex: 1;
+    margin: 0;
+    font-size: 0.5rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: rgba(167, 243, 208, 0.65);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.prairie-labo-panel__dot {
+    flex-shrink: 0;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: rgba(16, 185, 129, 0.65);
+    box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
+    animation: labo-dot-blink 1.8s ease-in-out infinite;
+}
+@keyframes labo-dot-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
+
+.prairie-labo-panel__close {
+    flex-shrink: 0;
+    width: 18px; height: 18px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.88rem; line-height: 1; font-weight: 300;
+    color: rgba(167, 243, 208, 0.3);
+    background: none; border: none; cursor: pointer; padding: 0;
+    transition: color var(--motion-fast) ease;
+    pointer-events: auto;
+}
+.prairie-labo-panel__close:hover { color: rgba(255, 255, 255, 0.7); }
+
+.prairie-labo-panel__viewport {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.prairie-labo-panel__hint {
+    font-size: 0.52rem;
+    text-align: center;
+    padding: 0.6rem 0.5rem;
+    color: rgba(167, 243, 208, 0.28);
+    font-style: italic;
+    line-height: 1.4;
 }
 
 /* ═══════ DRONE PANEL TOGGLE ════════════════════════════════════════ */
