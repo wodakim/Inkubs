@@ -106,8 +106,102 @@ function rarityTierFromScore(score) {
   return 'common';
 }
 
+// ─── INSTABLE GENOME FACTORY ─────────────────────────────────────────────────
+export function createInstableGenome({ rng = Math.random } = {}) {
+  // Mass: 50% heavy, 30% medium, 20% gaseous
+  const massRoll = rng();
+  const instabilityMass = massRoll < 0.50 ? 'heavy' : massRoll < 0.80 ? 'medium' : 'gaseous';
+
+  // Colors: dark, eerie, desaturated — purples, sickly greens, muddy reds
+  const eerieHues = [0, 270, 300, 120, 180, 30];
+  const hue        = (eerieHues[Math.floor(rng() * eerieHues.length)] + (rng() - 0.5) * 40 + 360) % 360;
+  const saturation = 38 + rng() * 28;  // 38-66% — desaturated, sickly
+  const lightness  = 18 + rng() * 18;  // 18-36% — always dark
+
+  const hue2 = (hue + 30 + rng() * 60) % 360;
+  const sat2 = Math.min(100, saturation - 5 + rng() * 10);
+  const lit2 = Math.min(90,  lightness  - 3 + rng() * 8);
+
+  // Physics: very low rigidity = chaotic, wobbly
+  const friction          = 0.91 + rng() * 0.02;
+  let   rigidity          = 0.015 + rng() * 0.012;
+  let   bounceDamping     = 0.12 + rng() * 0.12;
+  const surfaceSmoothness = 0.012 + rng() * 0.01;
+  const volumeBias        = 1.0 + rng() * 0.1;
+
+  // Face: exaggerated and unsettling proportions
+  const faceScale        = 0.82 + rng() * 0.22;
+  const eyeSpacingBias   = -0.3 + rng() * 0.6;  // wider range = uneven
+  const eyeSizeBias      = -0.35 + rng() * 0.7;
+  const mouthOffsetY     = -2 + rng() * 4;
+  const cheekIntensity   = 0;  // no cute cheeks
+  const accessorySizeBias = 1.0 + rng() * 0.3;
+
+  const bodyShape   = 'unstable_form';
+  const eyeStyle    = pickWeighted(EYE_POOLS.instable, rng);
+  const mouthStyle  = pickWeighted(MOUTH_POOLS.instable, rng);
+  const detailTrait = pickWeighted(DETAIL_TRAITS, rng);
+  const accessory   = pickWeighted(ACCESSORY_POOLS.instable, rng);
+
+  // Mood: only dark/aggressive — nothing cute
+  const instableMoods = [
+    {id:'frenzied',w:12},{id:'grumpy',w:10},{id:'mischief',w:8},
+    {id:'dizzy',w:6},{id:'smug',w:5},{id:'melancholy',w:3},
+  ];
+  const mood = pickWeighted(instableMoods, rng);
+
+  // Mood-derived physics (subset that applies to instable moods)
+  if (mood === 'frenzied')   { bounceDamping -= 0.05; rigidity += 0.015; }
+  if (mood === 'grumpy')     { rigidity += 0.01; }
+  if (mood === 'dizzy')      { bounceDamping += 0.04; }
+
+  // Pattern: void/dark patterns preferred
+  const instablePatterns = [
+    {id:'void_rift',w:10},{id:'solid',w:8},{id:'galaxy_swirl',w:6},
+    {id:'radial_glow',w:4},{id:'gradient_v',w:3},{id:'crystal_facets',w:2},
+  ];
+  const colorPattern = pickWeighted(instablePatterns, rng);
+
+  // Behavioral genes
+  const laziness = rng() * 0.2;          // 0.0-0.2 — always active, always hungry
+  const dietType = rng() < 0.6 ? 'carnivore' : 'omnivore';
+
+  // Alpha: gaseous = semi-transparent, medium = slightly, heavy = opaque
+  const bodyAlpha = instabilityMass === 'gaseous' ? 0.45 + rng() * 0.15
+                  : instabilityMass === 'medium'  ? 0.80 + rng() * 0.12
+                  : 1.0;
+
+  // Market value multiplier (used by pricing system)
+  const marketValueMultiplier = instabilityMass === 'gaseous' ? 5.0
+                              : instabilityMass === 'medium'  ? 3.5
+                              : 2.5;
+
+  const genome = {
+    schemaVersion: GENOME_SCHEMA_VERSION,
+    hue, hue2, sat2, lit2,
+    saturation: Math.min(100, saturation),
+    lightness:  Math.min(90,  lightness),
+    bodyShape, eyeStyle, mouthStyle, mood, accessory, detailTrait, colorPattern,
+    friction, rigidity,
+    bounceDamping: Math.max(0.08, bounceDamping),
+    surfaceSmoothness, volumeBias, faceScale,
+    eyeSpacingBias, eyeSizeBias, mouthOffsetY, cheekIntensity, accessorySizeBias,
+    laziness, dietType,
+    // Instable-specific traits
+    isInstable:          true,
+    instabilityMass,
+    bodyAlpha,
+    marketValueMultiplier,
+    rarityTier:  'instable',
+    rarityScore: 95 + Math.floor(rng() * 5),  // 95-99
+  };
+
+  return genome;
+}
+
 // ─── GENOME FACTORY ──────────────────────────────────────────────────────────
 export function createGenome(type, { rng = Math.random } = {}) {
+  if (type === 'instable') return createInstableGenome({ rng });
   const hue = rng() * 360;
   let saturation = type === 'scary' ? 78 + rng() * 14 : 84 + rng() * 14;
   let lightness = type === 'scary' ? 34 + rng() * 10 : (type === 'cute' ? 67 + rng() * 12 : 54 + rng() * 14);
@@ -161,6 +255,7 @@ export function createGenome(type, { rng = Math.random } = {}) {
     twin_lobe:() => { rigidity += 0.01; volumeBias = 1.1; eyeSpacingBias += 0.1; },
     fractal:  () => { rigidity += 0.018; surfaceSmoothness = 0.022; volumeBias = 1.02; },
     aurora_form:()=>{ rigidity -= 0.008; surfaceSmoothness = 0.025; friction -= 0.005; },
+    // unstable_form: handled in createInstableGenome, not here
   };
   if (shapePhysics[bodyShape]) shapePhysics[bodyShape]();
 
@@ -313,6 +408,13 @@ export function computeBodyRadiusForGenome(genome, baseRadius, angle) {
     radius += Math.cos(angle * 3 - 0.3) * base * 0.06;
     radius += Math.sin(angle * 5 + 1.1) * base * 0.03;
     radius += Math.cos(angle * 7) * base * 0.015;
+  } else if (shape === 'unstable_form') {
+    // Chaotic, irregular body — bulges and dips unpredictably
+    radius += Math.sin(angle * 3 + 1.2) * base * 0.13;
+    radius += Math.cos(angle * 5 - 0.8) * base * 0.09;
+    radius += Math.sin(angle * 7 + 0.3) * base * 0.055;
+    radius += Math.cos(angle * 11)       * base * 0.028;
+    radius += Math.sin(angle * 4 + 2.1) * base * 0.04;
   }
 
   radius *= genome.volumeBias;

@@ -664,17 +664,24 @@ function driveFace(slime, behavior, brain, target, dist, now) {
       ov.eyeScaleX       = 1 + ramp * 0.12;
       ov.eyeScaleY       = 1 + ramp * 0.14;
       ov.browLift        = 0.18 + ramp * 0.18;
+      ov.overrideEyeStyle   = ramp > 0.7 ? 'sparkle'     : null;
       ov.overrideMouthStyle = ramp > 0.6 ? 'candy_smile' : null;
       break;
     }
 
     case 'fight_clash': {
+      const ferocity = slime.stats?.ferocity ?? 50;
+      const fierce   = ferocity > 62;
       ov.eyeScaleY       = Math.max(0.2, 1 - ramp * 0.65);
       ov.browTilt        = slime.facing * 0.65 * ramp;
       ov.browLift        = -0.18 * ramp;
       ov.lookBiasX       = slime.facing * 9 * ramp;
-      ov.overrideEyeStyle   = ramp > 0.45 ? 'angry_arc' : null;
-      ov.overrideMouthStyle = ramp > 0.35 ? 'fangs'     : null;
+      ov.overrideEyeStyle   = fierce && ramp > 0.55 ? 'flame_eye'
+                            : ramp > 0.45            ? 'angry_arc'
+                            : null;
+      ov.overrideMouthStyle = fierce && ramp > 0.65 ? 'venom_drip'
+                            : ramp > 0.35            ? 'fangs'
+                            : null;
       break;
     }
 
@@ -688,14 +695,25 @@ function driveFace(slime, behavior, brain, target, dist, now) {
       break;
     }
 
-    case 'challenge':
-    case 'intimidate': {
+    case 'challenge': {
       ov.eyeScaleY       = Math.max(0.3, 1 - ramp * 0.5);
       ov.browTilt        = slime.facing * 0.55 * ramp;
       ov.browLift        = -0.08 * ramp;
       ov.lookBiasX       = slime.facing * 6 * ramp;
       ov.overrideEyeStyle   = ramp > 0.5  ? 'slit'      : null;
       ov.overrideMouthStyle = ramp > 0.55 ? 'wide_gape' : null;
+      break;
+    }
+
+    case 'intimidate': {
+      // Empty threatening stare — more terrifying than challenge
+      ov.eyeScaleX       = Math.max(0.85, 1 - ramp * 0.1);
+      ov.eyeScaleY       = Math.max(0.18, 1 - ramp * 0.72);
+      ov.browTilt        = slime.facing * 0.7 * ramp;
+      ov.browLift        = -0.2 * ramp;
+      ov.lookBiasX       = slime.facing * 8 * ramp;
+      ov.overrideEyeStyle   = ramp > 0.4  ? 'void'  : null;
+      ov.overrideMouthStyle = ramp > 0.5  ? 'drool' : null;
       break;
     }
 
@@ -709,7 +727,8 @@ function driveFace(slime, behavior, brain, target, dist, now) {
       ov.browLift        = 0.5 + ramp * 0.18;
       ov.browTilt        = 0.28 * ramp;
       ov.lookBiasX       = lookBack * 7 * ramp;
-      ov.overrideMouthStyle = ramp > 0.4 ? 'tiny_frown' : null;
+      ov.overrideEyeStyle   = ramp > 0.75 ? 'spiral'     : null; // full panic
+      ov.overrideMouthStyle = ramp > 0.4  ? 'tiny_frown' : null;
       break;
     }
 
@@ -717,6 +736,7 @@ function driveFace(slime, behavior, brain, target, dist, now) {
       ov.eyeScaleY       = Math.max(0.22, 1 - ramp * 0.55);
       ov.browLift        = 0.45 * ramp;
       ov.browTilt        = -0.3 * ramp;
+      ov.overrideEyeStyle   = ramp > 0.5  ? 'X_eye'      : null; // stunned/hurt
       ov.overrideMouthStyle = 'tiny_frown';
       break;
     }
@@ -817,14 +837,36 @@ function driveFace(slime, behavior, brain, target, dist, now) {
     }
 
     case 'hunt_bird': {
-      // Focused predator stare, narrowed eyes, slight smirk
+      // Focused predator stare, narrowed eyes — drooling at prey when close
       ov.eyeScaleY       = Math.max(0.22, 1 - ramp * 0.65);
       ov.browTilt        = slime.facing * 0.55 * ramp;
       ov.browLift        = -0.08 * ramp;
       ov.lookBiasX       = slime.facing * 9 * ramp;
       ov.lookBiasY       = -2 * ramp; // looking slightly down at prey
-      ov.overrideEyeStyle   = ramp > 0.45 ? 'slit' : null;
-      ov.overrideMouthStyle = ramp > 0.55 ? 'grin'  : null;
+      ov.overrideEyeStyle   = ramp > 0.45 ? 'slit'                              : null;
+      ov.overrideMouthStyle = ramp > 0.7 && dist < 100 ? 'venom_drip'
+                            : ramp > 0.4               ? 'grin'
+                            : null;
+      break;
+    }
+
+    case 'falcon_dive': {
+      // Ascent: focused predator look. Dive: full aggression
+      const divPhase = brain?._falconPhase || 'ascend';
+      if (divPhase === 'ascend') {
+        ov.eyeScaleY       = Math.max(0.25, 1 - ramp * 0.6);
+        ov.browTilt        = slime.facing * 0.5 * ramp;
+        ov.browLift        = -0.1 * ramp;
+        ov.overrideEyeStyle   = ramp > 0.3 ? 'slit'      : null;
+        ov.overrideMouthStyle = ramp > 0.4 ? 'grin'      : null;
+      } else {
+        // Dive — maximum threat expression
+        ov.eyeScaleY       = Math.max(0.1, 1 - 0.88);
+        ov.browTilt        = slime.facing * 0.85;
+        ov.browLift        = -0.25;
+        ov.overrideEyeStyle   = 'flame_eye';
+        ov.overrideMouthStyle = 'wide_gape';
+      }
       break;
     }
 
@@ -834,6 +876,7 @@ function driveFace(slime, behavior, brain, target, dist, now) {
       ov.eyeScaleY       = 1 + ramp * 0.14;
       ov.browLift        = 0.20 + ramp * 0.14;
       ov.lookBiasX       = target ? Math.sign(getCenter(target).x - getCenter(slime).x) * 5 * ramp : 0;
+      ov.overrideEyeStyle   = ramp > 0.6  ? 'sparkle'     : null;
       ov.overrideMouthStyle = ramp > 0.45 ? 'open_smile' : null;
       break;
     }
@@ -985,14 +1028,69 @@ function pickBehavior(brain, slime, others, world, now, prairieObjects) {
     }
   }
 
-  // Check if being challenged → boost flee/recoil
+  // Check if being challenged → boost flee/recoil, or counter for instable
   for (const { id, slime: other } of others) {
     if (id === brain.selfId) continue;
     const ob = other._prairieBrain;
     if (ob && (ob.behavior === 'challenge' || ob.behavior === 'intimidate') && ob.targetId === brain.selfId) {
-      const instab = 1 - sigmoid(s.stability);
-      W.push(['flee', 0.5 + instab * 0.5, id]);
-      W.push(['recoil', 0.3 + instab * 0.4, id]);
+      if (slime.genome?.isInstable) {
+        // Pride: instable slimes never back down from a fight — counter-challenge
+        W.push(['challenge',  1.8, id]);
+        W.push(['intimidate', 1.2, id]);
+      } else {
+        const instab = 1 - sigmoid(s.stability);
+        W.push(['flee',   0.5 + instab * 0.5, id]);
+        W.push(['recoil', 0.3 + instab * 0.4, id]);
+      }
+    }
+  }
+
+  // ── Instable slime behavior modifiers ──────────────────────────────────────
+  if (slime.genome?.isInstable) {
+    const mass = slime.genome.instabilityMass || 'heavy';
+    const myFightScore = computeFightScore(slime);
+
+    for (const w of W) {
+      const name = w[0];
+      const tid  = w[2]; // targetId
+
+      // Suppress social/gentle behaviors — instable slimes don't bond or care
+      if (['bond','romance','calm','follow','orbit','communicate'].includes(name)) w[1] *= 0.02;
+      // Suppress flight instinct (pride) — fear only from much stronger opponents
+      if (['flee','teleport_flee','recoil'].includes(name) && tid) {
+        const other = others.find(o => o.id === tid)?.slime;
+        const otherScore = other ? computeFightScore(other) : 50;
+        const powerDiff = otherScore - myFightScore;
+        // Only flee if opponent is overwhelmingly stronger (>25 points gap)
+        w[1] *= powerDiff > 25 ? 0.6 : 0.04;
+      }
+      // Boost aggressive behaviors significantly
+      if (['challenge','intimidate','fight_clash','reckless_chase'].includes(name)) w[1] *= 3.0;
+      // Food is one of the few real pleasures
+      if (['seek_food','hunt_bird','eat_berry'].includes(name)) w[1] *= 2.0;
+
+      // Wariness: reduce aggression against significantly stronger opponents
+      if (['challenge','intimidate'].includes(name) && tid) {
+        const other = others.find(o => o.id === tid)?.slime;
+        if (other) {
+          const otherScore = computeFightScore(other);
+          const powerDiff = otherScore - myFightScore;
+          if (powerDiff > 20) w[1] *= Math.max(0.05, 1 - (powerDiff - 20) / 40);
+        }
+      }
+    }
+
+    // Gaseous instable: can do falcon dive on nearby slimes
+    if (mass === 'gaseous') {
+      for (const { id, slime: other } of others) {
+        if (id === brain.selfId || other.draggedNode) continue;
+        const oc  = getCenter(other);
+        const d   = Math.hypot(sc.x - oc.x, sc.y - oc.y);
+        if (d < 650) {
+          const ferBoost = sigmoid(s.ferocity || 50);
+          W.push(['falcon_dive', 0.20 + ferBoost * 0.55, id]);
+        }
+      }
     }
   }
 
@@ -1054,6 +1152,7 @@ const DUR = {
   eat_berry:       [1500, 3000],
   hunt_bird:       [5000, 10000],
   communicate:     [2000, 4000],
+  falcon_dive:     [3500, 6000],  // Gaseous instable dive-bomb
 };
 
 function startBehavior(brain, name, targetId, now, targetObj) {
@@ -1098,7 +1197,8 @@ const CHAINS = {
   seek_food:   ['eat_berry', 'hunt_bird', 'wander'],
   eat_berry:   ['wander', 'idle_look'],
   hunt_bird:   ['wander', 'idle_look'],
-  communicate: ['wander', 'idle_look'],
+  communicate:  ['wander', 'idle_look'],
+  falcon_dive:  ['wander', 'idle_look', 'falcon_dive'],  // can chain into another dive
 };
 
 /**
@@ -1275,6 +1375,15 @@ function _applyFoodGain(slime, brain, foodCategory, subType, diet, now) {
 
 // ── Execute behavior (called every tick ~50ms) ──────────────────────────────
 function execBehavior(brain, slime, others, world, now) {
+  // Gaseous instable: must touch the ground to eat or fight (pride keeps them on ground)
+  if (slime.genome?.isInstable && slime.genome.instabilityMass === 'gaseous') {
+    const groundedBehaviors = new Set([
+      'seek_food','eat_berry','hunt_bird',
+      'fight_clash','challenge','intimidate','recoil'
+    ]);
+    slime._instableGrounded = groundedBehaviors.has(brain.behavior);
+  }
+
   const s = slime.stats || {};
   const sc = getCenter(slime);
   const target = brain.targetId ? others.find(o => o.id === brain.targetId)?.slime : null;
@@ -1882,6 +1991,50 @@ function execBehavior(brain, slime, others, world, now) {
         brain.logInteraction('communicate', brain.targetId, 'Partage la position d\'une source de nourriture');
       }
       keepAction(slime, 'question', 0.7);
+      break;
+    }
+
+    case 'falcon_dive': {
+      // Gaseous instable dive-bomb: ascend → dive → massive impact
+      if (!tc) { startBehavior(brain, 'wander', null, now); break; }
+      const elapsed      = now - brain.startedAt;
+      const ascendDur    = 1600; // 1.6s rising phase
+      const ferBoost     = 0.7 + sigmoid(s.ferocity || 50) * 0.8;
+
+      if (elapsed < ascendDur) {
+        // ── Phase 1: ASCEND — hover higher above target ──
+        brain._falconPhase = 'ascend';
+        const driftDir = Math.sign(tc.x - sc.x) || 1;
+        // Apply gentle upward impulse each tick to gain altitude
+        applyKnockbackToSlime(slime, driftDir * 0.6, -1.4);
+        slime.facing = driftDir;
+      } else {
+        // ── Phase 2: DIVE — rocket toward target ──
+        brain._falconPhase = 'dive';
+        const kDir = Math.sign(tc.x - sc.x) || slime.facing;
+
+        if (dist > 35) {
+          // Strong horizontal + downward dive
+          applyKnockbackToSlime(slime, kDir * 3.2, 3.0);
+          slime.facing = kDir;
+        } else {
+          // ── IMPACT: send target flying ──
+          applyKnockbackToSlime(target, kDir * (8 + ferBoost * 3), -5);
+          target.triggerAction('hurt', 1400, 1.3);
+          slime.triggerAction('attack', 700, 1.1);
+          const ob = target?._prairieBrain;
+          if (ob) {
+            ob.addBias(brain.selfId, -0.12);
+            startBehavior(ob, 'recoil', brain.selfId, now);
+          }
+          brain.logInteraction('falcon_dive', brain.targetId, 'Piqué de faucon !');
+          applyFightStatChanges(slime, brain, true, brain.targetId, getSlimeName(target));
+          if (ob) applyFightStatChanges(target, ob, false, brain.selfId, getSlimeName(slime));
+          brain.endsAt = now + 200;  // end soon
+        }
+      }
+      keepAction(slime, brain._falconPhase === 'dive' ? 'attack' : 'observe',
+        brain._falconPhase === 'dive' ? 1.1 : 0.6);
       break;
     }
   }

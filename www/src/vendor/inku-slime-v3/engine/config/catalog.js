@@ -1,4 +1,4 @@
-export const SLIME_TYPES = ['cute', 'normal', 'scary'];
+export const SLIME_TYPES = ['cute', 'normal', 'scary', 'instable'];
 import { t } from '../../../../i18n/i18n.js';
 
 // ─── BODY SHAPES ─────────────────────────────────────────────────────────────
@@ -7,7 +7,8 @@ export const BODY_SHAPES = [
   'puff','wisp','jellybean','bell','comet','puddle',
   'crystal','ribbon','lantern','crescent',
   'star_body','diamond','twin_lobe',
-  'fractal','aurora_form'
+  'fractal','aurora_form',
+  'unstable_form'  // Instable slimes only — never picked by random generation
 ];
 
 export const BODY_SHAPE_WEIGHTS = {
@@ -51,6 +52,13 @@ export const EYE_POOLS = {
     {id:'triangle_eye',w:7},{id:'cat_slit',w:6},{id:'cross',w:5},
     {id:'glowing',w:4},{id:'omega',w:3},{id:'square',w:2},
     {id:'loading',w:1}
+  ],
+  instable:[
+    // Dark, threatening, unsettling — the most disturbing eyes
+    {id:'void',w:12},{id:'abyss',w:11},{id:'spiral',w:9},
+    {id:'flame_eye',w:8},{id:'X_eye',w:7},{id:'bleeding_eye',w:6},
+    {id:'slit',w:5},{id:'angry_arc',w:4},{id:'glowing',w:3},
+    {id:'triangle_eye',w:4},{id:'omega',w:3},{id:'cat_slit',w:2}
   ]
 };
 
@@ -73,6 +81,12 @@ export const MOUTH_POOLS = {
     {id:'flat',w:9},{id:'toothy',w:8},{id:'squiggle',w:7},
     {id:'drool',w:5},{id:'wide_gape',w:4},{id:'venom_drip',w:3},
     {id:'abyss_mouth',w:1.5},{id:'starfish_mouth',w:1}
+  ],
+  instable:[
+    // Repulsive, threatening — no cute options
+    {id:'fangs',w:12},{id:'venom_drip',w:11},{id:'wide_gape',w:10},
+    {id:'abyss_mouth',w:8},{id:'zigzag',w:7},{id:'drool',w:7},
+    {id:'toothy',w:5},{id:'squiggle',w:4}
   ]
 };
 
@@ -136,6 +150,14 @@ export const ACCESSORY_POOLS = {
     {id:'oni_horns',w:9},{id:'katana',w:8},{id:'blindfold',w:7},
     {id:'ninja_headband',w:6},{id:'dragon_wings',w:6},{id:'witch_hat',w:5},
     {id:'fox_ears',w:4},{id:'cat_ears',w:3},{id:'pizza_slice',w:2}
+  ],
+  instable:[
+    // Mostly bare — these slimes don't adorn themselves
+    {id:'none',w:24},
+    {id:'horns',w:10},{id:'spikes',w:9},{id:'bone_pin',w:7},{id:'broken_halo',w:6},
+    {id:'thorn_ring',w:5},{id:'skull_pin',w:4},{id:'iron_mask',w:4},
+    {id:'void_crown',w:3},{id:'cursed_chain',w:3},{id:'eldritch_eye',w:2},
+    {id:'shadow_cloak',w:2},{id:'demon_wings',w:1.5}
   ]
 };
 
@@ -156,6 +178,7 @@ export const RARITY_TIERS = {
   rare:     { get label() { return t('rarity.rare');      }, color:'#2196f3', scoreMin:55, scoreMax:74  },
   epic:     { get label() { return t('rarity.epic');      }, color:'#9c27b0', scoreMin:75, scoreMax:89  },
   legendary:{ get label() { return t('rarity.legendary'); }, color:'#ff9800', scoreMin:90, scoreMax:100 },
+  instable: { get label() { return t('rarity.instable');  }, color:'#ff3333', scoreMin:0,  scoreMax:100 },
 };
 
 // ─── ACTIONS ──────────────────────────────────────────────────────────────────

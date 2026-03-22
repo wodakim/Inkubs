@@ -906,6 +906,10 @@ export function createPrairieFeature() {
         let bestDistance = Infinity;
         for (const entry of getActiveEntries()) {
             const slime = entry.slime;
+            // Gaseous instable: untouchable when not grounded (must be stored to be affected)
+            if (slime.genome?.isInstable
+                && slime.genome.instabilityMass === 'gaseous'
+                && !slime._instableGrounded) continue;
             for (const node of slime.nodes || []) {
                 const distance = Math.hypot(node.x - worldPoint.x, node.y - worldPoint.y);
                 if (distance < bestDistance) {

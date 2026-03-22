@@ -52,6 +52,15 @@ export function buildProceduralStats({ type, baseRadius, genome }) {
   curiosity += rarityBonus * 0.8;
   empathy   += rarityBonus * 0.4;
 
+  // Instable override: antisocial, violent, chaotic — gains stats slowly
+  if (genome.isInstable) {
+    stability = Math.max(1,   stability - 32);  // extremely unstable
+    empathy   = Math.max(1,   empathy   - 38);  // almost no empathy
+    ferocity  = Math.min(100, ferocity  + 35);  // very ferocious
+    curiosity = Math.max(1,   curiosity - 12);  // not curious
+    vitality  = Math.min(100, vitality  + 6);   // slightly tougher
+  }
+
   return {
     schemaVersion: PROCEDURAL_STATS_SCHEMA_VERSION,
     vitality:  clampStat(Math.round(vitality),  1, 100),

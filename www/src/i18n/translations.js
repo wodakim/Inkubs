@@ -135,6 +135,7 @@ export const TRANSLATIONS = {
         'rarity.rare':      'Rare',
         'rarity.epic':      'Épique',
         'rarity.legendary': 'Légendaire',
+        'rarity.instable':  'Instable',
 
         'mood.calm':        'Calme',
         'mood.joyful':      'Joyeux',
@@ -504,6 +505,7 @@ export const TRANSLATIONS = {
         'rarity.rare':      'Rare',
         'rarity.epic':      'Epic',
         'rarity.legendary': 'Legendary',
+        'rarity.instable':  'Instable',
 
         'mood.calm':        'Calm',
         'mood.joyful':      'Joyful',

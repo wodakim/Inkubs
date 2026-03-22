@@ -181,12 +181,31 @@ export function installAnimation(Slime) {
         pose.scaleX -= idleBreath * 0.012;
         pose.scaleY += idleBreath * 0.02;
         pose.liftY += Math.sin(this.idleCycle * 0.52 + this.animSeed * 0.5) * 1.1;
+
+        // Instable: trembling (rapid noise) + strong pulsation
+        if (this.genome?.isInstable) {
+          const mass = this.genome.instabilityMass || 'heavy';
+          const tFreq = mass === 'heavy' ? 0.30 : 0.16;
+          const tAmp  = mass === 'heavy' ? 0.040 : 0.022;
+          pose.scaleX += Math.sin(now * tFreq        + this.animSeed * 7.3) * tAmp;
+          pose.scaleY -= Math.sin(now * tFreq * 1.31 + this.animSeed * 4.1) * tAmp * 0.65;
+          // Slow swell: gaseous bloats and shrinks like a lung
+          const pulse = Math.sin(this.idleCycle * 0.11 + this.animSeed) * (mass === 'gaseous' ? 0.06 : 0.038);
+          pose.scaleX += pulse;
+          pose.scaleY -= pulse * 0.7;
+        }
     } else if (locomotion === 'move') {
         pose.scaleX += gaitAbs * 0.055 + movementDrive * 0.03;
         pose.scaleY -= gaitAbs * 0.042;
         pose.skewX += this.facing * (0.02 + movementDrive * 0.045);
         pose.roll += gait * 0.05 * Math.max(0.35, movementDrive);
         pose.liftY += gaitAbs * 1.6;
+        // Instable: trembling while moving
+        if (this.genome?.isInstable) {
+          const tFreq = this.genome.instabilityMass === 'heavy' ? 0.26 : 0.14;
+          pose.scaleX += Math.sin(now * tFreq + this.animSeed * 5.2) * 0.022;
+          pose.scaleY -= Math.sin(now * tFreq * 1.4 + this.animSeed * 3.8) * 0.016;
+        }
     } else if (locomotion === 'jump') {
         pose.scaleX *= 0.93;
         pose.scaleY *= 1.08 + this.jumpLift * 0.05;

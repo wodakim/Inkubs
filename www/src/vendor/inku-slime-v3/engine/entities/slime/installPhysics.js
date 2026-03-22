@@ -13,6 +13,12 @@ export function installPhysics(Slime) {
     // Moteur prêt pour intégration jeu : aucune auto-destruction temporelle.
     
     let gravity = 0.8;
+    // Instable slimes: modified gravity based on mass
+    if (this.genome?.isInstable) {
+      const mass = this.genome.instabilityMass;
+      if (mass === 'gaseous' && !this._instableGrounded) gravity = 0.06;
+      else if (mass === 'medium')                        gravity = 0.42;
+    }
     const box = this.getBoxBounds();
     let floor = box.bottom;
     let margin = box.left;
@@ -189,9 +195,16 @@ export function installPhysics(Slime) {
             }
         }
     
+        // Gaseous instable: virtual elevated floor so the slime floats
+        const effectiveFloor = (this.genome?.isInstable
+          && this.genome.instabilityMass === 'gaseous'
+          && !this._instableGrounded)
+          ? floor - this.baseRadius * 3.0
+          : floor;
+
         for (let pt of this.nodes) {
-            if (pt.y > floor) {
-                pt.y = floor;
+            if (pt.y > effectiveFloor) {
+                pt.y = effectiveFloor;
                 let vx = pt.x - pt.oldX;
                 let vy = pt.y - pt.oldY;
                 const descendingImpact = vy > 0.55;

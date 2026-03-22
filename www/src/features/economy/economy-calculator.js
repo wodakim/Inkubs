@@ -73,7 +73,9 @@ export function computeIncomeRate(proceduralCore) {
     const mood = genome.mood || '';
     const moodMult = MOOD_INCOME_MULTIPLIER[mood] ?? 1.0;
 
-    const raw = base * (1 + statBonus + elemBonusTotal) * moodMult;
+    // Instable slimes: income multiplied by mass-based market value
+    const instableMult = genome.marketValueMultiplier ?? 1.0;
+    const raw = base * (1 + statBonus + elemBonusTotal) * moodMult * instableMult;
     return Math.max(0.1, Math.round(raw * 10) / 10);
 }
 
@@ -115,7 +117,8 @@ export function computeAcquisitionCost(candidate) {
       elemBonus(EYE_SCORE[genome.eyeStyle]        ?? 0, ELEM_INCOME_BONUS.eye) +
       elemBonus(PAT_SCORE[genome.colorPattern]    ?? 0, ELEM_INCOME_BONUS.pattern);
 
-  const estimatedIncome = baseIncome * (1 + elemBonusTotal);
+  const instableMult = genome.marketValueMultiplier ?? 1.0;
+  const estimatedIncome = baseIncome * (1 + elemBonusTotal) * instableMult;
   const raw = estimatedIncome * PRICE_RECOVERY_MINUTES;
   return Math.max(roundTo, Math.round(raw / roundTo) * roundTo);
 }

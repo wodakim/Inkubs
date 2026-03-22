@@ -26,6 +26,7 @@ export const RARITY_INCOME_BASE = Object.freeze({
     rare:      20.0,
     epic:      60.0,
     legendary: 180.0,
+    instable:  80.0,  // Base; real income = base × genome.marketValueMultiplier (2.5–5.0)
 });
 
 /** Multiplicateurs de revenu selon l'humeur du slime. */

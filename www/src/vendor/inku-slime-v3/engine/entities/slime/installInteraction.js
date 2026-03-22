@@ -4,6 +4,11 @@ import { recordSlimeEvent } from '../../lifecycle/livingState.js';
 
 export function installInteraction(Slime) {
   Slime.prototype.checkGrab = function(x, y) {
+    // Gaseous instable: untouchable when floating
+    if (this.genome?.isInstable
+        && this.genome.instabilityMass === 'gaseous'
+        && !this._instableGrounded) return;
+
     let minDist = Infinity;
     let closestNode = null;
     for (let pt of this.nodes) {
@@ -13,7 +18,7 @@ export function installInteraction(Slime) {
             closestNode = pt;
         }
     }
-    
+
     if (minDist < this.baseRadius * 1.5) {
         this.draggedNode = closestNode;
         this.dragX = x;

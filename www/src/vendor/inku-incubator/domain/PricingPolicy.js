@@ -12,6 +12,7 @@ const SHAPE_RARITY_SCORE = {
   crystal:18,ribbon:22,lantern:22,crescent:22,
   star_body:38,diamond:42,twin_lobe:46,
   fractal:72,aurora_form:76,
+  unstable_form:88,  // Instable — unique form, very high base rarity
 };
 
 const ACCESSORY_RARITY_SCORE = {
@@ -85,7 +86,9 @@ export function computeCanonicalPrice(candidate, pricingConfig) {
     + complexity     * (pricingConfig.complexityWeight ?? 75)
   ) * cumMult;
 
-  const rounded = roundToStep(rawPrice, pricingConfig.roundTo);
+  // Instable slimes: income-based market value multiplier
+  const instableMult = genome.marketValueMultiplier ?? 1.0;
+  const rounded = roundToStep(rawPrice * instableMult, pricingConfig.roundTo);
   return Math.max(pricingConfig.roundTo, rounded);
 }
 
