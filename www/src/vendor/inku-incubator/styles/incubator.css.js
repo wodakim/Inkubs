@@ -37,10 +37,9 @@ const stylesheetText = `
   position: relative;
   width: 100%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 1.6rem;
-  padding: 1.4rem 1.2rem 2rem;
+  padding: 8rem 1.2rem 2rem;
 }
 
 .ambient-halo {
@@ -1415,7 +1414,6 @@ const stylesheetText = `
 
 .inku-incubator[data-integration-embed-mode="true"] .frame {
   gap: 1.15rem;
-  padding: 1.0rem 0.4rem 1.1rem;
 }
 
 .inku-incubator[data-integration-embed-mode="true"] .chassis {
@@ -1582,7 +1580,7 @@ const stylesheetText = `
 
   .inku-incubator[data-integration-embed-mode="true"] .side-module {
     margin-bottom: 5.2rem;
-    right: 1.5rem;
+    right: 0.5rem;
   }
 }
 
