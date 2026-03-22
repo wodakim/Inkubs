@@ -302,6 +302,8 @@ export function createLaboIncubatorFeature({ store } = {}) {
             return;
         }
         root.hidden = false;
+        // Retirer l'inline display:none !important posé par hideFeature
+        root.style.removeProperty('display');
         root.style.visibility = 'visible';
         root.style.opacity = '1';
         root.style.pointerEvents = 'auto';
@@ -314,12 +316,16 @@ export function createLaboIncubatorFeature({ store } = {}) {
         if (!root) {
             return;
         }
-        // display:none via l'attribut HTML hidden — suppression TOTALE du rendu.
-        // visibility:hidden + opacity:0 ne suffit PAS : l'incubateur utilise un
-        // Shadow DOM (attachShadow) et la cascade de visibility ne traverse pas
-        // la frontière shadow de façon fiable sur tous les navigateurs, ce qui
-        // laisse fuiter un doublon visuel derrière la minimap dans la prairie.
+        // root.hidden = true ne suffit PAS dans ce contexte : Tailwind définit
+        // [hidden] { display: none } SANS !important, donc la règle CSS auteur
+        // `.labo-incubator-feature { display: flex }` l'écrase.
+        // On pose un inline style !important — priorité absolue dans la cascade
+        // CSS, impossible à contourner par n'importe quelle règle de feuille de
+        // style. Combiné à position:fixed + top négatif comme filet de sécurité
+        // (si un futur refactor retire le removeProperty de showFeature, l'élément
+        // reste caché hors du viewport plutôt que de réapparaître).
         root.hidden = true;
+        root.style.setProperty('display', 'none', 'important');
         root.setAttribute('aria-hidden', 'true');
     }
 
