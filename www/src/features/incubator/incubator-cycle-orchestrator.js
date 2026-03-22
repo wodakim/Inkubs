@@ -1,4 +1,4 @@
-const DEFAULT_DWELL_MS = 15000;
+const DEFAULT_DWELL_MS = 30000;
 const BETWEEN_CYCLES_MS = 320;
 
 export function createIncubatorCycleOrchestrator({ controller, preview, dwellMs = DEFAULT_DWELL_MS }) {

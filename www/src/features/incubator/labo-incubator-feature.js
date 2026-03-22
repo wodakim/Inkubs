@@ -172,8 +172,9 @@ export function createLaboIncubatorFeature({ store } = {}) {
                             if (price > balance) {
                                 const { showToast } = await import('../../utils/toast.js');
                                 showToast(t('incubator.toast.insufficient_funds').replace('{price}', price.toLocaleString()), { type: 'error' });
-                                // Return without throwing to avoid putting the controller in error state
-                                return;
+                                // Return false to abort the purchase without refreshing the slime —
+                                // the countdown keeps running and the player must wait for the timer.
+                                return false;
                             }
 
                             try {

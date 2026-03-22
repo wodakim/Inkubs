@@ -976,14 +976,14 @@ const stylesheetText = `
   background: rgba(255, 255, 255, 0.05);
 }
 
-/* Cart SVG icon — centered in the panel */
+/* Flask SVG icon — centered in the panel, fits the lab/sci-fi DA */
 .side-module__toggle::after {
   content: "";
   display: block;
-  width: 22px;
-  height: 22px;
-  margin-bottom: 20px; /* shift above the LED indicator */
-  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='21' r='1'/%3E%3Ccircle cx='20' cy='21' r='1'/%3E%3Cpath d='M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6'/%3E%3C/svg%3E") center/contain no-repeat;
+  width: 28px;
+  height: 28px;
+  margin-bottom: 18px; /* shift above the LED indicator */
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 3h6'/%3E%3Cpath d='M10.5 3v6.8L5.8 17.2A3 3 0 0 0 8.5 22h7a3 3 0 0 0 2.7-4.8L13.5 9.8V3'/%3E%3Ccircle cx='10' cy='16' r='1' fill='white' stroke='none'/%3E%3Ccircle cx='13.5' cy='18.5' r='0.7' fill='white' stroke='none'/%3E%3C/svg%3E") center/contain no-repeat;
   opacity: 0.65;
   pointer-events: none;
   transition: opacity 160ms ease;
