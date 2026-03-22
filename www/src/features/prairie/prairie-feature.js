@@ -1644,13 +1644,13 @@ export function createPrairieFeature() {
             });
         }
 
-        // ── Trees (tall landmark, static canopy) ─────────────────────────
+        // ── Trees (short rounded tree, stays at ground level) ────────────
         const treeCount = 1 + Math.floor(rng() * 2);
         for (let i = 0; i < treeCount; i++) {
             const x = wL + 150 + rng() * (wSpan - 300);
-            const trunkH = 55 + rng() * 35;
-            const trunkW = 10 + rng() * 8;
-            const canopyR = 32 + rng() * 22;
+            const trunkH = 22 + rng() * 14;   // same order of magnitude as stump/rock
+            const trunkW = 9 + rng() * 6;
+            const canopyR = 20 + rng() * 12;  // canopy bottom nearly touches ground
             const hue = 100 + rng() * 40;
             prairieObjects.push({
                 type: 'tree', x, y: gY,
