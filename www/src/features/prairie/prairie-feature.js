@@ -163,6 +163,9 @@ export function createPrairieFeature() {
     let pinchAnchor = null;
     let activeDrag = null;
     let edgeScrollPointer = null;
+    // Rect du viewport mis en cache pour éviter getBoundingClientRect() chaque frame
+    // dans applyEdgeScroll. Mis à jour dans resize() seulement.
+    let viewportEdgeRect = null;
 
     // ── Observation Loupe state ──────────────────────────────────────────
     let laboPeekBtn = null;
@@ -182,6 +185,11 @@ export function createPrairieFeature() {
     let laboPanelGetBlueprint = null;   // fn → blueprint courant de l'incubateur
     let laboPanelCurrentSeed = null;    // seed du blueprint actuellement rendu
     let laboPanelPreviewFloatT = 0;     // temps pour animation de flottement
+    // Dimensions du viewport du panel labo, mises en cache via ResizeObserver pour
+    // éviter clientWidth/clientHeight (qui forcent un reflow) dans la boucle RAF.
+    let laboPanelViewportW = 0;
+    let laboPanelViewportH = 0;
+    let laboPanelViewportRO = null;
     let laboPanelSourceCanvasListener = null;
     let loupeBtn = null;
     let obsPanel = null;
@@ -333,6 +341,18 @@ export function createPrairieFeature() {
         laboPanelClose = root.querySelector('[data-prairie-labo-close]');
         laboPanelViewport = root.querySelector('[data-prairie-labo-viewport]');
         laboPanelHint = root.querySelector('[data-prairie-labo-hint]');
+        // Observer les dimensions du viewport du panel pour éviter des lectures DOM
+        // (clientWidth / clientHeight) dans la boucle RAF — zéro reflow garanti.
+        if (laboPanelViewport && typeof ResizeObserver !== 'undefined') {
+            laboPanelViewportRO = new ResizeObserver((entries) => {
+                for (const entry of entries) {
+                    const cr = entry.contentRect;
+                    if (cr.width  > 0) laboPanelViewportW = cr.width;
+                    if (cr.height > 0) laboPanelViewportH = cr.height;
+                }
+            });
+            laboPanelViewportRO.observe(laboPanelViewport);
+        }
         droneToggle = root.querySelector('[data-prairie-drone-toggle]');
         dronePanel = root.querySelector('[data-prairie-drone-panel]');
         droneClose = root.querySelector('[data-prairie-drone-close]');
@@ -964,7 +984,7 @@ export function createPrairieFeature() {
         if (!viewport) {
             return;
         }
-        const rect = viewport.getBoundingClientRect();
+        const rect = viewportEdgeRect || viewport.getBoundingClientRect();
         let deltaX = 0;
         let deltaY = 0;
         if (clientX < rect.left + EDGE_SCROLL_ZONE) {
@@ -2336,8 +2356,8 @@ export function createPrairieFeature() {
     function _spawnPreviewSlime(blueprint) {
         if (!laboPanelPreviewCanvas || !blueprint) return;
 
-        const vw = laboPanelViewport?.clientWidth  || 140;
-        const vh = laboPanelViewport?.clientHeight || 160;
+        const vw = laboPanelViewportW || laboPanelViewport?.clientWidth  || 140;
+        const vh = laboPanelViewportH || laboPanelViewport?.clientHeight || 160;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const pw = Math.round(vw * dpr);
         const ph = Math.round(vh * dpr);
@@ -2412,8 +2432,9 @@ export function createPrairieFeature() {
         if (!laboPanelPreviewSlime) return;
 
         // ── Redimensionner si besoin ─────────────────────────────────────────
-        const vw = laboPanelViewport?.clientWidth  || 140;
-        const vh = laboPanelViewport?.clientHeight || 160;
+        // Utiliser les dimensions mises en cache (ResizeObserver) — pas de reflow par frame.
+        const vw = laboPanelViewportW || laboPanelViewport?.clientWidth  || 140;
+        const vh = laboPanelViewportH || laboPanelViewport?.clientHeight || 160;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         const pw = Math.round(vw * dpr);
         const ph = Math.round(vh * dpr);
@@ -2713,6 +2734,8 @@ export function createPrairieFeature() {
         resizeCanvas();
         computeWorld();
         clampCamera();
+        // Mettre en cache le rect du viewport (une seule lecture par resize, pas par frame)
+        viewportEdgeRect = viewport ? viewport.getBoundingClientRect() : null;
         syncSceneTransform();
         applyPanelLayout();
         renderMinimap();
@@ -2905,6 +2928,7 @@ export function createPrairieFeature() {
             root?.remove?.();
             root = null;
             viewport = null;
+            viewportEdgeRect = null;
             scene = null;
             canvas = null;
             minimapCanvas = null;
@@ -2921,6 +2945,10 @@ export function createPrairieFeature() {
             stopPreviewEngine();
             laboPanelPreviewCanvas = null;
             laboPanelPreviewCtx = null;
+            laboPanelViewportRO?.disconnect();
+            laboPanelViewportRO = null;
+            laboPanelViewportW = 0;
+            laboPanelViewportH = 0;
             if (laboPanelSourceCanvasListener) {
                 window.removeEventListener('inku:labo-source-canvas', laboPanelSourceCanvasListener);
                 laboPanelSourceCanvasListener = null;

@@ -98,6 +98,10 @@ export function createIncubatorSlimePreview() {
     let lastCandidate = null;
     let wrapperOriginalParent = null; // référence au parent DOM original avant reparentage
     let isExternallySuspended = false;
+    // Rect du canvas mis en cache pour éviter un getBoundingClientRect() par frame dans la
+    // boucle RAF (seules width/height sont nécessaires — la position change avec le drift
+    // du wrapper mais n'est jamais utilisée dans les calculs physiques du motion loop).
+    let cachedCanvasRect = null;
     let suspendedSlime = null;   // local ref to incubator slime, saved at suspend time
 
     function createCandidatePayload() {
@@ -473,7 +477,10 @@ export function createIncubatorSlimePreview() {
             }
 
             const slime = engine.getCurrentSlime?.();
-            const rect = canvas.getBoundingClientRect?.();
+            // Utiliser le rect mis en cache (évite un reflow forcé par frame).
+            // Seules width/height sont nécessaires ici — la position change avec le
+            // drift du wrapper mais n'est jamais utilisée dans ces calculs physiques.
+            const rect = cachedCanvasRect || canvas.getBoundingClientRect?.();
             if (!slime || !rect) {
                 motionRaf = requestAnimationFrame(tick);
                 return;
@@ -573,6 +580,7 @@ export function createIncubatorSlimePreview() {
         engine.resize();
 
         const rect = canvas.getBoundingClientRect();
+        cachedCanvasRect = rect;
         const boxPadding = Math.max(6, Math.min(rect.width, rect.height) * 0.028);
         const spawnX = rect.width * 0.5;
         const spawnY = rect.height * FLOAT_BOTTOM_SPAWN_RATIO;
@@ -631,6 +639,8 @@ export function createIncubatorSlimePreview() {
         if (slime && canvas) {
             slime.boxPadding = Math.max(6, Math.min(canvas.width, canvas.height) * 0.028);
         }
+        // Mettre à jour le rect mis en cache après le resize (une seule lecture par syncLayout)
+        if (canvas) cachedCanvasRect = canvas.getBoundingClientRect();
     }
 
     function ensureRuntimeAvailable() {
@@ -682,6 +692,7 @@ export function createIncubatorSlimePreview() {
         lastTapPoint = null;
         suspendedSlime = null;
         isExternallySuspended = false;
+        cachedCanvasRect = null;
     }
 
     function exportCanonicalClaimPayload(options = {}) {

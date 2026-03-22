@@ -356,6 +356,9 @@ export function createLaboIncubatorFeature({ store } = {}) {
                 // Masquer le wrapper original pour éviter le doublon derrière la minimap
                 const w = wrapper_ref();
                 if (w) w.style.visibility = 'hidden';
+                // Reprendre l'orchestrateur si suspendu : les candidats continuent de
+                // tourner en arrière-plan pendant que la prairie affiche l'aperçu.
+                if (isSuspended) orchestrator?.resume?.();
                 // Envoyer un GETTER de blueprint — la prairie crée son propre engine
                 // avec le même genome, sans dépendre du canvas interne de l'incubateur
                 window.dispatchEvent(new CustomEvent('inku:labo-source-canvas', {
@@ -364,9 +367,14 @@ export function createLaboIncubatorFeature({ store } = {}) {
                     },
                 }));
             } else {
-                // Révéler le wrapper original quand le panel aperçu se ferme
+                // Réinitialiser la visibilité du wrapper (héritage depuis root) — ne pas
+                // forcer visibility:visible car root a visibility:hidden quand suspendu.
+                // Un visibility:visible explicite sur l'enfant outrepasserait le parent
+                // et ferait apparaître le slime de l'incubateur en arrière-plan.
                 const w = wrapper_ref();
-                if (w) w.style.visibility = 'visible';
+                if (w) w.style.visibility = '';
+                // Remettre l'orchestrateur en pause si l'incubateur est suspendu
+                if (isSuspended) orchestrator?.pause?.();
                 window.dispatchEvent(new CustomEvent('inku:labo-source-canvas', {
                     detail: { getBlueprint: null },
                 }));
