@@ -738,6 +738,11 @@ export function createIncubatorSlimePreview() {
         // Restaurer la visibilité du wrapper
         if (wrapper) wrapper.style.display = '';
 
+        // Invalider le cache du rect : pendant la suspension le root avait
+        // display:none, donc tout getBoundingClientRect() renvoyait des zéros.
+        // La première lecture dans la boucle RAF obtiendra des dimensions fraîches.
+        cachedCanvasRect = null;
+
         // Case 1: engine is alive (was stopped with engine.stop()).
         // Just restart the render loop and the motion controller in place —
         // the slime nodes keep their exact positions, no respawn needed.

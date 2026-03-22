@@ -314,17 +314,12 @@ export function createLaboIncubatorFeature({ store } = {}) {
         if (!root) {
             return;
         }
-        // Réinitialiser l'inline visibility du wrapper slime pour qu'il hérite
-        // du root. Sans ça, un visibility:visible posé par reviveCandidate ou
-        // le listener prairie passerait à travers le visibility:hidden du root.
-        const w = wrapper_ref();
-        if (w) w.style.visibility = '';
-        root.hidden = false;
-        root.style.visibility = 'hidden';
-        root.style.opacity = '0';
-        root.style.pointerEvents = 'none';
-        root.style.position = 'absolute';
-        root.style.inset = '0';
+        // display:none via l'attribut HTML hidden — suppression TOTALE du rendu.
+        // visibility:hidden + opacity:0 ne suffit PAS : l'incubateur utilise un
+        // Shadow DOM (attachShadow) et la cascade de visibility ne traverse pas
+        // la frontière shadow de façon fiable sur tous les navigateurs, ce qui
+        // laisse fuiter un doublon visuel derrière la minimap dans la prairie.
+        root.hidden = true;
         root.setAttribute('aria-hidden', 'true');
     }
 
