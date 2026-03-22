@@ -10,14 +10,7 @@ import { t } from '../../i18n/i18n.js';
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function moodLabel(mood) {
-    const MAP = {
-        calm:'Calme', joyful:'Joyeux', sleepy:'Somnolent', mischief:'Espiègle',
-        grumpy:'Grognon', curious:'Curieux', shy:'Timide', dreamy:'Rêveur',
-        smug:'Suffisant', dizzy:'Étourdi', lovesick:'Amoureux', proud:'Fier',
-        melancholy:'Mélancolique', frenzied:'Frénétique', enlightened:'Éveillé',
-        study:'Studieux',
-    };
-    return MAP[mood] || mood || '—';
+    return t(`mood.${mood}`) || mood || '—';
 }
 
 function derivePersonalityTrait(stats, mood) {
@@ -281,13 +274,13 @@ export function createExternalDisplayPanel() {
                 <span class="labo-dp-label">INKU-LAB</span>
                 <span class="labo-dp-blinker">▮</span>
             </div>
-            <div class="labo-dp-status" data-dp-status>EN ATTENTE...</div>
+            <div class="labo-dp-status" data-dp-status>${t('incubator.status.idle')}</div>
             <div class="labo-dp-divider"></div>
             <div class="labo-dp-candidate" data-dp-candidate hidden>
                 <div class="labo-dp-top">
                     <span class="labo-dp-name" data-dp-name></span>
                     <div class="labo-dp-price-block">
-                        <span class="labo-dp-price-label">PRIX</span>
+                        <span class="labo-dp-price-label">${t('incubator.price_label')}</span>
                         <span class="labo-dp-price-val" data-dp-price>—</span>
                     </div>
                 </div>
@@ -299,20 +292,20 @@ export function createExternalDisplayPanel() {
                 <div class="labo-dp-divider"></div>
                 <div class="labo-dp-info">
                     <div class="labo-dp-info-block">
-                        <span class="labo-dp-info-lbl" data-dp-trait-lbl>TRAIT</span>
+                        <span class="labo-dp-info-lbl" data-dp-trait-lbl>${t('incubator.dp.trait')}</span>
                         <span class="labo-dp-info-val" data-dp-trait></span>
                     </div>
                     <div class="labo-dp-info-block">
-                        <span class="labo-dp-info-lbl">MORPHO</span>
+                        <span class="labo-dp-info-lbl">${t('incubator.dp.morpho')}</span>
                         <span class="labo-dp-info-val" data-dp-morpho></span>
                     </div>
                 </div>
                 <div class="labo-dp-tags" data-dp-tags></div>
                 <div class="labo-dp-divider"></div>
-                <div class="labo-dp-stats-lbl">STATS</div>
+                <div class="labo-dp-stats-lbl">${t('incubator.dp.stats')}</div>
                 <div class="labo-dp-stats" data-dp-stats></div>
             </div>
-            <div class="labo-dp-idle" data-dp-idle>AUCUNE ENTITÉ</div>
+            <div class="labo-dp-idle" data-dp-idle>${t('incubator.no_entity')}</div>
         </div>
     `;
 
@@ -338,15 +331,15 @@ export function createExternalDisplayPanel() {
 
     const TIER_COLORS  = { common:'#94a3b8', uncommon:'#4caf50', rare:'#42a5f5', epic:'#ba68c8', legendary:'#ffb300' };
     const TIER_ICONS   = { common:'◆', uncommon:'◆◆', rare:'◆◆◆', epic:'★', legendary:'★★' };
-    const TIER_LABELS  = { common:'Commun', uncommon:'Peu commun', rare:'Rare', epic:'Épique', legendary:'Légendaire' };
-    const PAT_NAMES    = { solid:'UNI', radial_glow:'LUEUR', gradient_v:'DÉG.↕', gradient_h:'DÉG.↔', gradient_diag:'DÉG.↗', duo_tone:'DUO', soft_spots:'TACHES', stripe_v:'RAYURES', galaxy_swirl:'GALAXIE', aurora:'AURORE', crystal_facets:'CRISTAL', prismatic:'PRISM', void_rift:'RIFT' };
+    const TIER_LABELS  = { common: t('rarity.common'), uncommon: t('rarity.uncommon'), rare: t('rarity.rare'), epic: t('rarity.epic'), legendary: t('rarity.legendary'), instable: t('rarity.instable') };
+    const PAT_NAMES    = Object.fromEntries(['solid','radial_glow','gradient_v','gradient_h','gradient_diag','duo_tone','soft_spots','stripe_v','galaxy_swirl','aurora','crystal_facets','prismatic','void_rift'].map(k => [k, t(`pattern.${k}`)?.toUpperCase() || k.toUpperCase()]));
     const STAT_DEFS    = [
-        { key:'vitality',  lbl:'VIT', color:'#34d399' },
-        { key:'agility',   lbl:'AGI', color:'#60a5fa' },
-        { key:'curiosity', lbl:'CUR', color:'#a78bfa' },
-        { key:'empathy',   lbl:'EMP', color:'#f472b6' },
-        { key:'ferocity',  lbl:'FER', color:'#f87171' },
-        { key:'stability', lbl:'STB', color:'#fbbf24' },
+        { key:'vitality',  lbl:t('stat.vit_abbr'), color:'#34d399' },
+        { key:'agility',   lbl:t('stat.agi_abbr'), color:'#60a5fa' },
+        { key:'curiosity', lbl:t('stat.cur_abbr'), color:'#a78bfa' },
+        { key:'empathy',   lbl:t('stat.emp_abbr'), color:'#f472b6' },
+        { key:'ferocity',  lbl:t('stat.fer_abbr'), color:'#f87171' },
+        { key:'stability', lbl:t('stat.stb_abbr'), color:'#fbbf24' },
     ];
 
     return {
@@ -393,7 +386,7 @@ export function createExternalDisplayPanel() {
             refs.idle.hidden = true;
 
             // Name
-            refs.name.textContent = (candidate.displayName || 'ENTITÉ').toUpperCase();
+            refs.name.textContent = (candidate.displayName || t('incubator.entity_fallback')).toUpperCase();
 
             // Rarity + pattern + income
             refs.rarity.textContent = `${TIER_ICONS[tier]||'◆'} ${(TIER_LABELS[tier]||'').toUpperCase()}`;
@@ -402,7 +395,7 @@ export function createExternalDisplayPanel() {
 
             // Trait comportemental
             const trait = derivePersonalityTrait(stats, mood);
-            refs.traitLbl.textContent = `${trait.icon} TRAIT`;
+            refs.traitLbl.textContent = `${trait.icon} ${t('incubator.dp.trait')}`;
             refs.trait.textContent = trait.label.toUpperCase();
             refs.trait.style.color = trait.color;
 

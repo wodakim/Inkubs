@@ -209,6 +209,89 @@ export const TRANSLATIONS = {
         'prairie.deploy_slime_aria':    'Déployer le slime dans la prairie',
         'prairie.no_interaction':       'Aucune interaction pour le moment...',
 
+        // Prairie — panneau d'observation (loupe)
+        'prairie.obs.tab_activity':         'Activité',
+        'prairie.obs.tab_stats':            'Stats',
+        'prairie.obs.tab_journal':          'Journal',
+        'prairie.obs.hint':                 "Touche un Inkübus dans la prairie pour l'observer",
+        'prairie.obs.hunger_label':         '🍃 Faim',
+        'prairie.obs.behavior_label':       'Comportement',
+        'prairie.obs.temperament_label':    'Tempérament',
+        'prairie.obs.relations_title':      'Relations',
+        'prairie.obs.journal_hunger':       'Faim :',
+        'prairie.obs.no_slime':             'Aucun slime sélectionné.',
+
+        // États de faim
+        'hunger.starving':  '😩 Affamé',
+        'hunger.hungry':    '😐 Faim',
+        'hunger.peckish':   '😊 Petit creux',
+        'hunger.satisfied': '😌 Rassasié',
+
+        // Archétypes de tempérament
+        'temperament.combatant': 'Combattant',
+        'temperament.fearful':   'Craintif',
+        'temperament.resilient': 'Résilient',
+        'temperament.pacifist':  'Pacifiste',
+
+        // Types de relation
+        'relation.lover':          'amoureux',
+        'relation.friend':         'ami',
+        'relation.friendly':       'sympathique',
+        'relation.neutral':        'neutre',
+        'relation.hostile':        'hostile',
+        'relation.rival':          'rival',
+        'relation.combat_partner': 'partenaire de combat',
+
+        // Régimes alimentaires
+        'diet.herbivore': 'Herbivore',
+        'diet.carnivore': 'Carnivore',
+        'diet.omnivore':  'Omnivore',
+
+        // Temps relatif
+        'time.just_now': 'maintenant',
+
+        // Labels de comportement
+        'behavior.approach':      '🔍 Approche',
+        'behavior.observe':       '👁️ Observe',
+        'behavior.follow':        '🚶 Suit',
+        'behavior.orbit':         '🔄 Orbite',
+        'behavior.bond':          '🤝 Lien',
+        'behavior.romance':       '💕 Romance',
+        'behavior.investigate':   '❓ Enquête',
+        'behavior.challenge':     '⚔️ Défi',
+        'behavior.intimidate':    '😤 Intimidation',
+        'behavior.flee':          '💨 Fuite',
+        'behavior.recoil':        '😣 Recul',
+        'behavior.calm':          '😌 Apaise',
+        'behavior.wander':        '🌿 Balade',
+        'behavior.idle_look':     '👀 Regarde',
+        'behavior.explore_jump':  '🦘 Explore',
+        'behavior.sniff_object':  '🌸 Renifle',
+        'behavior.play_ball':     '⚽ Joue',
+        'behavior.sit_stump':     '🪵 Se pose',
+        'behavior.flee_short':    '💨 Esquive',
+        'behavior.fight_clash':   '⚔️ Combat',
+        'behavior.fight_won':     '🏆 Victoire',
+        'behavior.fight_lost':    '💔 Défaite',
+        'behavior.seek_food':     '🍃 Cherche à manger',
+        'behavior.eat_berry':     '🫐 Mange des baies',
+        'behavior.hunt_bird':     '🦅 Chasse',
+        'behavior.communicate':   '💬 Communique',
+        'behavior.falcon_dive':   '🦅 Piqué',
+
+        // Masse d'instabilité
+        'instabilitymass.heavy':   'Lourd',
+        'instabilitymass.medium':  'Moyen',
+        'instabilitymass.gaseous': 'Gazeux',
+
+        // Abréviations de stats
+        'stat.vit_abbr': 'VIT',
+        'stat.agi_abbr': 'AGI',
+        'stat.cur_abbr': 'CUR',
+        'stat.emp_abbr': 'EMP',
+        'stat.fer_abbr': 'FER',
+        'stat.stb_abbr': 'STB',
+
         // Profile modal (textes en dur)
         'profile.my_profile_title':     'Mon Profil',
         'profile.performance_title':    'Performances',
@@ -578,6 +661,89 @@ export const TRANSLATIONS = {
         'prairie.remove_slime_aria':    'Remove slime from prairie',
         'prairie.deploy_slime_aria':    'Deploy slime to prairie',
         'prairie.no_interaction':       'No interaction yet...',
+
+        // Prairie — observation panel (magnifying glass)
+        'prairie.obs.tab_activity':         'Activity',
+        'prairie.obs.tab_stats':            'Stats',
+        'prairie.obs.tab_journal':          'Journal',
+        'prairie.obs.hint':                 'Tap an Inkübus in the prairie to observe it',
+        'prairie.obs.hunger_label':         '🍃 Hunger',
+        'prairie.obs.behavior_label':       'Behavior',
+        'prairie.obs.temperament_label':    'Temperament',
+        'prairie.obs.relations_title':      'Relations',
+        'prairie.obs.journal_hunger':       'Hunger:',
+        'prairie.obs.no_slime':             'No slime selected.',
+
+        // Hunger states
+        'hunger.starving':  '😩 Starving',
+        'hunger.hungry':    '😐 Hungry',
+        'hunger.peckish':   '😊 Peckish',
+        'hunger.satisfied': '😌 Satisfied',
+
+        // Temperament archetypes
+        'temperament.combatant': 'Fighter',
+        'temperament.fearful':   'Fearful',
+        'temperament.resilient': 'Resilient',
+        'temperament.pacifist':  'Pacifist',
+
+        // Relationship types
+        'relation.lover':          'lover',
+        'relation.friend':         'friend',
+        'relation.friendly':       'friendly',
+        'relation.neutral':        'neutral',
+        'relation.hostile':        'hostile',
+        'relation.rival':          'rival',
+        'relation.combat_partner': 'combat partner',
+
+        // Diet labels
+        'diet.herbivore': 'Herbivore',
+        'diet.carnivore': 'Carnivore',
+        'diet.omnivore':  'Omnivore',
+
+        // Relative time
+        'time.just_now': 'just now',
+
+        // Behavior labels
+        'behavior.approach':      '🔍 Approach',
+        'behavior.observe':       '👁️ Observe',
+        'behavior.follow':        '🚶 Follow',
+        'behavior.orbit':         '🔄 Orbit',
+        'behavior.bond':          '🤝 Bond',
+        'behavior.romance':       '💕 Romance',
+        'behavior.investigate':   '❓ Investigate',
+        'behavior.challenge':     '⚔️ Challenge',
+        'behavior.intimidate':    '😤 Intimidate',
+        'behavior.flee':          '💨 Flee',
+        'behavior.recoil':        '😣 Recoil',
+        'behavior.calm':          '😌 Calm',
+        'behavior.wander':        '🌿 Wander',
+        'behavior.idle_look':     '👀 Look around',
+        'behavior.explore_jump':  '🦘 Explore',
+        'behavior.sniff_object':  '🌸 Sniff',
+        'behavior.play_ball':     '⚽ Play',
+        'behavior.sit_stump':     '🪵 Rest',
+        'behavior.flee_short':    '💨 Dodge',
+        'behavior.fight_clash':   '⚔️ Fight',
+        'behavior.fight_won':     '🏆 Victory',
+        'behavior.fight_lost':    '💔 Defeat',
+        'behavior.seek_food':     '🍃 Seeking food',
+        'behavior.eat_berry':     '🫐 Eating berries',
+        'behavior.hunt_bird':     '🦅 Hunting',
+        'behavior.communicate':   '💬 Communicate',
+        'behavior.falcon_dive':   '🦅 Falcon dive',
+
+        // Instability mass
+        'instabilitymass.heavy':   'Heavy',
+        'instabilitymass.medium':  'Medium',
+        'instabilitymass.gaseous': 'Gaseous',
+
+        // Stat abbreviations
+        'stat.vit_abbr': 'VIT',
+        'stat.agi_abbr': 'AGI',
+        'stat.cur_abbr': 'CUR',
+        'stat.emp_abbr': 'EMP',
+        'stat.fer_abbr': 'FER',
+        'stat.stb_abbr': 'STB',
 
         // Profile modal (hardcoded)
         'profile.my_profile_title':     'My Profile',

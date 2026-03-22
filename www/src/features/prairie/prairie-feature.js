@@ -272,13 +272,13 @@ export function createPrairieFeature() {
                         <header class="prairie-obs__header" data-prairie-obs-drag>
                             <h3 class="prairie-obs__title" data-prairie-obs-title>Observation</h3>
                             <div class="prairie-obs__tabs">
-                                <button type="button" class="prairie-obs__tab is-active" data-prairie-obs-tab="log">Activité</button>
-                                <button type="button" class="prairie-obs__tab" data-prairie-obs-tab="stats">Stats</button>
-                                <button type="button" class="prairie-obs__tab" data-prairie-obs-tab="journal">Journal</button>
+                                <button type="button" class="prairie-obs__tab is-active" data-prairie-obs-tab="log">${t('prairie.obs.tab_activity')}</button>
+                                <button type="button" class="prairie-obs__tab" data-prairie-obs-tab="stats">${t('prairie.obs.tab_stats')}</button>
+                                <button type="button" class="prairie-obs__tab" data-prairie-obs-tab="journal">${t('prairie.obs.tab_journal')}</button>
                             </div>
                             <button type="button" class="prairie-obs__close" data-prairie-obs-close>×</button>
                         </header>
-                        <div class="prairie-obs__hint" data-prairie-obs-hint>Touche un Inkübus dans la prairie pour l'observer</div>
+                        <div class="prairie-obs__hint" data-prairie-obs-hint>${t('prairie.obs.hint')}</div>
                         <div class="prairie-obs__body" data-prairie-obs-body>
                             <div class="prairie-obs__page prairie-obs__page--log is-active" data-prairie-obs-page="log"></div>
                             <div class="prairie-obs__page prairie-obs__page--stats" data-prairie-obs-page="stats"></div>
@@ -1027,22 +1027,42 @@ export function createPrairieFeature() {
     // ── Observation Panel Logic ─────────────────────────────────────────────
 
     const BEHAVIOR_LABELS = {
-        approach: '🔍 Approche', observe: '👁️ Observe', follow: '🚶 Suit',
-        orbit: '🔄 Orbite', bond: '🤝 Lien', romance: '💕 Romance',
-        investigate: '❓ Enquête', challenge: '⚔️ Défi', intimidate: '😤 Intimidation',
-        flee: '💨 Fuite', recoil: '😣 Recul', calm: '😌 Apaise',
-        wander: '🌿 Balade', idle_look: '👀 Regarde', explore_jump: '🦘 Explore',
-        sniff_object: '🌸 Renifle', play_ball: '⚽ Joue', sit_stump: '🪵 Se pose',
-        flee_short: '💨 Esquive',
-        fight_clash: '⚔️ Combat', fight_won: '🏆 Victoire', fight_lost: '💔 Défaite',
-        // Needs & food
-        seek_food: '🍃 Cherche à manger', eat_berry: '🫐 Mange des baies',
-        hunt_bird: '🦅 Chasse', communicate: '💬 Communique',
+        approach:     t('behavior.approach'),
+        observe:      t('behavior.observe'),
+        follow:       t('behavior.follow'),
+        orbit:        t('behavior.orbit'),
+        bond:         t('behavior.bond'),
+        romance:      t('behavior.romance'),
+        investigate:  t('behavior.investigate'),
+        challenge:    t('behavior.challenge'),
+        intimidate:   t('behavior.intimidate'),
+        flee:         t('behavior.flee'),
+        recoil:       t('behavior.recoil'),
+        calm:         t('behavior.calm'),
+        wander:       t('behavior.wander'),
+        idle_look:    t('behavior.idle_look'),
+        explore_jump: t('behavior.explore_jump'),
+        sniff_object: t('behavior.sniff_object'),
+        play_ball:    t('behavior.play_ball'),
+        sit_stump:    t('behavior.sit_stump'),
+        flee_short:   t('behavior.flee_short'),
+        fight_clash:  t('behavior.fight_clash'),
+        fight_won:    t('behavior.fight_won'),
+        fight_lost:   t('behavior.fight_lost'),
+        seek_food:    t('behavior.seek_food'),
+        eat_berry:    t('behavior.eat_berry'),
+        hunt_bird:    t('behavior.hunt_bird'),
+        communicate:  t('behavior.communicate'),
+        falcon_dive:  t('behavior.falcon_dive'),
     };
 
     const STAT_LABELS = {
-        curiosity: '🔍 Curiosité', empathy: '💚 Empathie', ferocity: '🔥 Férocité',
-        stability: '🧘 Stabilité', vitality: '💪 Vitalité', agility: '⚡ Agilité',
+        curiosity: `🔍 ${t('stat.curiosity')}`,
+        empathy:   `💚 ${t('stat.empathy')}`,
+        ferocity:  `🔥 ${t('stat.ferocity')}`,
+        stability: `🧘 ${t('stat.stability')}`,
+        vitality:  `💪 ${t('stat.vitality')}`,
+        agility:   `⚡ ${t('stat.agility')}`,
     };
 
     function openObsPanel() {
@@ -1183,35 +1203,34 @@ export function createPrairieFeature() {
         // ── Hunger bar ──
         const hunger = Math.round(brain.hunger ?? 0);
         const hungerColor = hunger > 70 ? '#e05050' : hunger > 40 ? '#d08030' : '#50b070';
-        const hungerLabel = hunger > 80 ? '😩 Affamé' : hunger > 55 ? '😐 Faim' : hunger > 30 ? '😊 Petit creux' : '😌 Rassasié';
+        const hungerLabel = hunger > 80 ? t('hunger.starving') : hunger > 55 ? t('hunger.hungry') : hunger > 30 ? t('hunger.peckish') : t('hunger.satisfied');
         html += `<div class="prairie-obs__stat-row" style="margin-top:0.3rem">
-            <div class="prairie-obs__stat-head"><span class="prairie-obs__stat-label">🍃 Faim</span><span class="prairie-obs__stat-val">${hunger}</span></div>
+            <div class="prairie-obs__stat-head"><span class="prairie-obs__stat-label">${t('prairie.obs.hunger_label')}</span><span class="prairie-obs__stat-val">${hunger}</span></div>
             <div class="prairie-obs__stat-bar"><div class="prairie-obs__stat-fill" style="width:${hunger}%;background:${hungerColor}"></div></div>
         </div>
         <div style="font-size:0.48rem;color:rgba(180,200,195,0.5);margin-bottom:0.3rem;padding-left:2px">${hungerLabel}</div>`;
 
         // ── Current behavior ──
         const bLabel = BEHAVIOR_LABELS[brain.behavior] || brain.behavior;
-        html += `<div class="prairie-obs__current">Comportement : <strong>${bLabel}</strong></div>`;
+        html += `<div class="prairie-obs__current">${t('prairie.obs.behavior_label')} : <strong>${bLabel}</strong></div>`;
 
         // ── Temperament archetype ──
         const prog = entry.slime.livingState?.progressionLedger;
         const temperament = prog?.temperament;
         if (temperament && temperament !== 'neutral') {
             const TEMP_ICONS = { combatant: '⚔️', fearful: '😨', resilient: '🛡️', pacifist: '☮️' };
-            const TEMP_FR    = { combatant: 'Combattant', fearful: 'Craintif', resilient: 'Résilient', pacifist: 'Pacifiste' };
             const wins   = prog?.combatWins   || 0;
             const losses = prog?.combatLosses || 0;
             const combatStr = (wins > 0 || losses > 0) ? ` · ${wins}V/${losses}D` : '';
-            html += `<div class="prairie-obs__current" style="opacity:0.82;font-size:0.88em">${TEMP_ICONS[temperament] || '•'} Tempérament : <strong>${TEMP_FR[temperament] || temperament}</strong>${combatStr}</div>`;
+            const tempLabel = t(`temperament.${temperament}`) || temperament;
+            html += `<div class="prairie-obs__current" style="opacity:0.82;font-size:0.88em">${TEMP_ICONS[temperament] || '•'} ${t('prairie.obs.temperament_label')} : <strong>${tempLabel}</strong>${combatStr}</div>`;
         }
 
         // ── Canonical relationships (persisted across sessions) ──
         const relLedger = entry.slime.livingState?.relationshipLedger;
         if (relLedger && Object.keys(relLedger.affinities || {}).length > 0) {
             const REL_TYPE_ICONS = { lover: '💕', friend: '💚', friendly: '🙂', neutral: '😐', hostile: '😠', rival: '⚔️', combat_partner: '🥊' };
-            const REL_TYPE_FR    = { lover: 'amoureux', friend: 'ami', friendly: 'sympathique', neutral: 'neutre', hostile: 'hostile', rival: 'rival', combat_partner: 'partenaire de combat' };
-            html += '<div class="prairie-obs__bias-title">Relations</div>';
+            html += `<div class="prairie-obs__bias-title">${t('prairie.obs.relations_title')}</div>`;
             for (const [tid, rel] of Object.entries(relLedger.affinities)) {
                 // Resolve display name — fall back to live record lookup if missing
                 let name = rel.displayName;
@@ -1221,7 +1240,7 @@ export function createPrairieFeature() {
                 }
                 if (!name) continue; // skip genuinely unknown entries
                 const icon     = REL_TYPE_ICONS[rel.type] || '😐';
-                const typeFr   = REL_TYPE_FR[rel.type] || rel.type || 'neutre';
+                const typeFr   = t(`relation.${rel.type}`) || rel.type || t('relation.neutral');
                 const biasColor = rel.bias > 0 ? 'rgba(80,220,120,0.8)' : rel.bias < 0 ? 'rgba(220,80,80,0.8)' : 'rgba(180,180,180,0.7)';
                 html += `<div class="prairie-obs__bias-row"><span>${icon} ${name}</span><span style="color:${biasColor}">${typeFr}</span></div>`;
                 const lastEv = rel.significantEvents?.[rel.significantEvents.length - 1];
@@ -1301,13 +1320,7 @@ export function createPrairieFeature() {
         }
 
         // ── Comportement actuel ───────────────────────────────────────────────
-        const bLabel = {
-            seek_food: 'chercher de la nourriture', eat_berry: 'manger des baies',
-            hunt_bird: 'chasser un oiseau', communicate: 'partager une information',
-            wander: 'me balader sans but', bond: 'tisser un lien', romance: 'courtiser quelqu\'un',
-            flee: 'fuir', challenge: 'défier quelqu\'un', fight_clash: 'me battre',
-            idle_look: 'observer autour de moi', orbit: 'tourner en rond',
-        }[brain.behavior] || brain.behavior;
+        const bLabel = BEHAVIOR_LABELS[brain.behavior] || brain.behavior;
         lines.push(`En ce moment je suis occupé à ${bLabel}.`);
 
         // ── État émotionnel ───────────────────────────────────────────────────
@@ -1339,7 +1352,7 @@ export function createPrairieFeature() {
         if (!obsPageJournal) return;
         const slime = entry?.slime;
         if (!slime) {
-            obsPageJournal.innerHTML = `<p class="prairie-obs__empty-msg">Aucun slime sélectionné.</p>`;
+            obsPageJournal.innerHTML = `<p class="prairie-obs__empty-msg">${t('prairie.obs.no_slime')}</p>`;
             return;
         }
         const thoughts = generateLog(brain, slime);
@@ -1351,7 +1364,7 @@ export function createPrairieFeature() {
         const hunger = Math.round(brain.hunger ?? 0);
         const hungerColor = hunger > 70 ? '#e05050' : hunger > 40 ? '#e09030' : '#50b070';
         html += `<div class="prairie-obs__journal-hunger">
-            <span>Faim :</span>
+            <span>${t('prairie.obs.journal_hunger')}</span>
             <div class="prairie-obs__stat-bar" style="flex:1;margin-left:6px">
                 <div class="prairie-obs__stat-fill" style="width:${hunger}%;background:${hungerColor}"></div>
             </div>
@@ -1359,16 +1372,15 @@ export function createPrairieFeature() {
         </div>`;
         // Diet badge
         const dietEmoji = { herbivore: '🌿', carnivore: '🥩', omnivore: '🍽️' };
-        const dietFr    = { herbivore: 'Herbivore', carnivore: 'Carnivore', omnivore: 'Omnivore' };
         const diet = slime.genome?.dietType || 'omnivore';
-        html += `<div class="prairie-obs__journal-badge">${dietEmoji[diet] || '🍽️'} ${dietFr[diet] || diet}</div>`;
+        html += `<div class="prairie-obs__journal-badge">${dietEmoji[diet] || '🍽️'} ${t(`diet.${diet}`) || diet}</div>`;
         html += '</div>';
         obsPageJournal.innerHTML = html;
     }
 
     function formatTimeAgo(timestamp) {
         const sec = Math.round((Date.now() - timestamp) / 1000);
-        if (sec < 5) return 'maintenant';
+        if (sec < 5) return t('time.just_now');
         if (sec < 60) return `${sec}s`;
         const min = Math.floor(sec / 60);
         return `${min}m`;
