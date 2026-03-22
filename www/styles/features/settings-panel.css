@@ -14,7 +14,7 @@
     transition: opacity 0.28s ease, transform 0.28s ease;
     display: flex;
     flex-direction: column;
-    font-family: 'Nunito', sans-serif;
+    font-family: 'InkuDisplay', 'Nunito', sans-serif;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
     transform: translateY(8px);
@@ -60,7 +60,7 @@
 
 .igs-header-text { flex: 1; }
 .igs-title { font-size: 1.1rem; font-weight: 900; color: white; letter-spacing: 0.04em; }
-.igs-version { font-size: 0.58rem; font-family: 'JetBrains Mono', 'Fira Code', monospace; color: rgba(52, 211, 153, 0.4); letter-spacing: 0.18em; text-transform: uppercase; margin-top: 1px; }
+.igs-version { font-size: 0.58rem; font-family: 'InkuMono', 'JetBrains Mono', 'Fira Code', monospace; color: rgba(52, 211, 153, 0.4); letter-spacing: 0.18em; text-transform: uppercase; margin-top: 1px; }
 
 /* Scrollable body */
 .igs-body {
@@ -85,7 +85,7 @@
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.38);
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-family: 'InkuMono', 'JetBrains Mono', 'Fira Code', monospace;
     margin-bottom: 0.5rem;
     padding-left: 0.1rem;
 }
@@ -137,11 +137,11 @@
 .igs-slider { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1); outline: none; cursor: pointer; }
 .igs-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: #34d399; box-shadow: 0 0 10px rgba(52,211,153,0.6); cursor: pointer; }
 .igs-slider::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: #34d399; border: none; box-shadow: 0 0 10px rgba(52,211,153,0.6); }
-.igs-slider-val { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.72rem; font-weight: 700; color: #34d399; min-width: 2rem; text-align: right; flex-shrink: 0; }
+.igs-slider-val { font-family: 'InkuMono', 'JetBrains Mono', 'Fira Code', monospace; font-size: 0.72rem; font-weight: 700; color: #34d399; min-width: 2rem; text-align: right; flex-shrink: 0; }
 
 /* Segmented control */
 .igs-seg { display: flex; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 3px; gap: 2px; }
-.igs-seg-btn { appearance: none; padding: 0.3rem 0.55rem; border-radius: 7px; border: none; font-family: 'Nunito', sans-serif; font-size: 0.68rem; font-weight: 800; color: rgba(255,255,255,0.35); cursor: pointer; background: transparent; transition: all 0.18s; -webkit-tap-highlight-color: transparent; }
+.igs-seg-btn { appearance: none; padding: 0.3rem 0.55rem; border-radius: 7px; border: none; font-family: 'InkuDisplay', 'Nunito', sans-serif; font-size: 0.68rem; font-weight: 800; color: rgba(255,255,255,0.35); cursor: pointer; background: transparent; transition: all 0.18s; -webkit-tap-highlight-color: transparent; }
 .igs-seg-btn.is-active { background: rgba(16,185,129,0.2); color: #34d399; }
 
 /* Quality tier buttons (bigger, tappable) */
@@ -155,7 +155,7 @@
     background: rgba(255,255,255,0.03);
     border: 1.5px solid rgba(255,255,255,0.08);
     color: rgba(255,255,255,0.5);
-    font-family: 'Nunito', sans-serif;
+    font-family: 'InkuDisplay', 'Nunito', sans-serif;
     cursor: pointer;
     transition: all 0.15s;
     text-align: left;
@@ -173,7 +173,7 @@
 .igs-tier-btn.is-active .igs-tier-icon { color: #34d399; }
 .igs-tier-info { flex: 1; min-width: 0; }
 .igs-tier-name { display: block; font-size: 0.9rem; font-weight: 800; line-height: 1.2; }
-.igs-tier-desc { display: block; font-size: 0.6rem; color: rgba(255,255,255,0.35); margin-top: 2px; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.06em; }
+.igs-tier-desc { display: block; font-size: 0.6rem; color: rgba(255,255,255,0.35); margin-top: 2px; font-family: 'InkuMono', 'JetBrains Mono', monospace; letter-spacing: 0.06em; }
 .igs-tier-btn.is-active .igs-tier-desc { color: rgba(52,211,153,0.55); }
 
 /* Auto-detect button */
@@ -190,7 +190,7 @@
     background: transparent;
     border: 1px solid rgba(16,185,129,0.2);
     color: rgba(52,211,153,0.6);
-    font-family: 'Nunito', sans-serif;
+    font-family: 'InkuDisplay', 'Nunito', sans-serif;
     font-size: 0.75rem;
     font-weight: 700;
     cursor: pointer;

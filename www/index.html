@@ -2,12 +2,24 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- viewport-fit=cover for notch/Dynamic Island, user-scalable=no prevents pinch-zoom -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Inkü - Le Laboratoire</title>
 
+    <!-- PWA / App-mode declarations — removes browser chrome on Android -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Inkü">
+    <meta name="application-name" content="Inkü">
+    <meta name="theme-color" content="#04060c">
+    <!-- Prevent phone number / email detection (breaks layout on some Android) -->
+    <meta name="format-detection" content="telephone=no, date=no, email=no, address=no">
+
+    <!-- Fonts — display=block prevents FOUT; swap would flash system font briefly -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Nunito:wght@400;700;900&family=Press+Start+2P&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Nunito:wght@400;700;900&family=Press+Start+2P&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Fredoka:wght@400;500;600;700&display=block" rel="stylesheet">
 
     <script src="./src/bootstrap/tailwind-bridge.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>

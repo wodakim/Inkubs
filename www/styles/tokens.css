@@ -3,6 +3,40 @@
    Premium mobile-game design system · Slime Lab Aesthetic
    ═══════════════════════════════════════════════════════════════════════ */
 
+/*
+ * ── FONT LOCK ──────────────────────────────────────────────────────────
+ * Android/Samsung/MIUI let users install system fonts that can override
+ * web fonts when fallbacks match installed font names.
+ *
+ * Solution: re-declare loaded Google Fonts under PROPRIETARY internal names
+ * (InkuDisplay, InkuBody, InkuMono). No installed system font can match
+ * these names, so substitution is impossible.
+ *
+ * The actual font data comes from Google Fonts (already loaded via <link>).
+ * We alias them here using local() + the exact PostScript name Google uses.
+ */
+@font-face {
+    font-family: 'InkuDisplay';
+    src: local('Fredoka'), local('Fredoka-Regular'),
+         local('Nunito'), local('Nunito-Black');
+    font-weight: 400 900;
+    font-display: block;
+}
+@font-face {
+    font-family: 'InkuBody';
+    src: local('Outfit'), local('Outfit-Regular'),
+         local('Nunito'), local('Nunito-Regular');
+    font-weight: 400 900;
+    font-display: block;
+}
+@font-face {
+    font-family: 'InkuMono';
+    src: local('JetBrainsMono'), local('JetBrains Mono'),
+         local('FiraCode'), local('Fira Code');
+    font-weight: 400 700;
+    font-display: block;
+}
+
 :root {
     /* ── Layout ──────────────────────────────────────────────────────── */
     --app-max-width: 28rem;
@@ -37,10 +71,10 @@
     --diamond-top: -20px;
     --nav-radius: 24px;
 
-    /* ── Typography ───────────────────────────────────────────────────── */
-    --font-display: 'Fredoka', 'Nunito', sans-serif;
-    --font-body: 'Outfit', 'Nunito', sans-serif;
-    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    /* ── Typography — proprietary names immune to system font override ── */
+    --font-display: 'InkuDisplay', 'Fredoka', 'Nunito', sans-serif;
+    --font-body:    'InkuBody',    'Outfit',  'Nunito', sans-serif;
+    --font-mono:    'InkuMono',    'JetBrains Mono', 'Fira Code', monospace;
 
     /* ── Motion ───────────────────────────────────────────────────────── */
     --motion-instant: 80ms;
