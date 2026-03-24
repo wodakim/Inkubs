@@ -1,0 +1,83 @@
+# =========================
+# Node
+# =========================
+node_modules/
+npm-debug.log*
+
+# =========================
+# Environment
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Python (Environnements virtuels)
+# =========================
+venv/
+.venv/
+
+# =========================
+# Build Web (Si généré automatiquement)
+# =========================
+# Décommentez "www/" si c'est un dossier généré (ex: output de Vite/Webpack)
+# www/
+dist/
+
+# =========================
+# Capacitor (IMPORTANT)
+# =========================
+# Build natif Android
+android/app/build/
+android/build/
+android/.gradle/
+android/local.properties
+android/captures/
+
+# Fichiers générés
+android/app/src/main/assets/public/
+
+# iOS (si jamais ajouté)
+ios/App/build/
+ios/App/Pods/
+ios/App/public/
+ios/App/App.xcworkspace/xcuserdata/
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDE & Outils IA
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+.continue/
+
+# =========================
+# Temp / Cache
+# =========================
+.tmp/
+.temp/
+.cache/
+
+# =========================
+# Tests
+# =========================
+coverage/
+
+# =========================
+# Misc
+# =========================
+*.local
+.aider*

@@ -1,0 +1,681 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   INKÜ — MODALS v2.0
+   Profile card, confirmation dialogs
+   Slime lab aesthetic · Spring animations · Mobile-first
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ═══════ PROFILE MODAL ═══════════════════════════════════════════════ */
+
+.profile-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    overflow: hidden; /* masque le panneau settings quand il est hors-écran à droite */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-medium) ease;
+}
+
+.profile-modal.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ── Backdrop ────────────────────────────────────────────────────────── */
+.profile-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(4, 6, 12, 0.88);
+    backdrop-filter: blur(14px) saturate(0.85);
+    -webkit-backdrop-filter: blur(14px) saturate(0.85);
+}
+
+/* ── Card ────────────────────────────────────────────────────────────── */
+.profile-card {
+    position: relative;
+    z-index: 1;
+    width: min(88%, 22rem);
+    padding: 1.75rem;
+    border-radius: 28px;
+    border-color: rgba(16, 185, 129, 0.12);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: scale(0.92) translateY(12px);
+    transition:
+        transform var(--motion-slow) var(--ease-spring),
+        opacity var(--motion-medium) ease;
+    overflow: hidden;
+}
+
+.profile-modal.is-open .profile-card {
+    transform: scale(1) translateY(0);
+}
+
+/* Slime drip decoration at top */
+.profile-card::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 20%;
+    right: 20%;
+    height: 3px;
+    background: linear-gradient(90deg,
+        transparent,
+        rgba(16, 185, 129, 0.4) 20%,
+        rgba(52, 211, 153, 0.6) 50%,
+        rgba(16, 185, 129, 0.4) 80%,
+        transparent);
+    border-radius: 0 0 var(--radius-pill) var(--radius-pill);
+    filter: blur(0.5px);
+}
+
+/* Ambient glow behind card */
+.profile-card::after {
+    content: "";
+    position: absolute;
+    top: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140%;
+    height: 50%;
+    background: radial-gradient(ellipse, rgba(16, 185, 129, 0.06), transparent 60%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* ── Close button ────────────────────────────────────────────────────── */
+.profile-card__close,
+.profile-card [data-action="close-profile-modal"] {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: var(--color-text-muted);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all var(--motion-fast) ease;
+    z-index: 2;
+}
+
+.profile-card [data-action="close-profile-modal"]:active {
+    transform: scale(0.9);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Avatar ──────────────────────────────────────────────────────────── */
+.profile-card__avatar,
+.profile-card .relative.w-28 {
+    position: relative;
+    display: grid;
+    place-items: center;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    border: 2px solid rgba(16, 185, 129, 0.5);
+    background:
+        radial-gradient(circle at 40% 35%, rgba(16, 185, 129, 0.15), transparent 60%),
+        rgb(10, 18, 32);
+    overflow: hidden;
+    box-shadow:
+        0 0 0 4px rgba(16, 185, 129, 0.06),
+        0 0 28px rgba(16, 185, 129, 0.2),
+        inset 0 -8px 16px rgba(0, 0, 0, 0.3);
+    margin-bottom: 0.75rem;
+}
+
+.profile-card__avatar-icon,
+.profile-card .relative.w-28 i {
+    color: var(--color-slime-300);
+    font-size: 2.75rem;
+}
+
+/* Scan line animation */
+.profile-card__avatar-scan,
+.profile-card .relative.w-28 .animate-pulse {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 20%, rgba(16, 185, 129, 0.12) 50%, transparent 80%);
+    animation: profile-scan 3s ease-in-out infinite;
+}
+
+/* ── Player name ─────────────────────────────────────────────────────── */
+.profile-card__name,
+.profile-card h2 {
+    margin: 0;
+    color: var(--color-text-primary);
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    line-height: 1.1;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: -0.01em;
+}
+
+/* ── Player ID ───────────────────────────────────────────────────────── */
+.profile-card__id,
+.profile-card [data-modal-player-id] {
+    margin-top: 0.2rem;
+    color: rgba(16, 185, 129, 0.55);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    opacity: 0.8;
+}
+
+/* ── XP Bar section ──────────────────────────────────────────────────── */
+.profile-card__xp,
+.profile-card .w-full.mt-8:has([data-modal-player-xp-bar]) {
+    width: 100%;
+    margin-top: 1.5rem;
+}
+
+.profile-card__xp-header,
+.profile-card .flex.justify-between.text-\[10px\] {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.4rem;
+    color: var(--color-text-muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+/* XP track */
+.profile-card__xp-track,
+.profile-card .w-full.h-2\.5 {
+    width: 100%;
+    height: 8px;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: rgba(0, 0, 0, 0.5);
+}
+
+/* XP fill bar */
+.profile-card__xp-bar,
+.profile-card [data-modal-player-xp-bar] {
+    width: 0;
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(90deg,
+        var(--color-plasma) 0%,
+        var(--color-slime-400) 50%,
+        var(--color-slime) 100%);
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    transition: width 0.6s var(--ease-out-expo);
+    position: relative;
+}
+
+/* Animated shine on XP bar */
+.profile-card [data-modal-player-xp-bar]::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -30%;
+    width: 30%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: xp-shine 3s ease-in-out infinite;
+}
+
+@keyframes xp-shine {
+    0%, 100% { left: -30%; }
+    50% { left: 100%; }
+}
+
+/* ── Locked slots grid ───────────────────────────────────────────────── */
+.profile-card__locked-grid,
+.profile-card .grid.grid-cols-2.gap-4 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    width: 100%;
+    margin-top: 1.5rem;
+}
+
+.profile-card__locked-slot,
+.profile-card .glass-pill.rounded-3xl.h-24 {
+    display: grid;
+    place-items: center;
+    height: 80px;
+    border-radius: var(--radius-lg);
+    border: 1px dashed rgba(255, 255, 255, 0.06);
+    background:
+        repeating-linear-gradient(135deg,
+            rgba(255, 255, 255, 0.01) 0px,
+            rgba(255, 255, 255, 0.01) 2px,
+            transparent 2px,
+            transparent 8px),
+        rgba(255, 255, 255, 0.015);
+    position: relative;
+    overflow: hidden;
+}
+
+/* Lock icon placeholder */
+.profile-card .glass-pill.rounded-3xl.h-24 span {
+    color: rgba(100, 116, 139, 0.35);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* ── Action buttons ──────────────────────────────────────────────────── */
+.profile-card__action,
+.profile-card button.w-full.mt-8 {
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 0.85rem 1rem;
+    min-height: 48px;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    background:
+        linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.04));
+    color: var(--color-slime-400);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all var(--motion-fast) ease;
+}
+
+.profile-card button.w-full.mt-8:active {
+    transform: scale(0.97);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(16, 185, 129, 0.08));
+}
+
+/* Reset button (danger) */
+#reset-data-btn {
+    margin-top: 0.6rem;
+    border-color: rgba(239, 68, 68, 0.2);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.06), rgba(239, 68, 68, 0.03));
+    color: rgba(239, 68, 68, 0.7);
+    min-height: 44px;
+    padding: 0.7rem 1rem;
+}
+
+#reset-data-btn:active {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(239, 68, 68, 0.06));
+    transform: scale(0.97);
+}
+
+/* ── Slot buttons (replace locked) ──────────────────────────────────── */
+.profile-slot-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    height: 80px;
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(16, 185, 129, 0.15);
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 70%),
+        rgba(255, 255, 255, 0.02);
+    color: rgba(16, 185, 129, 0.7);
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    transition: all var(--motion-fast) ease;
+    cursor: pointer;
+}
+
+.profile-slot-btn:active {
+    transform: scale(0.95);
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(16, 185, 129, 0.18) 0%, transparent 70%),
+        rgba(255, 255, 255, 0.04);
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
+/* ── Sélecteur de langue (in-game profile) ──────────────────────────── */
+.profile-lang-btn {
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: rgba(148, 163, 184, 0.5);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.profile-lang-btn.is-active {
+    background: rgba(16, 185, 129, 0.15);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: rgba(52, 211, 153, 0.95);
+}
+
+/* ── Settings panel ─────────────────────────────────────────────────────
+   Le panneau est un sibling du profile-card dans le profile-modal (fixed inset-0).
+   Il est centré exactement comme la card (same dimensions) et slide depuis la droite.
+   Cette architecture évite tout conflit avec overflow:hidden de la card.
+─────────────────────────────────────────────────────────────────────── */
+.profile-settings-panel {
+    position: absolute;
+    /* Mêmes dimensions que la card (w-[85%] max-w-sm de Tailwind) */
+    width: 85%;
+    max-width: 24rem;
+    /* Centré verticalement et horizontalement dans le modal */
+    top: 50%;
+    left: 50%;
+    /* État initial : déplacé hors écran à droite */
+    transform: translate(calc(-50% + 100vw), -50%);
+    transition: transform var(--motion-medium) var(--ease-spring);
+
+    background: var(--glass-bg, rgba(6, 12, 28, 0.97));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom-color: rgba(16, 185, 129, 0.12);
+    border-radius: 28px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.65);
+
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+
+    /* Scroll interne OK ici : pas de parent overflow:hidden qui interfère */
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: 90vh;
+
+    z-index: 60; /* au-dessus du modal z-50 */
+}
+
+.profile-settings-panel.is-open {
+    /* Centré exactement comme la card */
+    transform: translate(-50%, -50%);
+}
+
+.profile-settings-panel__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.profile-settings-back {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--color-text-muted);
+    flex-shrink: 0;
+    transition: all var(--motion-fast) ease;
+}
+
+.profile-settings-back:active {
+    transform: scale(0.9);
+}
+
+.profile-settings-panel__title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--color-text-primary);
+    letter-spacing: 0.02em;
+}
+
+/* ── Profile settings section ─────────────────────────────────────── */
+.settings-section-label {
+    font-family: var(--font-body);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(16, 185, 129, 0.55);
+    margin-bottom: 0.6rem;
+    display: block;
+}
+
+.profile-avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    /* s'assure que la grille ne déborde jamais */
+    width: 100%;
+}
+
+.avatar-option {
+    display: grid;
+    place-items: center;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 1.5px solid rgba(255, 255, 255, 0.07);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(100, 116, 139, 0.7);
+    transition: border-color var(--motion-fast) ease, background var(--motion-fast) ease, color var(--motion-fast) ease;
+    cursor: pointer;
+    min-height: 44px;
+}
+
+.avatar-option i {
+    font-size: 1.35rem;
+    pointer-events: none;
+}
+
+.avatar-option:active,
+.avatar-option.is-selected {
+    border-color: rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 0.08);
+    color: var(--color-slime-400);
+}
+
+.profile-name-input {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border-radius: var(--radius-md);
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-text-primary);
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    outline: none;
+    transition: border-color var(--motion-fast) ease;
+    margin-bottom: 0.75rem;
+}
+
+.profile-name-input:focus {
+    border-color: rgba(16, 185, 129, 0.45);
+}
+
+.profile-save-btn {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.06));
+    color: var(--color-slime-400);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all var(--motion-fast) ease;
+}
+
+.profile-save-btn:active {
+    transform: scale(0.97);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.22), rgba(16, 185, 129, 0.12));
+}
+
+/* ── Performance tier section ─────────────────────────────────────── */
+.perf-tier-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    margin-bottom: 1rem;
+}
+
+.perf-tier-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.8rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.025);
+    text-align: left;
+    transition: border-color var(--motion-fast) ease, background var(--motion-fast) ease;
+    cursor: pointer;
+    min-height: 52px;
+}
+
+.perf-tier-btn.is-active {
+    border-color: rgba(16, 185, 129, 0.4);
+    background: rgba(16, 185, 129, 0.06);
+}
+
+.perf-tier-btn:active {
+    transform: scale(0.97);
+}
+
+.perf-tier-ph-icon {
+    font-size: 1.15rem;
+    color: rgba(100, 116, 139, 0.7);
+    flex-shrink: 0;
+    transition: color var(--motion-fast) ease;
+}
+
+.perf-tier-btn.is-active .perf-tier-ph-icon {
+    color: var(--color-slime-400);
+}
+
+.perf-tier-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.perf-tier-name {
+    font-family: var(--font-body);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    letter-spacing: 0;
+    transition: color var(--motion-fast) ease;
+}
+
+.perf-tier-btn.is-active .perf-tier-name {
+    color: var(--color-text-primary);
+}
+
+.perf-tier-desc {
+    font-family: var(--font-body);
+    font-size: 10px;
+    color: rgba(100, 116, 139, 0.6);
+    letter-spacing: 0;
+}
+
+.perf-auto-btn {
+    width: 100%;
+    padding: 0.7rem;
+    border-radius: var(--radius-md);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.025);
+    color: rgba(100, 116, 139, 0.7);
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    transition: all var(--motion-fast) ease;
+    min-height: 44px;
+}
+
+.perf-auto-btn:active {
+    transform: scale(0.97);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--color-text-secondary);
+}
+
+/* ═══════ RESET CONFIRM MODAL ════════════════════════════════════════ */
+
+#reset-confirm-modal {
+    transition: opacity 0.2s ease;
+}
+
+#reset-confirm-modal .glass-panel {
+    border-color: rgba(239, 68, 68, 0.15);
+    border-radius: 24px;
+    padding: 1.5rem;
+    box-shadow: 0 0 60px rgba(239, 68, 68, 0.08), var(--shadow-float);
+}
+
+/* Warning icon */
+#reset-confirm-modal .w-16 {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 40% 35%, rgba(239, 68, 68, 0.2), transparent 60%),
+        rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+}
+
+#reset-confirm-modal h3 {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+#reset-confirm-modal p {
+    font-size: 0.78rem;
+    line-height: 1.55;
+    color: var(--color-text-secondary);
+}
+
+/* Confirm buttons */
+#reset-confirm-yes {
+    min-height: 48px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+#reset-confirm-no {
+    min-height: 44px;
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+}
+
+/* ═══════ KEYFRAMES ══════════════════════════════════════════════════ */
+
+@keyframes profile-scan {
+    0%, 100% { transform: translateY(-100%); }
+    50%      { transform: translateY(100%); }
+}

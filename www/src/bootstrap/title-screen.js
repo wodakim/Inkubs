@@ -1,0 +1,732 @@
+/**
+ * INKÜ — Title Screen v4.0
+ * Reproduction FIDÈLE du mockup original — même HTML, même CSS, même classes Tailwind.
+ * Seule différence : la carte "login" est remplacée par bouton PLAY + modal Paramètres.
+ * Injecté dans <html> pour contourner overflow:hidden du body.
+ */
+
+import { t, getLang, setLang } from '../i18n/i18n.js';
+
+export function createTitleScreen({ onPlay } = {}) {
+
+    /* ── Settings ── */
+    const SK = 'inku.settings.v1';
+    const DEF = { master: 80, music: 60, sfx: 90, quality: 'high', fps: false, motion: false, notif: false, vibr: true, touch: true, lang: 'fr' };
+    const loadS = () => { try { return { ...DEF, ...JSON.parse(localStorage.getItem(SK) || '{}') }; } catch { return { ...DEF }; } };
+    const saveS = s => { try { localStorage.setItem(SK, JSON.stringify(s)); } catch {} };
+    let S = loadS();
+
+    /* ── Root ── */
+    const root = document.createElement('div');
+    root.id = 'ts-root';
+    root.style.cssText = 'position:fixed;inset:0;z-index:99999;font-family:Nunito,sans-serif;overflow:hidden;touch-action:none;';
+
+    root.innerHTML = getTplHTML();
+
+    /* ── Template ── */
+    function getTplHTML() { return `
+<style>
+#ts-root{color:white;}
+#ts-body{margin:0;overflow:hidden;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;font-family:'InkuDisplay','Nunito',sans-serif;background-color:#0f172a;touch-action:none;height:100dvh;position:relative;}
+.lab-bg-container{position:fixed;inset:0;background-color:#04060c;background-image:radial-gradient(circle at 50% 30%,#0a1128 0%,#04060c 70%);z-index:0;overflow:hidden;box-shadow:inset 0 0 150px rgba(0,0,0,1);}
+.ambient-fog{position:absolute;border-radius:50%;filter:blur(60px);opacity:0.2;animation:fog-drift 15s infinite alternate ease-in-out;pointer-events:none;}
+.fog-1{top:-10%;right:-10%;width:60vw;height:60vw;background:#10b981;}
+.fog-2{bottom:20%;left:-20%;width:70vw;height:70vw;background:#3b82f6;animation-delay:-5s;}
+@keyframes fog-drift{0%{transform:translate(0,0) scale(1)}100%{transform:translate(-30px,20px) scale(1.1)}}
+.wall-plates{position:absolute;inset:0;background-image:linear-gradient(rgba(0,0,0,0.8) 2px,transparent 2px),linear-gradient(90deg,rgba(0,0,0,0.8) 2px,transparent 2px),linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px);background-size:100px 100px,100px 100px,20px 20px,20px 20px;background-position:-2px -2px,-2px -2px,-1px -1px,-1px -1px;opacity:0.5;z-index:1;}
+.industrial-pipe{position:absolute;background:linear-gradient(90deg,#010204 0%,#1e293b 25%,#475569 40%,#1e293b 60%,#04060c 100%);box-shadow:15px 0 30px rgba(0,0,0,0.9),inset -2px 0 5px rgba(255,255,255,0.05);z-index:2;opacity:0.6;}
+.pipe-vertical{width:35px;height:100%;left:-5px;top:0;border-right:1px solid #000;}
+.pipe-horizontal{width:100%;height:28px;top:-2px;border-bottom:1px solid #000;box-shadow:0 15px 30px rgba(0,0,0,0.9),inset 0 -2px 5px rgba(255,255,255,0.05);}
+.server-rack{position:absolute;left:-25px;top:15%;width:80px;height:180px;background:linear-gradient(to bottom,#0f172a,#020617);border:2px solid #000;border-right:1px solid rgba(255,255,255,0.1);border-radius:4px;box-shadow:inset 5px 0 15px rgba(0,0,0,1),15px 15px 30px rgba(0,0,0,0.9);padding:10px 6px;display:flex;flex-direction:column;gap:10px;z-index:1;transform:perspective(400px) rotateY(25deg);opacity:0.45;}
+.server-slot{height:14px;background:#000;border:1px solid #1e293b;border-bottom-color:rgba(255,255,255,0.1);display:flex;align-items:center;padding:0 5px;gap:5px;}
+.server-led{width:3px;height:3px;border-radius:50%;background:#10b981;box-shadow:0 0 4px #10b981;}
+.server-led.red-alert{background:#ef4444;box-shadow:0 0 6px #ef4444;animation:alert-blink 1s infinite alternate;}
+.server-led.blue-led{background:#3b82f6;box-shadow:0 0 6px #3b82f6;animation:alert-blink 2s infinite alternate-reverse;}
+.server-led.off{background:#1e293b;box-shadow:none;}
+@keyframes alert-blink{0%,20%{opacity:1}80%,100%{opacity:0.3}}
+.dust-motes{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden;}
+.mote{position:absolute;background:#fff;border-radius:50%;opacity:0;box-shadow:0 0 4px #fff;animation:mote-float linear infinite;}
+@keyframes mote-float{0%{transform:translateY(110vh) translateX(0) scale(1);opacity:0}10%{opacity:0.3}90%{opacity:0.3}100%{transform:translateY(-10vh) translateX(30px) scale(1.5);opacity:0}}
+.warning-tape{position:absolute;width:120%;height:20px;bottom:3%;left:-10%;background:repeating-linear-gradient(45deg,#b45309 0px,#b45309 20px,#1c1917 20px,#1c1917 40px);transform:rotate(-3deg);box-shadow:0 5px 15px rgba(0,0,0,0.9);opacity:0.15;z-index:1;border-top:1px solid #000;border-bottom:1px solid #000;}
+.incubator-container{height:100%;max-height:380px;aspect-ratio:2/3;z-index:5;display:flex;flex-direction:column;align-items:center;position:relative;}
+.metal-surface{background:linear-gradient(90deg,#0f172a 0%,#334155 15%,#475569 25%,#1e293b 50%,#0f172a 85%,#020617 100%);width:100%;flex-shrink:0;position:relative;}
+.incubator-cap-top{height:35px;border-radius:12px 12px 0 0;border-top:2px solid rgba(255,255,255,0.3);border-bottom:2px solid #020617;display:flex;flex-direction:column;justify-content:flex-end;z-index:10;}
+.metal-ridge{height:4px;width:100%;background:rgba(0,0,0,0.4);border-bottom:1px solid rgba(255,255,255,0.1);margin-bottom:6px;}
+.neon-rim{height:4px;width:100%;background:#10b981;box-shadow:0 0 15px #10b981,inset 0 0 5px #fff;}
+.incubator-glass{width:100%;flex-grow:1;background:linear-gradient(180deg,rgba(16,185,129,0) 40%,rgba(16,185,129,0.2) 100%),linear-gradient(90deg,rgba(255,255,255,0.1) 0%,transparent 10%,transparent 90%,rgba(0,0,0,0.6) 100%);border-left:2px solid rgba(255,255,255,0.3);border-right:2px solid rgba(0,0,0,0.8);box-shadow:inset 15px 0 20px -10px rgba(255,255,255,0.15),inset -20px 0 30px -10px rgba(0,0,0,0.8),inset 0 -40px 50px -15px rgba(16,185,129,0.4);position:relative;overflow:hidden;backdrop-filter:blur(2px);z-index:5;cursor:pointer;}
+.glass-grid{position:absolute;inset:0;background-image:radial-gradient(rgba(16,185,129,0.25) 1px,transparent 1px);background-size:10px 10px;opacity:0.3;z-index:1;pointer-events:none;}
+.holo-scanline{position:absolute;left:0;right:0;height:2px;background:rgba(16,185,129,0.9);box-shadow:0 0 10px rgba(16,185,129,0.9),0 0 25px rgba(16,185,129,0.5);z-index:4;opacity:0.6;animation:scan 5s linear infinite;}
+@keyframes scan{0%{top:-10%;opacity:0}5%{opacity:0.8}95%{opacity:0.8}100%{top:110%;opacity:0}}
+.glass-reflection{position:absolute;top:0;left:12%;width:15%;height:100%;background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.15) 30%,rgba(255,255,255,0.5) 50%,rgba(255,255,255,0.15) 70%,transparent 100%);z-index:6;pointer-events:none;mix-blend-mode:overlay;}
+.incubator-cap-bottom{height:50px;border-radius:0 0 12px 12px;border-top:2px solid #020617;border-bottom:2px solid rgba(0,0,0,0.8);display:flex;flex-direction:column;justify-content:flex-start;z-index:10;}
+.cap-vents{display:flex;justify-content:space-evenly;width:70%;margin:6px auto 4px auto;}
+.vent-slot{width:5px;height:14px;background:#020617;border-radius:1px;box-shadow:inset 0 2px 5px rgba(0,0,0,1),0 1px 0 rgba(255,255,255,0.15);}
+.holo-hud{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;align-items:flex-end;z-index:6;pointer-events:none;}
+.holo-text{font-family:'InkuMono','JetBrains Mono','Fira Code',monospace;font-size:7px;color:#34d399;text-shadow:0 0 4px #10b981;margin-bottom:2px;opacity:0.85;font-weight:900;letter-spacing:0.5px;}
+.holo-bar{width:30px;height:3px;background:rgba(16,185,129,0.2);border:1px solid rgba(16,185,129,0.4);margin-bottom:5px;position:relative;}
+.holo-bar-fill{position:absolute;top:0;left:0;height:100%;width:98%;background:#10b981;box-shadow:0 0 6px #10b981;}
+.cable-bundle{position:absolute;left:50%;transform:translateX(-50%);width:60px;z-index:1;display:flex;align-items:stretch;justify-content:space-evenly;padding:0 3px;background:linear-gradient(90deg,#020617 0%,#1e293b 30%,#0f172a 50%,#1e293b 70%,#020617 100%);box-shadow:inset 0 0 15px #000,0 0 20px rgba(0,0,0,0.8);border-left:2px solid #334155;border-right:2px solid #334155;}
+.cable-bundle.top{top:-100px;bottom:50%}.cable-bundle.bottom{top:50%;bottom:-100px;}
+.inner-wire{height:100%;position:relative;}.inner-wire::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,0.8) 0%,rgba(255,255,255,0.15) 50%,rgba(0,0,0,0.8) 100%);}
+.wire-1{width:5px;background-color:#022c22;}.wire-2{width:10px;background-color:#0f172a;}.wire-3{width:3px;background-color:#450a0a;}.wire-4{width:7px;background-color:#1e293b;}
+.cable-binding{position:absolute;left:-2px;right:-2px;height:12px;background:linear-gradient(90deg,#1e293b,#64748b,#1e293b);box-shadow:0 4px 6px rgba(0,0,0,0.6),inset 0 2px 2px rgba(255,255,255,0.3);border-top:1px solid #020617;border-bottom:1px solid #020617;border-radius:2px;z-index:2;}
+.led{width:5px;height:5px;border-radius:50%;background-color:#10b981;box-shadow:0 0 8px #10b981;margin:0 3px;}
+canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-index:2;}
+/* ── Logo juicy ─────────────────────────────────────────────────────── */
+#ts-logo-area{
+    display:flex;flex-direction:column;align-items:center;flex-shrink:0;
+    position:relative;z-index:20;
+    padding-top:max(3.75rem,calc(env(safe-area-inset-top,0px) + 2.25rem));
+}
+.ts-logo-badge{
+    display:flex;align-items:center;gap:0.45rem;margin-bottom:0.3rem;
+    font-family:'InkuMono','JetBrains Mono','Fira Code',monospace;
+    font-size:0.5rem;font-weight:700;letter-spacing:0.3em;text-transform:uppercase;
+    color:rgba(52,211,153,0.52);
+}
+.ts-logo-dot{
+    display:inline-block;width:4px;height:4px;border-radius:50%;flex-shrink:0;
+    background:#10b981;box-shadow:0 0 6px #10b981,0 0 14px rgba(16,185,129,0.5);
+}
+.ts-logo-title{
+    font-size:5.5rem;font-weight:900;line-height:1;letter-spacing:-0.025em;
+    color:#fff;margin:0;font-family:'InkuDisplay','Nunito',sans-serif;
+    text-shadow:
+        0 0 22px rgba(16,185,129,1),
+        0 0 55px rgba(16,185,129,0.7),
+        0 0 100px rgba(16,185,129,0.4),
+        0 0 180px rgba(16,185,129,0.15),
+        0 3px 8px rgba(0,0,0,0.65);
+}
+.ts-logo-sub{
+    font-family:'InkuMono','JetBrains Mono','Fira Code',monospace;
+    font-size:0.57rem;letter-spacing:0.28em;text-transform:uppercase;
+    color:rgba(52,211,153,0.58);font-weight:600;margin-top:0.5rem;
+}
+.safe-area-pb{padding-bottom:max(2.5rem,calc(env(safe-area-inset-bottom) + 1.2rem));}
+@media(max-height:750px){
+    #ts-logo-area{padding-top:max(2.75rem,calc(env(safe-area-inset-top,0px) + 1.5rem));}
+    .ts-logo-title{font-size:4.25rem;}
+}
+@media(max-height:650px){
+    #ts-logo-area{padding-top:max(2rem,calc(env(safe-area-inset-top,0px) + 1rem));}
+    .ts-logo-title{font-size:3.4rem;}
+    .ts-logo-badge{display:none;}
+}
+
+/* Bouton paramètres — accessible encoche/Dynamic Island */\n#ts-settings-btn-wrap{position:fixed;top:0;right:0;z-index:200;padding-top:max(0.6rem,env(safe-area-inset-top,0px));padding-right:max(0.75rem,env(safe-area-inset-right,0px));}\n#ts-open-settings{width:3rem;height:3rem;border-radius:14px;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,0.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1.5px solid rgba(255,255,255,0.14);box-shadow:0 4px 18px rgba(0,0,0,0.5);color:rgba(200,210,220,0.9);cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background 0.15s,transform 0.1s;appearance:none;}\n#ts-open-settings:active{transform:scale(0.91);background:rgba(16,185,129,0.18);}\n#ts-open-settings i{font-size:1.25rem;pointer-events:none;}\n\n/* PLAY CARD */
+.login-card-aaa{background:linear-gradient(180deg,rgba(11,17,32,0.7) 0%,rgba(2,6,23,0.85) 100%);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(16,185,129,0.15);box-shadow:0 15px 35px -10px rgba(0,0,0,0.9),inset 0 1px 1px rgba(255,255,255,0.05),inset 0 0 20px rgba(16,185,129,0.05);border-radius:20px;height:auto;padding:1.5rem 1.25rem;width:100%;max-width:320px;margin:0 auto;}
+.login-card-aaa::before{content:'';position:absolute;top:0;left:20%;right:20%;height:1px;background:linear-gradient(90deg,transparent,rgba(52,211,153,0.6),transparent);opacity:0.8;}
+.btn-aaa{background:linear-gradient(90deg,#047857 0%,#10b981 50%,#047857 100%);background-size:200% auto;border:1px solid rgba(52,211,153,0.4);box-shadow:0 6px 15px -4px rgba(16,185,129,0.4),inset 0 1px 0 rgba(255,255,255,0.2),inset 0 -2px 0 rgba(0,0,0,0.2);text-shadow:0 1px 2px rgba(0,0,0,0.3);transition:all 0.2s cubic-bezier(0.4,0,0.2,1);animation:shine-bg 3s linear infinite;padding:0.75rem;border-radius:12px;cursor:pointer;color:white;font-weight:900;font-family:'InkuDisplay','Nunito',sans-serif;font-size:0.95rem;letter-spacing:0.08em;width:100%;display:flex;align-items:center;justify-content:center;gap:0.5rem;}
+.btn-aaa:active{box-shadow:0 0 8px rgba(16,185,129,0.4),inset 0 2px 4px rgba(0,0,0,0.4);transform:translateY(2px);}
+@keyframes shine-bg{to{background-position:200% center}}
+
+/* Loading overlay */
+#ts-loading-overlay{position:absolute;inset:0;background:rgba(15,23,42,0.95);backdrop-filter:blur(12px);z-index:50;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:20px;opacity:0;transition:opacity 0.3s;pointer-events:none;}
+#ts-loading-overlay.show{opacity:1;pointer-events:auto;}
+
+/* Screen transitions */
+#ts-screen{user-select:none;-webkit-user-select:none;opacity:0;transition:opacity 0.45s ease;}
+#ts-screen.ts-in{opacity:1;}
+#ts-screen.ts-out{opacity:0;transform:scale(0.97);transition:opacity 0.5s ease,transform 0.5s ease;pointer-events:none;}
+
+@media(max-height:750px){.safe-area-pb{padding-bottom:max(1.5rem,calc(env(safe-area-inset-bottom) + 0.8rem))}.login-card-aaa{padding:1rem}.title-glow{font-size:2.7rem;line-height:1}.btn-aaa{padding-top:0.6rem;padding-bottom:0.6rem}}
+@media(max-height:650px){.safe-area-pb{padding-bottom:max(1rem,env(safe-area-inset-bottom))}.login-card-aaa{padding:0.75rem 1rem;border-radius:16px;max-width:290px}.title-glow{font-size:2.2rem}.incubator-container{max-height:280px}}
+
+/* ═══ MODAL PARAMÈTRES — STYLE POKÉMON ═══ */
+#ts-settings-modal{position:fixed;inset:0;z-index:100000;background:#070c18;opacity:0;pointer-events:none;transition:opacity 0.28s ease,transform 0.28s ease;display:flex;flex-direction:column;font-family:'InkuDisplay','Nunito',sans-serif;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);transform:translateY(8px);touch-action:pan-y;}
+#ts-settings-modal.open{opacity:1;pointer-events:auto;transform:translateY(0);}
+/* Header */
+.pks-header{display:flex;align-items:center;gap:0.875rem;padding:1rem 1.25rem;background:rgba(16,185,129,0.04);border-bottom:2px solid rgba(16,185,129,0.18);flex-shrink:0;}
+.pks-back{width:2.5rem;height:2.5rem;border-radius:10px;background:rgba(16,185,129,0.1);border:1.5px solid rgba(16,185,129,0.25);color:#34d399;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.9rem;transition:all 0.15s;flex-shrink:0;appearance:none;}
+.pks-back:active{transform:scale(0.9);background:rgba(16,185,129,0.2);}
+.pks-header-text{flex:1;}
+.pks-title{font-size:1.1rem;font-weight:900;color:white;letter-spacing:0.04em;}
+.pks-version{font-size:0.58rem;font-family:'InkuMono','JetBrains Mono','Fira Code',monospace;color:rgba(52,211,153,0.4);letter-spacing:0.18em;text-transform:uppercase;margin-top:1px;}
+/* Scrollable body */
+.pks-body{flex:1;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:1.5rem;scrollbar-width:none;touch-action:pan-y;}
+.pks-body::-webkit-scrollbar{display:none;}
+/* Section */
+.pks-section{padding:0 0.875rem;margin-top:1.25rem;}
+.pks-section-label{display:flex;align-items:center;gap:0.5rem;font-size:0.62rem;font-weight:900;letter-spacing:0.2em;text-transform:uppercase;color:rgba(255,255,255,0.38);font-family:'InkuMono','JetBrains Mono','Fira Code',monospace;margin-bottom:0.5rem;padding-left:0.1rem;}
+.pks-section-bar{width:3px;height:12px;border-radius:2px;background:#10b981;box-shadow:0 0 8px rgba(16,185,129,0.5);flex-shrink:0;}
+.pks-bar-blue{background:#3b82f6;box-shadow:0 0 8px rgba(59,130,246,0.5);}
+.pks-bar-purple{background:#a855f7;box-shadow:0 0 8px rgba(168,85,247,0.5);}
+.pks-bar-red{background:#ef4444;box-shadow:0 0 8px rgba(239,68,68,0.5);}
+/* Card grouping */
+.pks-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:16px;overflow:hidden;}
+.pks-divider{height:1px;background:rgba(255,255,255,0.05);margin:0 1rem;}
+/* Row base */
+.pks-row{display:flex;align-items:center;gap:0.75rem;padding:0 0.875rem;min-height:58px;}
+/* Slider row layout (label+value on top, slider full-width below) */
+.pks-row--slider{flex-direction:row;align-items:center;padding-top:0.65rem;padding-bottom:0.75rem;min-height:auto;}
+.pks-row--slider .pks-row-body{display:flex;flex-direction:column;gap:0.38rem;}
+.pks-row-top{display:flex;align-items:center;justify-content:space-between;}
+/* Icon */
+.pks-row-icon{width:2.2rem;height:2.2rem;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:0.95rem;flex-shrink:0;}
+.pks-icon-green{background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.22);color:#10b981;}
+.pks-icon-blue{background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.22);color:#60a5fa;}
+.pks-icon-purple{background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.22);color:#c084fc;}
+.pks-icon-amber{background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.22);color:#fbbf24;}
+.pks-icon-red{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);color:#f87171;}
+/* Row text */
+.pks-row-body{flex:1;min-width:0;}
+.pks-row-name{font-size:0.88rem;font-weight:700;color:rgba(255,255,255,0.9);line-height:1.2;}
+.pks-row-sub{font-size:0.62rem;color:rgba(255,255,255,0.35);margin-top:1px;}
+.pks-row-ctrl{display:flex;align-items:center;gap:0.4rem;flex-shrink:0;}
+/* Toggle switch */
+.pks-toggle{position:relative;display:inline-block;width:50px;height:28px;cursor:pointer;flex-shrink:0;}
+.pks-toggle input{opacity:0;width:0;height:0;position:absolute;}
+.pks-toggle-track{position:absolute;inset:0;border-radius:14px;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.1);transition:background 0.25s,border-color 0.25s;}
+.pks-toggle input:checked~.pks-toggle-track{background:rgba(16,185,129,0.25);border-color:rgba(16,185,129,0.5);}
+.pks-toggle-knob{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,0.3);box-shadow:0 1px 4px rgba(0,0,0,0.5);transition:transform 0.22s cubic-bezier(0.22,1.18,0.28,1),background 0.22s;}
+.pks-toggle input:checked~.pks-toggle-track .pks-toggle-knob{transform:translateX(22px);background:#34d399;box-shadow:0 0 10px rgba(52,211,153,0.5);}
+/* Slider (full width inside row-body) */
+.pks-slider{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:rgba(255,255,255,0.1);outline:none;cursor:pointer;}
+.pks-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#34d399;box-shadow:0 0 10px rgba(52,211,153,0.6);cursor:pointer;}
+.pks-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#34d399;border:none;box-shadow:0 0 10px rgba(52,211,153,0.6);}
+.pks-slider-val{font-family:'InkuMono','JetBrains Mono','Fira Code',monospace;font-size:0.72rem;font-weight:700;color:#34d399;min-width:2rem;text-align:right;flex-shrink:0;}
+/* Segmented control */
+.pks-seg{display:flex;background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:3px;gap:2px;}
+.pks-seg-btn{appearance:none;padding:0.3rem 0.55rem;border-radius:7px;border:none;font-family:'InkuDisplay','Nunito',sans-serif;font-size:0.68rem;font-weight:800;color:rgba(255,255,255,0.35);cursor:pointer;background:transparent;transition:all 0.18s;}
+.pks-seg-btn.on{background:rgba(16,185,129,0.2);color:#34d399;}
+/* Info box */
+.pks-info-box{display:flex;align-items:flex-start;gap:0.75rem;background:rgba(16,185,129,0.04);border:1px solid rgba(16,185,129,0.12);border-radius:14px;padding:0.9rem 1rem;margin-bottom:0.5rem;font-size:0.72rem;color:rgba(255,255,255,0.4);line-height:1.65;}
+/* Danger row */
+.pks-danger-row{display:flex;align-items:center;gap:0.75rem;padding:0 1rem;min-height:62px;background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.15);border-radius:16px;cursor:pointer;width:100%;text-align:left;transition:background 0.18s,border-color 0.18s;appearance:none;}
+.pks-danger-row:active{background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);transform:scale(0.99);}
+.pks-danger-name{font-size:0.88rem;font-weight:800;color:#f87171;}
+.pks-danger-sub{font-size:0.62rem;color:rgba(239,68,68,0.45);margin-top:2px;}
+/* Confirm reset overlay */
+#ts-confirm-reset{position:absolute;inset:0;z-index:10;background:rgba(4,6,12,0.96);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1.5rem;opacity:0;pointer-events:none;transition:opacity 0.2s ease;}
+#ts-confirm-reset.show{opacity:1;pointer-events:auto;}
+.pks-confirm-icon{width:3.5rem;height:3.5rem;border-radius:50%;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.22);display:flex;align-items:center;justify-content:center;margin-bottom:1.25rem;color:#f87171;font-size:1.5rem;}
+.pks-confirm-title{font-size:1.1rem;font-weight:900;color:white;text-align:center;margin-bottom:0.5rem;}
+.pks-confirm-body{font-size:0.75rem;color:rgba(255,255,255,0.45);text-align:center;line-height:1.65;margin-bottom:2rem;max-width:270px;}
+.pks-confirm-body strong{color:#f87171;font-weight:800;}
+.pks-confirm-yes{width:100%;max-width:280px;padding:0.9rem;border-radius:14px;background:rgba(220,38,38,0.75);border:1.5px solid rgba(239,68,68,0.5);color:white;font-weight:900;font-family:'InkuDisplay','Nunito',sans-serif;font-size:0.85rem;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:0.5rem;cursor:pointer;transition:all 0.15s;appearance:none;}
+.pks-confirm-yes:active{transform:scale(0.97);}
+.pks-confirm-no{width:100%;max-width:280px;padding:0.8rem;border-radius:14px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);font-weight:900;font-family:'InkuDisplay','Nunito',sans-serif;font-size:0.85rem;letter-spacing:0.06em;text-transform:uppercase;cursor:pointer;transition:all 0.15s;appearance:none;}
+.pks-confirm-no:active{transform:scale(0.97);}
+</style>
+
+<div id="ts-body">
+<div class="lab-bg-container">
+    <div class="ambient-fog fog-1"></div><div class="ambient-fog fog-2"></div>
+    <div class="wall-plates"></div>
+    <div class="industrial-pipe pipe-vertical"></div>
+    <div class="industrial-pipe pipe-horizontal"></div>
+    <div class="server-rack">
+        <div class="server-slot"><div class="server-led red-alert"></div><div class="server-led off"></div></div>
+        <div class="server-slot"><div class="server-led off"></div><div class="server-led blue-led"></div></div>
+        <div class="server-slot" style="margin-top:25px"><div class="server-led blue-led"></div><div class="server-led"></div><div class="server-led off"></div></div>
+        <div class="server-slot"><div class="server-led off"></div><div class="server-led"></div><div class="server-led off"></div></div>
+        <div class="server-slot"><div class="server-led red-alert"></div><div class="server-led off"></div></div>
+    </div>
+    <div class="dust-motes">
+        <div class="mote" style="left:10%;width:2px;height:2px;animation-duration:25s;animation-delay:0s"></div>
+        <div class="mote" style="left:85%;width:3px;height:3px;animation-duration:18s;animation-delay:-5s"></div>
+        <div class="mote" style="left:60%;width:1.5px;height:1.5px;animation-duration:30s;animation-delay:-12s"></div>
+        <div class="mote" style="left:25%;width:2.5px;height:2.5px;animation-duration:22s;animation-delay:-8s"></div>
+        <div class="mote" style="left:70%;width:2px;height:2px;animation-duration:28s;animation-delay:-15s"></div>
+    </div>
+    <div class="warning-tape"></div>
+</div>
+
+<div id="ts-screen" class="relative z-20 flex flex-col h-full w-full max-w-md mx-auto">
+    <!-- Bouton paramètres fixe — safe-area encoche/Dynamic Island -->
+    <div id="ts-settings-btn-wrap">
+        <button id="ts-open-settings" aria-label="Paramètres">
+            <i class="ph ph-gear"></i>
+        </button>
+    </div>
+    <!-- Title — safe-zone aware, JUICY -->
+    <div id="ts-logo-area">
+        <div class="ts-logo-badge">
+            <span class="ts-logo-dot"></span>
+            <span class="ts-logo-badge-text">INKU LABS</span>
+            <span class="ts-logo-dot"></span>
+        </div>
+        <h1 class="ts-logo-title">Inkü</h1>
+        <p class="ts-logo-sub">${t('ts.subtitle')}</p>
+    </div>
+    <!-- Mid -->
+    <div class="flex-1 w-full flex items-center justify-center px-4 py-2 min-h-0 relative z-10">
+        <div class="cable-bundle top">
+            <div class="inner-wire wire-1"></div><div class="inner-wire wire-2"></div><div class="inner-wire wire-3"></div><div class="inner-wire wire-4"></div><div class="inner-wire wire-1"></div>
+            <div class="cable-binding" style="bottom:15%"></div><div class="cable-binding" style="bottom:50%"></div><div class="cable-binding" style="bottom:85%"></div>
+        </div>
+        <div class="cable-bundle bottom">
+            <div class="inner-wire wire-1"></div><div class="inner-wire wire-2"></div><div class="inner-wire wire-3"></div><div class="inner-wire wire-4"></div><div class="inner-wire wire-1"></div>
+            <div class="cable-binding" style="top:15%"></div><div class="cable-binding" style="top:50%"></div><div class="cable-binding" style="top:85%"></div>
+        </div>
+        <div class="incubator-container">
+            <div class="incubator-cap-top metal-surface">
+                <div class="metal-ridge"></div><div class="metal-ridge" style="width:70%;margin:0 auto 6px auto"></div><div class="neon-rim"></div>
+            </div>
+            <div class="incubator-glass" id="ts-glass">
+                <div class="glass-grid"></div><div class="holo-scanline"></div><div class="glass-reflection"></div>
+                <div class="holo-hud">
+                    <div class="holo-text">O2_LEVEL</div><div class="holo-bar"><div class="holo-bar-fill"></div></div>
+                    <div class="holo-text">TMP: 24.5°C</div><div class="holo-text">SYS: ON</div>
+                </div>
+                <canvas id="ts-canvas"></canvas>
+            </div>
+            <div class="incubator-cap-bottom metal-surface">
+                <div class="neon-rim" style="height:2px;opacity:0.6;box-shadow:0 0 10px #10b981"></div>
+                <div class="cap-vents"><div class="vent-slot"></div><div class="vent-slot"></div><div class="vent-slot"></div><div class="vent-slot"></div><div class="vent-slot"></div><div class="vent-slot"></div></div>
+                <div class="flex justify-center items-center gap-2 mt-0.5">
+                    <div class="flex gap-1 items-center">
+                        <div class="led"></div>
+                        <div class="led" style="background-color:#34d399"></div>
+                        <div class="led" style="background-color:#ef4444;box-shadow:0 0 6px #ef4444;width:3px;height:3px"></div>
+                    </div>
+                    <div class="text-[6px] text-emerald-400 font-mono tracking-widest bg-black/60 px-1 py-0.5 rounded border border-emerald-900/50 shadow-[inset_0_0_5px_rgba(0,0,0,1)]">UNIT-01</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Bottom PLAY -->
+    <div class="px-4 w-full flex-shrink-0 relative z-30 flex justify-center safe-area-pb">
+        <div class="login-card-aaa relative overflow-hidden flex flex-col justify-center gap-3">
+            <div class="absolute top-3 left-4 flex gap-1 opacity-50 pointer-events-none">
+                <div class="w-1 h-1 bg-emerald-500 rounded-full"></div><div class="w-1 h-1 rounded-full" style="background:rgba(16,185,129,0.4)"></div>
+            </div>
+            <div class="absolute top-3 right-4 opacity-50 pointer-events-none">
+                <div class="w-4 h-0.5 rounded-full" style="background:rgba(16,185,129,0.3)"></div>
+            </div>
+            <!-- Loading overlay -->
+            <div id="ts-loading-overlay">
+                <div class="relative w-12 h-12 mb-3">
+                    <div class="absolute inset-0 rounded-full" style="border:3px solid rgba(16,185,129,0.2)"></div>
+                    <div class="absolute inset-0 rounded-full animate-spin" style="border:3px solid transparent;border-top-color:#34d399;border-left-color:#34d399"></div>
+                    <i class="ph ph-fingerprint absolute inset-0 flex items-center justify-center text-lg animate-pulse" style="color:rgba(16,185,129,0.5)"></i>
+                </div>
+                <p id="ts-loading-text" class="font-bold tracking-wide text-center px-4 text-xs" style="color:#34d399">${t('ts.loading_1')}</p>
+            </div>
+            <!-- Titre carte -->
+            <div class="text-center mb-1">
+                <h2 class="text-base font-black text-white tracking-wide">${t('ts.ready')}</h2>
+                <p class="font-mono mt-0.5 uppercase tracking-widest" style="font-size:9px;color:rgba(52,211,153,0.7)">${t('ts.offline')}</p>
+            </div>
+            <!-- PLAY -->
+            <button id="ts-btn-play" class="btn-aaa"><i class="ph ph-play text-xs"></i>${t('ts.wake')}</button>
+            <!-- Version -->
+            <p class="text-center font-mono" style="font-size:8px;color:rgba(16,185,129,0.3);letter-spacing:0.15em">INKÜ · v0.1.0</p>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- ═══ MODAL PARAMÈTRES — STYLE POKÉMON ═══ -->
+<div id="ts-settings-modal">
+    <div class="pks-header">
+        <button class="pks-back" id="ts-close-settings"><i class="ph ph-arrow-left" style="font-size:0.9rem;"></i></button>
+        <div class="pks-header-text">
+            <div class="pks-title">${t('ts.settings')}</div>
+            <div class="pks-version">INKÜ · v0.1.0</div>
+        </div>
+    </div>
+
+    <div class="pks-body">
+
+        <!-- SON -->
+        <div class="pks-section">
+            <div class="pks-section-label"><div class="pks-section-bar"></div>${t('ts.sound')}</div>
+            <div class="pks-card">
+                <div class="pks-row pks-row--slider">
+                    <div class="pks-row-icon pks-icon-green"><i class="ph ph-speaker-high"></i></div>
+                    <div class="pks-row-body">
+                        <div class="pks-row-top"><span class="pks-row-name">${t('ts.master')}</span><span class="pks-slider-val" id="sm-master-v">80</span></div>
+                        <input type="range" class="pks-slider" id="sm-master" min="0" max="100">
+                    </div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row pks-row--slider">
+                    <div class="pks-row-icon pks-icon-blue"><i class="ph ph-music-note"></i></div>
+                    <div class="pks-row-body">
+                        <div class="pks-row-top"><span class="pks-row-name">${t('ts.music')}</span><span class="pks-slider-val" id="sm-music-v">60</span></div>
+                        <input type="range" class="pks-slider" id="sm-music" min="0" max="100">
+                    </div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row pks-row--slider">
+                    <div class="pks-row-icon pks-icon-purple"><i class="ph ph-bell"></i></div>
+                    <div class="pks-row-body">
+                        <div class="pks-row-top"><span class="pks-row-name">${t('ts.sfx')}</span><span class="pks-slider-val" id="sm-sfx-v">90</span></div>
+                        <input type="range" class="pks-slider" id="sm-sfx" min="0" max="100">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AFFICHAGE -->
+        <div class="pks-section">
+            <div class="pks-section-label"><div class="pks-section-bar pks-bar-blue"></div>${t('ts.display')}</div>
+            <div class="pks-card">
+                <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-amber"><i class="ph ph-monitor"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.graphics_quality')}</div><div class="pks-row-sub">${t('ts.battery')}</div></div>
+                    <div class="pks-row-ctrl"><div class="pks-seg" id="sm-quality"><button class="pks-seg-btn" data-v="low">${t('ts.q_low')}</button><button class="pks-seg-btn" data-v="medium">${t('ts.q_mid')}</button><button class="pks-seg-btn" data-v="high">${t('ts.q_high')}</button></div></div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-green"><i class="ph ph-gauge"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.fps_counter')}</div><div class="pks-row-sub">${t('ts.fps_sub')}</div></div>
+                    <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-fps"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-blue"><i class="ph ph-leaf"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.reduce_anim')}</div><div class="pks-row-sub">${t('ts.reduce_anim_sub')}</div></div>
+                    <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-motion"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GAMEPLAY -->
+        <div class="pks-section">
+            <div class="pks-section-label"><div class="pks-section-bar pks-bar-purple"></div>${t('ts.gameplay')}</div>
+            <div class="pks-card">
+                <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-purple"><i class="ph ph-device-mobile"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.vibrations')}</div><div class="pks-row-sub">${t('ts.vibrations_sub')}</div></div>
+                    <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-vibr"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-green"><i class="ph ph-hand-tap"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.touch')}</div><div class="pks-row-sub">${t('ts.touch_sub')}</div></div>
+                    <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-touch"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-amber"><i class="ph ph-bell"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.notifications')}</div><div class="pks-row-sub">${t('ts.notif_sub')}</div></div>
+                    <div class="pks-row-ctrl"><label class="pks-toggle"><input type="checkbox" id="sm-notif"><span class="pks-toggle-track"><span class="pks-toggle-knob"></span></span></label></div>
+                </div>
+                <div class="pks-divider"></div>
+                <div class="pks-row">
+                    <div class="pks-row-icon pks-icon-green"><i class="ph ph-globe"></i></div>
+                    <div class="pks-row-body"><div class="pks-row-name">${t('ts.language')}</div><div class="pks-row-sub">${t('ts.language_sub')}</div></div>
+                    <div class="pks-row-ctrl"><div class="pks-seg" id="sm-lang"><button class="pks-seg-btn" data-v="fr">🇫🇷 FR</button><button class="pks-seg-btn" data-v="en">🇬🇧 EN</button></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DONNÉES -->
+        <div class="pks-section">
+            <div class="pks-section-label"><div class="pks-section-bar pks-bar-red"></div>${t('ts.data')}</div>
+            <div class="pks-info-box">
+                <i class="ph ph-info" style="color:#34d399;font-size:1rem;flex-shrink:0;margin-top:1px;"></i>
+                <div>${t('ts.data_info')}</div>
+            </div>
+            <button class="pks-danger-row" id="sm-reset-tutorial" style="background:rgba(52,211,153,0.04);border-color:rgba(52,211,153,0.15);margin-bottom:10px;">
+                <div class="pks-row-icon" style="background:rgba(52,211,153,0.12);color:#34d399;"><i class="ph ph-graduation-cap"></i></div>
+                <div class="pks-row-body"><div class="pks-danger-name" style="color:#34d399;">${t('tuto.restart')}</div><div class="pks-danger-sub">${t('tuto.restart_sub')}</div></div>
+                <i class="ph ph-caret-right" style="color:rgba(52,211,153,0.4);font-size:0.8rem;flex-shrink:0;"></i>
+            </button>
+            <button class="pks-danger-row" id="sm-reset">
+                <div class="pks-row-icon pks-icon-red"><i class="ph ph-trash"></i></div>
+                <div class="pks-row-body"><div class="pks-danger-name">${t('ts.erase_data')}</div><div class="pks-danger-sub">${t('ts.erase_sub')}</div></div>
+                <i class="ph ph-caret-right" style="color:rgba(239,68,68,0.4);font-size:0.8rem;flex-shrink:0;"></i>
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Confirmation effacement (overlay sur toute la modale settings) -->
+    <div id="ts-confirm-reset">
+        <div class="pks-confirm-icon"><i class="ph ph-warning"></i></div>
+        <div class="pks-confirm-title">${t('ts.reset_title')}</div>
+        <p class="pks-confirm-body">${t('ts.reset_body')}</p>
+        <button id="ts-confirm-yes" class="pks-confirm-yes">${t('ts.erase_all')}</button>
+        <button id="ts-confirm-no" class="pks-confirm-no">${t('ts.cancel')}</button>
+    </div>
+
+    <!-- Overlay redémarrage après changement de langue -->
+    <div id="ts-lang-restart" style="position:absolute;inset:0;z-index:20;background:rgba(4,6,12,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;opacity:0;pointer-events:none;transition:opacity 0.25s ease;">
+        <i class="ph ph-globe" style="font-size:2rem;color:#34d399;"></i>
+        <div style="font-size:1rem;font-weight:900;color:white;text-align:center;">${t('ts.lang_restart')}</div>
+    </div>
+</div>
+`; }
+
+    /* ── Slime engine (copie exacte du mockup) ── */
+    function _initSlime(glassEl, canvasEl) {
+        const ctx = canvasEl.getContext('2d');
+        let width, height, time = 0, targetX = 0, targetY = 0, mouseX = 0, mouseY = 0;
+        let blinkTimer = 0, isBlinking = false, surprisedTimer = 0;
+        let slime = { x:0,y:0,baseY:0,vy:0,gravity:0.6,jumpForce:-10,squishX:1,squishY:1,idleTimer:100 };
+        const bubbles = [], taps = [];
+        let locked = false, raf = null;
+
+        // ── Drag state ────────────────────────────────────────────────────
+        let dragging = false;   // doigt actuellement sur le slime
+        let dragOffX = 0, dragOffY = 0; // offset entre centre slime et point de contact
+
+        function toCanvas(clientX, clientY) {
+            const r = canvasEl.getBoundingClientRect();
+            return { x: clientX - r.left, y: clientY - r.top };
+        }
+        function isInsideGlass(clientX, clientY) {
+            const r = glassEl.getBoundingClientRect();
+            return clientX >= r.left && clientX <= r.right && clientY >= r.top && clientY <= r.bottom;
+        }
+        function distToSlime(cx, cy) {
+            const R = Math.max(20, width * 0.25);
+            const p = toCanvas(cx, cy);
+            return Math.hypot(p.x - slime.x, p.y - (slime.y - R));
+        }
+
+        function initLayout() {
+            if (locked) return;
+            width = glassEl.clientWidth; height = glassEl.clientHeight;
+            if (!width || !height) { setTimeout(initLayout, 50); return; }
+            const inc = glassEl.closest('.incubator-container');
+            if (inc) { inc.style.width = inc.offsetWidth+'px'; inc.style.height = inc.offsetHeight+'px'; inc.style.flexShrink='0'; }
+            canvasEl.width = width; canvasEl.height = height;
+            slime.x = width/2; slime.baseY = height-15;
+            if (!slime.y || slime.y > slime.baseY) slime.y = slime.baseY;
+            targetX = width/2; targetY = height; mouseX = targetX; mouseY = targetY;
+            bubbles.length = 0;
+            for (let i=0;i<15;i++) bubbles.push({x:Math.random()*width,y:Math.random()*height,size:Math.random()*4+1,speed:Math.random()*2+0.5,wobbleSpeed:Math.random()*0.05+0.01,wobbleOffset:Math.random()*Math.PI*2});
+            locked = true;
+        }
+        initLayout();
+
+        // ── Pointer events (unifiés souris + touch) ───────────────────────
+        function getPoint(e) {
+            return e.touches ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+                             : { x: e.clientX,            y: e.clientY            };
+        }
+
+        const onDown = e => {
+            if(e.cancelable) e.preventDefault();
+            const pt = getPoint(e);
+            const R  = Math.max(20, width * 0.25);
+            // Ripple exactement là où le doigt touche (coords canvas)
+            const cp = toCanvas(pt.x, pt.y);
+            taps.push({x: cp.x, y: cp.y, radius:0, alpha:1});
+            surprisedTimer = 40; isBlinking = false;
+            // Grab si proche du centre du slime
+            if (distToSlime(pt.x, pt.y) < R * 1.3) {
+                dragging = true;
+                dragOffX = slime.x - cp.x;
+                dragOffY = (slime.y - R) - cp.y;
+                slime.vy = 0;
+                slime.squishX = 0.85; slime.squishY = 1.2;
+            } else {
+                // Clic dans le vide → saut
+                if(slime.y >= slime.baseY - 5){ slime.vy = slime.jumpForce * 0.7; slime.squishX = 0.8; slime.squishY = 1.3; }
+            }
+            // Update mouse target
+            targetX = cp.x; targetY = cp.y;
+        };
+
+        const onMove = e => {
+            // Ne bloquer le scroll natif que si on drague réellement le slime
+            if(dragging && e.cancelable) e.preventDefault();
+            const pt = getPoint(e);
+            const cp = toCanvas(pt.x, pt.y);
+            targetX = cp.x; targetY = cp.y;
+            if (!dragging) return;
+            const R = Math.max(20, width * 0.25);
+            if (!isInsideGlass(pt.x, pt.y)) {
+                // Doigt sorti → relâche naturellement
+                dragging = false;
+                // Donne une vélocité de flottaison vers le haut
+                slime.vy = -2.5;
+                slime.squishX = 1.1; slime.squishY = 0.9;
+                return;
+            }
+            // Déplace le slime avec le doigt
+            slime.x = Math.max(R, Math.min(width - R, cp.x + dragOffX));
+            const centerY = cp.y + dragOffY;
+            slime.y = Math.max(R + 5, Math.min(slime.baseY, centerY + R));
+            slime.vy = 0;
+        };
+
+        const onUp = e => {
+            if (!dragging) return;
+            dragging = false;
+            // Petite impulsion vers le haut au relâcher
+            slime.vy = -3;
+            slime.squishX = 0.9; slime.squishY = 1.15;
+        };
+
+        // Écoute sur window pour capturer les moves/up hors du canvas
+        glassEl.addEventListener('mousedown',  onDown);
+        glassEl.addEventListener('touchstart', onDown, {passive:false});
+        window.addEventListener('mousemove',   onMove);
+        window.addEventListener('touchmove',   onMove, {passive:false});
+        window.addEventListener('mouseup',     onUp);
+        window.addEventListener('touchend',    onUp);
+
+        function drawEye(x,y,radius,pupilRadius,offsetX,offsetY){
+            ctx.beginPath();ctx.arc(x,y,radius,0,Math.PI*2);ctx.fillStyle='white';ctx.fill();
+            const pX=Math.max(-radius+pupilRadius,Math.min(offsetX,radius-pupilRadius));
+            const pY=Math.max(-radius+pupilRadius,Math.min(offsetY,radius-pupilRadius));
+            ctx.beginPath();
+            if(surprisedTimer>0)ctx.arc(x+pX,y+pY,pupilRadius,0,Math.PI*2);
+            else ctx.ellipse(x+pX,y+pY,pupilRadius,pupilRadius*1.1,0,0,Math.PI*2);
+            ctx.fillStyle='#0f172a';ctx.fill();
+            if(surprisedTimer===0){ctx.beginPath();ctx.arc(x+pX-2,y+pY-2,radius*0.25,0,Math.PI*2);ctx.fillStyle='white';ctx.fill();}
+        }
+
+        function draw(){
+            if(!width||!height){raf=requestAnimationFrame(draw);return;}
+            ctx.clearRect(0,0,width,height);time+=0.05;
+            mouseX+=(targetX-mouseX)*0.1;mouseY+=(targetY-mouseY)*0.1;
+            ctx.fillStyle='rgba(16,185,129,0.3)';
+            bubbles.forEach(b=>{b.y-=b.speed;if(b.y<-10){b.y=height+10;b.x=Math.random()*width;}const w=Math.sin(time*b.wobbleSpeed+b.wobbleOffset)*2;ctx.beginPath();ctx.arc(b.x+w,b.y,b.size,0,Math.PI*2);ctx.fill();});
+            // Ripples (poc) — coords directement en espace canvas, pas de correction nécessaire
+            for(let i=taps.length-1;i>=0;i--){
+                const t=taps[i];t.radius+=2;t.alpha-=0.05;
+                ctx.beginPath();ctx.arc(t.x,t.y,t.radius,0,Math.PI*2);
+                ctx.strokeStyle=`rgba(255,255,255,${t.alpha*0.5})`;ctx.lineWidth=2;ctx.stroke();
+                ctx.beginPath();ctx.arc(t.x,t.y,t.radius*0.6,0,Math.PI*2);
+                ctx.strokeStyle=`rgba(16,185,129,${t.alpha*0.3})`;ctx.lineWidth=4;ctx.stroke();
+                if(t.alpha<=0)taps.splice(i,1);
+            }
+            // Physique — désactivée pendant le drag
+            if (!dragging) {
+                slime.vy+=slime.gravity;slime.y+=slime.vy;
+                if(slime.y>slime.baseY){
+                    slime.y=slime.baseY;
+                    if(slime.vy>2){slime.squishX=1+(slime.vy*0.04);slime.squishY=1-(slime.vy*0.04);}
+                    slime.vy=0;
+                    slime.idleTimer--;
+                    if(slime.idleTimer<=0){slime.vy=slime.jumpForce*(0.6+Math.random()*0.4);slime.squishX=0.8;slime.squishY=1.2;slime.idleTimer=150+Math.random()*200;}
+                }
+                // Flottaison douce en haut si le slime est lâché en l'air
+                if(slime.y < slime.baseY && slime.vy < 0) {
+                    // léger frein fluidique (eau)
+                    slime.vy *= 0.97;
+                }
+            } else {
+                // Squish subtil pendant le drag
+                slime.squishX += (0.88 - slime.squishX) * 0.12;
+                slime.squishY += (1.14 - slime.squishY) * 0.12;
+            }
+            slime.squishX+=(1-slime.squishX)*0.1;slime.squishY+=(1-slime.squishY)*0.1;
+            const R=Math.max(20,width*0.25),bx=slime.squishX-Math.sin(time*0.5)*0.02,by=slime.squishY+Math.sin(time*0.5)*0.02;
+            ctx.save();ctx.translate(slime.x,slime.y);ctx.translate(0,-R);ctx.scale(bx,by);
+            ctx.beginPath();
+            for(let i=0;i<=30;i++){const a=(i/30)*Math.PI*2,r=R+Math.sin(a*4+time*1.5)*1.5;let px=Math.cos(a)*r,py=Math.sin(a)*r;if(py>R*0.7)py=R*0.7+Math.sin(px*0.1+time)*1;if(i===0)ctx.moveTo(px,py);else ctx.lineTo(px,py);}
+            ctx.closePath();
+            const g=ctx.createRadialGradient(0,-R*0.35,0,0,0,R);g.addColorStop(0,'#34d399');g.addColorStop(0.7,'#10b981');g.addColorStop(1,'#047857');ctx.fillStyle=g;ctx.fill();
+            ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=3;ctx.stroke();
+            ctx.beginPath();ctx.arc(-R*0.35,-R*0.45,R*0.15,0,Math.PI*2);ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fill();
+            if(surprisedTimer>0)surprisedTimer--;else{blinkTimer--;if(blinkTimer<0){isBlinking=true;blinkTimer=Math.random()*200+100;}if(isBlinking&&blinkTimer<blinkTimer-6)isBlinking=false;}
+            const cY=slime.y-R,ang=Math.atan2(mouseY-cY,mouseX-slime.x),dist=Math.min(Math.hypot(mouseX-slime.x,mouseY-cY),30);
+            const eoX=Math.cos(ang)*dist*0.25;let eoY=Math.sin(ang)*dist*0.25;if(eoY>5)eoY=5;
+            const hoX=Math.cos(ang)*dist*0.1,hoY=Math.sin(ang)*dist*0.1,es=R*0.35,er=R*0.2;let pr=R*0.11;if(surprisedTimer>0)pr=2;
+            ctx.translate(hoX,hoY);
+            if(isBlinking){ctx.strokeStyle='#022c22';ctx.lineWidth=3;ctx.beginPath();ctx.arc(-es,0,er-2,0,Math.PI);ctx.stroke();ctx.beginPath();ctx.arc(es,0,er-2,0,Math.PI);ctx.stroke();}
+            else{drawEye(-es,0,er,pr,eoX,eoY);drawEye(es,0,er,pr,eoX,eoY);}
+            ctx.restore();raf=requestAnimationFrame(draw);
+        }
+        draw();
+        return ()=>{
+            if(raf)cancelAnimationFrame(raf);
+            glassEl.removeEventListener('mousedown',  onDown);
+            glassEl.removeEventListener('touchstart', onDown);
+            window.removeEventListener('mousemove',   onMove);
+            window.removeEventListener('touchmove',   onMove);
+            window.removeEventListener('mouseup',     onUp);
+            window.removeEventListener('touchend',    onUp);
+        };
+    }
+
+    /* ── Settings modal ── */
+    function _initSettings() {
+        const modal=root.querySelector('#ts-settings-modal');
+        const open=()=>{ modal.classList.add('open'); root.style.touchAction='pan-y'; };
+        const close=()=>{ modal.classList.remove('open'); root.style.touchAction='none'; };
+        root.querySelector('#ts-open-settings').addEventListener('click',open);
+        root.querySelector('#ts-close-settings').addEventListener('click',close);
+        [['sm-master','master'],['sm-music','music'],['sm-sfx','sfx']].forEach(([id,k])=>{
+            const el=root.querySelector('#'+id),v=root.querySelector('#'+id+'-v');
+            if(!el)return; el.value=S[k]; if(v)v.textContent=S[k];
+            el.addEventListener('input',()=>{S[k]=+el.value;if(v)v.textContent=el.value;saveS(S);});
+        });
+        [['sm-quality','quality'],['sm-lang','lang']].forEach(([id,k])=>{
+            const seg=root.querySelector('#'+id);
+            seg?.querySelectorAll('.pks-seg-btn').forEach(b=>{
+                b.classList.toggle('on',b.dataset.v===S[k]);
+                b.addEventListener('click',()=>{
+                    const prev=S[k];
+                    S[k]=b.dataset.v;saveS(S);
+                    seg.querySelectorAll('.pks-seg-btn').forEach(x=>x.classList.toggle('on',x===b));
+                    // Si la langue a changé, afficher overlay redémarrage puis recharger
+                    if(k==='lang'&&b.dataset.v!==prev){
+                        const overlay=root.querySelector('#ts-lang-restart');
+                        if(overlay){overlay.style.opacity='1';overlay.style.pointerEvents='auto';}
+                        setTimeout(()=>{
+                            document.body.style.transition='opacity 0.4s';
+                            document.body.style.opacity='0';
+                        },600);
+                        setTimeout(()=>location.reload(),1050);
+                    }
+                });
+            });
+        });
+        [['sm-fps','fps'],['sm-motion','motion'],['sm-notif','notif'],['sm-vibr','vibr'],['sm-touch','touch']].forEach(([id,k])=>{
+            const el=root.querySelector('#'+id);
+            if(!el)return; el.checked=S[k];
+            el.addEventListener('change',()=>{S[k]=el.checked;saveS(S);});
+        });
+        const confirmOverlay=root.querySelector('#ts-confirm-reset');
+        const showConfirm=()=>confirmOverlay.classList.add('show');
+        const hideConfirm=()=>confirmOverlay.classList.remove('show');
+        root.querySelector('#sm-reset-tutorial')?.addEventListener('click', () => {
+            import('../features/tutorial/tutorial-state.js').then(({ resetTutorial }) => {
+                resetTutorial();
+                close();
+                // Brief visual feedback then close settings — tutorial will run on next PLAY
+                const btn = root.querySelector('#sm-reset-tutorial');
+                if (btn) { btn.style.opacity = '0.5'; setTimeout(() => { btn.style.opacity = ''; }, 800); }
+            });
+        });
+        root.querySelector('#sm-reset')?.addEventListener('click',showConfirm);
+        root.querySelector('#ts-confirm-no')?.addEventListener('click',hideConfirm);
+        root.querySelector('#ts-confirm-yes')?.addEventListener('click',()=>{
+            Object.keys(localStorage).filter(k=>k.startsWith('inku.')).forEach(k=>localStorage.removeItem(k));
+            hideConfirm();close();
+            document.body.style.transition='opacity 0.35s';document.body.style.opacity='0';
+            setTimeout(()=>location.reload(),370);
+        });
+    }
+
+    /* ── Play flow ── */
+    const MSGS=[t('ts.loading_1'),t('ts.loading_2'),t('ts.loading_3')];
+    let _done=false,_kill=null;
+
+    function _play(){
+        if(_done)return;_done=true;
+        const ov=root.querySelector('#ts-loading-overlay'),txt=root.querySelector('#ts-loading-text'),btn=root.querySelector('#ts-btn-play');
+        txt.textContent=MSGS[0];ov.classList.add('show');btn.style.visibility='hidden';
+        let i=1;const iv=setInterval(()=>{if(txt&&i<MSGS.length)txt.textContent=MSGS[i++];},850);
+        if(typeof onPlay==='function')onPlay();
+        setTimeout(()=>{clearInterval(iv);root.querySelector('#ts-screen').classList.add('ts-out');setTimeout(()=>_destroy(),550);},800);
+    }
+
+    /* ── Public API ── */
+    function mount(){
+        document.documentElement.appendChild(root);
+        setTimeout(()=>{root.querySelector('#ts-screen').classList.add('ts-in');},150);
+        _kill=_initSlime(root.querySelector('#ts-glass'),root.querySelector('#ts-canvas'));
+        _initSettings();
+        const btn=root.querySelector('#ts-btn-play');
+        btn.addEventListener('click',_play);
+        btn.addEventListener('touchend',e=>{e.preventDefault();_play();});
+    }
+
+    function _destroy(){
+        if(_kill)_kill();
+        root.remove();
+    }
+
+    return {mount,destroy:_destroy};
+}

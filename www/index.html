@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <!-- viewport-fit=cover for notch/Dynamic Island, user-scalable=no prevents pinch-zoom -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Inkü - Le Laboratoire</title>
+
+    <!-- PWA / App-mode declarations — removes browser chrome on Android -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Inkü">
+    <meta name="application-name" content="Inkü">
+    <meta name="theme-color" content="#04060c">
+    <!-- Prevent phone number / email detection (breaks layout on some Android) -->
+    <meta name="format-detection" content="telephone=no, date=no, email=no, address=no">
+
+    <!-- Fonts — display=block prevents FOUT; swap would flash system font briefly -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Nunito:wght@400;700;900&family=Press+Start+2P&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&family=Fredoka:wght@400;500;600;700&display=block" rel="stylesheet">
+
+    <script src="./src/bootstrap/tailwind-bridge.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <link rel="stylesheet" href="./styles/tokens.css">
+    <link rel="stylesheet" href="./styles/base.css">
+    <link rel="stylesheet" href="./styles/layout.css">
+    <link rel="stylesheet" href="./styles/components/hud.css">
+    <link rel="stylesheet" href="./styles/components/nav.css">
+    <link rel="stylesheet" href="./styles/components/modal.css">
+    <link rel="stylesheet" href="./styles/components/toast.css">
+    <link rel="stylesheet" href="./styles/effects/background.css">
+    <link rel="stylesheet" href="./styles/features/incubator-shell.css">
+    <link rel="stylesheet" href="./styles/features/storage.css">
+    <link rel="stylesheet" href="./styles/features/prairie.css">
+    <link rel="stylesheet" href="./styles/features/rarity-notifications.css">
+    <link rel="stylesheet" href="./styles/features/bar.css">
+    <link rel="stylesheet" href="./styles/features/settings-panel.css">
+</head>
+<body class="relative flex flex-col items-center justify-between max-w-md mx-auto w-full shadow-2xl overflow-hidden">
+    <!-- Overlay paysage : affiché si l'API orientation.lock() échoue (ex. iOS Safari) -->
+    <div id="rotate-prompt" aria-live="polite" role="alert">
+        <i class="ph-bold ph-device-mobile-camera rotate-prompt__icon"></i>
+        <p class="rotate-prompt__text" data-i18n="rotate.text">Tourne ton téléphone<br>pour jouer</p>
+    </div>
+    <!-- data-menu-active="false" masque le shell pendant l'écran titre.
+         Il passe à "true" via app.initialize() au clic sur PLAY. -->
+    <div id="app-shell" class="app-shell relative flex flex-col items-center justify-between max-w-md mx-auto w-full h-full overflow-hidden" data-app-shell data-menu-active="false">
+        <div class="bg-industrial w-full h-full max-w-md mx-auto" aria-hidden="true"></div>
+        <canvas id="dust-canvas" class="absolute inset-0 pointer-events-none z-1" aria-hidden="true"></canvas>
+
+        <header class="hud-shell w-full z-20 flex justify-between items-start px-4" data-hud style="padding-top: max(1rem, var(--safe-top));">
+            <button type="button" class="glass-pill rounded-full flex items-center pr-4 p-1 gap-3 btn-active-scale cursor-pointer shadow-lg hud-profile-trigger" data-action="toggle-profile-modal" aria-controls="profile-modal" aria-expanded="false">
+                <div class="relative w-10 h-10 rounded-full border border-emerald/50 bg-slate-800 flex items-center justify-center overflow-hidden shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                    <i class="ph-fill ph-user text-emerald text-xl" data-player-avatar-icon></i>
+                </div>
+                <div class="flex flex-col items-start">
+                    <span class="text-[10px] text-gray-400 font-bold tracking-wider uppercase leading-none" data-player-role>Docteur</span>
+                    <span class="text-sm font-black text-white leading-tight uppercase" data-player-name>N3O_VNDL</span>
+                </div>
+                <div class="ml-1 bg-emerald/20 border border-emerald/40 text-emerald font-mono text-[10px] px-2 py-0.5 rounded-full uppercase" data-player-level>LVL.0</div>
+            </button>
+
+            <div class="flex flex-col items-end gap-2 hud-currency-stack" data-hud-currency>
+                <button type="button" class="glass-pill rounded-full flex items-center pl-2 pr-3 py-1.5 gap-2 btn-active-scale cursor-pointer border-cyan/20 hud-currency-pill" data-currency="hexagon">
+                    <i class="ph-fill ph-hexagon text-cyan"></i>
+                    <span class="flex flex-col items-end">
+                        <span class="font-mono text-sm font-bold text-white leading-none" data-currency-value="hexagon">0</span>
+                        <span class="hud-income-rate" data-hud-income-rate hidden></span>
+                    </span>
+                </button>
+                <button type="button" class="glass-pill rounded-full flex items-center pl-2 pr-3 py-1.5 gap-2 btn-active-scale cursor-pointer border-emerald/20 hud-currency-pill" data-currency="sketch">
+                    <i class="ph-fill ph-sketch-logo text-emerald"></i>
+                    <span class="font-mono text-sm font-bold text-white leading-none mt-0.5" data-currency-value="sketch">0</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="content-shell flex-1 w-full flex flex-col items-center justify-center relative z-10" data-content-shell>
+            <div id="custom-incubator-slot" class="content-mount w-full h-full" data-content-mount data-active-section="labo"></div>
+        </main>
+
+        <nav class="w-full z-30 px-4 relative" data-nav-shell style="padding-bottom: max(1.5rem, var(--safe-bottom));">
+            <div id="nav-container" class="glass-panel nav-shell relative rounded-[32px] w-full h-20 flex items-center px-1" data-nav-container>
+                <div id="nav-track-glow" class="nav-track-glow"></div>
+                <div id="nav-energy-line" class="nav-energy-line"></div>
+
+                <div id="slime-cursor" class="slime-cursor" aria-hidden="true">
+                    <div id="slime-stretch" class="w-full h-full slime-stretch-transition flex items-center justify-center relative">
+                        <div class="slime-ring"></div>
+                        <div class="slime-pulse"></div>
+                        <div class="slime-core"></div>
+                    </div>
+                    <div class="slime-indicator"></div>
+                </div>
+
+                <button class="nav-btn group relative z-20 flex-1 h-full flex items-center justify-center" type="button" data-nav-index="0" data-section-id="prairie" aria-label="Prairie">
+                    <span class="nav-hit-sheen"></span>
+                    <div class="nav-icon-container text-gray-400 group-hover:text-white">
+                        <i class="ph-duotone ph-leaf text-[28px] leading-none"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="nav.prairie">Prairie</span>
+                </button>
+
+                <button class="nav-btn group relative z-20 flex-1 h-full flex items-center justify-center" type="button" data-nav-index="1" data-section-id="musee" data-locked="true" aria-label="Musée" aria-disabled="true">
+                    <span class="nav-hit-sheen"></span>
+                    <div class="nav-icon-container text-gray-400 group-hover:text-white">
+                        <i class="ph-duotone ph-dna text-[28px] leading-none"></i>
+                        <div class="nav-lock-badge" aria-hidden="true"></div>
+                    </div>
+                    <span class="nav-text" data-i18n="nav.musee">Musée</span>
+                </button>
+
+                <button class="nav-btn group relative z-20 flex-1 h-full flex items-center justify-center" type="button" data-nav-index="2" data-section-id="labo" aria-label="Labo">
+                    <span class="nav-hit-sheen"></span>
+                    <div class="nav-icon-container text-gray-400 group-hover:text-white">
+                        <i class="ph-duotone ph-flask text-[28px] leading-none"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="nav.labo">Labo</span>
+                </button>
+
+                <button class="nav-btn group relative z-20 flex-1 h-full flex items-center justify-center" type="button" data-nav-index="3" data-section-id="bar" aria-label="Bar">
+                    <span class="nav-hit-sheen"></span>
+                    <div class="nav-icon-container text-gray-400 group-hover:text-white">
+                        <i class="ph-duotone ph-martini text-[28px] leading-none"></i>
+                    </div>
+                    <span class="nav-text" data-i18n="nav.bar">Bar</span>
+                </button>
+
+                <button class="nav-btn group relative z-20 flex-1 h-full flex items-center justify-center" type="button" data-nav-index="4" data-section-id="shop" data-locked="true" aria-label="Shop" aria-disabled="true">
+                    <span class="nav-hit-sheen"></span>
+                    <div class="nav-icon-container text-gray-400 group-hover:text-white">
+                        <i class="ph-duotone ph-package text-[28px] leading-none"></i>
+                        <div class="nav-lock-badge" aria-hidden="true"></div>
+                    </div>
+                    <span class="nav-text" data-i18n="nav.shop">Shop</span>
+                </button>
+            </div>
+        </nav>
+
+        <div id="profile-modal" class="profile-modal fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300" data-modal="profile" aria-hidden="true">
+            <div class="absolute inset-0 bg-abyssal/90 backdrop-blur-xl" data-action="close-profile-modal"></div>
+            <div id="profile-card" class="glass-panel profile-card relative w-[85%] max-w-sm rounded-[40px] p-8 flex flex-col items-center transform scale-90 border-emerald/20 shadow-2xl">
+                <button type="button" class="absolute top-6 right-6 w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 text-gray-400 btn-active-scale" data-action="close-profile-modal" aria-label="Fermer le profil"><i class="ph-bold ph-x"></i></button>
+                <div class="relative w-28 h-28 rounded-full border-2 border-emerald bg-slate-900 flex items-center justify-center overflow-hidden shadow-[0_0_30px_rgba(16,185,129,0.4)] mb-4">
+                    <i class="ph-fill ph-user text-emerald text-6xl" data-modal-player-avatar-icon></i>
+                    <div class="absolute inset-0 bg-gradient-to-b from-transparent via-emerald/10 to-transparent animate-pulse"></div>
+                </div>
+                <h2 class="text-2xl font-black text-white uppercase tracking-tight" data-modal-player-name>N3O_VNDL</h2>
+                <span class="text-[10px] text-emerald font-mono tracking-widest mt-1 opacity-70" data-modal-player-id>ID: INK-774-B</span>
+
+                <div class="w-full mt-8">
+                    <div class="flex justify-between text-[10px] font-bold text-gray-400 uppercase mb-2"><span data-modal-player-level-label>Niveau 0</span><span data-modal-player-xp>0 / 10K XP</span></div>
+                    <div class="w-full h-2.5 bg-black/40 rounded-full overflow-hidden border border-white/5">
+                        <div class="h-full bg-gradient-to-r from-cyan to-emerald w-0 shadow-[0_0_10px_#10b981]" data-modal-player-xp-bar></div>
+                    </div>
+                </div>
+
+                <div class="w-full grid grid-cols-2 gap-4 mt-8">
+                    <button type="button" class="profile-slot-btn" data-action="open-profile-settings">
+                        <i class="ph-bold ph-user-circle text-xl mb-1"></i>
+                        <span data-i18n="profile.my_profile">Mon Profil</span>
+                    </button>
+                    <button type="button" class="profile-slot-btn" data-action="open-all-settings">
+                        <i class="ph-bold ph-sliders-horizontal text-xl mb-1"></i>
+                        <span data-i18n="profile.settings">Paramètres</span>
+                    </button>
+                </div>
+                <!-- Sélecteur de langue -->
+                <div class="profile-lang-block w-full mt-5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest" data-i18n="profile.language">Langue</span>
+                        <div class="flex gap-1 bg-black/40 border border-white/10 rounded-xl p-1">
+                            <button type="button" class="profile-lang-btn" data-lang="fr">🇫🇷 FR</button>
+                            <button type="button" class="profile-lang-btn" data-lang="en">🇬🇧 EN</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications d'incubateur -->
+                <div class="profile-notif-block w-full mt-4" id="profile-notif-block">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest" data-i18n="profile.incubator_alerts">Alertes Incubateur</span>
+                        <label class="profile-notif-toggle" aria-label="Activer les alertes">
+                            <input type="checkbox" id="notif-enabled-toggle" data-notif-enabled>
+                            <span class="profile-notif-toggle__track"></span>
+                        </label>
+                    </div>
+                    <div class="profile-notif-tiers" id="notif-tiers-section" aria-label="Seuil de rareté minimum">
+                        <p class="text-[9px] text-gray-500 uppercase tracking-wide mb-2" data-i18n="profile.notify_from">Notifier dès :</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button type="button" class="profile-notif-tier-btn" data-notif-tier="uncommon" data-i18n="profile.tier.uncommon">Peu commun</button>
+                            <button type="button" class="profile-notif-tier-btn" data-notif-tier="rare" data-i18n="profile.tier.rare">Rare</button>
+                            <button type="button" class="profile-notif-tier-btn" data-notif-tier="epic" data-i18n="profile.tier.epic">Épique</button>
+                            <button type="button" class="profile-notif-tier-btn" data-notif-tier="legendary" data-i18n="profile.tier.legendary">Légendaire</button>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" id="reset-data-btn" class="w-full mt-4 py-3 rounded-2xl bg-red-900/20 border border-red-500/30 text-red-400 font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-red-900/40" data-i18n="profile.reset_data">⚠ Réinitialiser les données</button>
+
+            </div>
+
+            <!-- Panneau de paramètres : HORS du profile-card pour éviter tout clip overflow:hidden -->
+            <div id="profile-settings-panel" class="profile-settings-panel" aria-hidden="true">
+                <div class="profile-settings-panel__header">
+                    <button type="button" class="profile-settings-back" data-action="close-profile-settings" data-i18n-aria="settings.back" aria-label="Retour">
+                        <i class="ph-bold ph-arrow-left"></i>
+                    </button>
+                    <span class="profile-settings-panel__title" id="profile-settings-title"></span>
+                </div>
+
+                <!-- Section : Mon Profil -->
+                <div id="settings-profile-section" class="profile-settings-section" hidden>
+                    <p class="settings-section-label" data-i18n="settings.avatar">Avatar</p>
+                    <div class="profile-avatar-grid">
+                        <button type="button" class="avatar-option" data-avatar="user"><i class="ph-fill ph-user"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="robot"><i class="ph-fill ph-robot"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="alien"><i class="ph-fill ph-alien"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="skull"><i class="ph-fill ph-skull"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="ghost"><i class="ph-fill ph-ghost"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="flame"><i class="ph-fill ph-flame"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="crown"><i class="ph-fill ph-crown"></i></button>
+                        <button type="button" class="avatar-option" data-avatar="cat"><i class="ph-fill ph-cat"></i></button>
+                    </div>
+                    <p class="settings-section-label" data-i18n="settings.display_name">Nom d'affichage</p>
+                    <input type="text" id="profile-name-input" class="profile-name-input" maxlength="16" placeholder="Ton pseudo..." data-i18n-placeholder="settings.name_ph">
+                    <button type="button" class="profile-save-btn" data-action="save-profile" data-i18n="settings.save">Sauvegarder</button>
+                </div>
+
+                <!-- Section : Performances -->
+                <div id="settings-perf-section" class="profile-settings-section" hidden>
+                    <p class="settings-section-label" data-i18n="settings.visual_quality">Qualité visuelle</p>
+                    <div class="perf-tier-list">
+                        <button type="button" class="perf-tier-btn" data-perf-btn="low">
+                            <i class="ph-bold ph-leaf perf-tier-ph-icon"></i>
+                            <div class="perf-tier-info">
+                                <span class="perf-tier-name" data-i18n="settings.economy">Économie</span>
+                                <span class="perf-tier-desc" data-i18n="settings.max_fluidity">Fluidité maximale</span>
+                            </div>
+                        </button>
+                        <button type="button" class="perf-tier-btn" data-perf-btn="medium">
+                            <i class="ph-bold ph-lightning perf-tier-ph-icon"></i>
+                            <div class="perf-tier-info">
+                                <span class="perf-tier-name" data-i18n="settings.balanced">Équilibré</span>
+                                <span class="perf-tier-desc" data-i18n="settings.recommended">Recommandé</span>
+                            </div>
+                        </button>
+                        <button type="button" class="perf-tier-btn" data-perf-btn="high">
+                            <i class="ph-bold ph-sparkle perf-tier-ph-icon"></i>
+                            <div class="perf-tier-info">
+                                <span class="perf-tier-name" data-i18n="settings.quality">Qualité</span>
+                                <span class="perf-tier-desc" data-i18n="settings.high_end">Haut de gamme</span>
+                            </div>
+                        </button>
+                    </div>
+                    <button type="button" class="perf-auto-btn" data-action="auto-detect-perf">
+                        <i class="ph-bold ph-magic-wand"></i> <span data-i18n="settings.auto_detect">Détection automatique</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de confirmation reset -->
+        <div id="reset-confirm-modal" class="fixed inset-0 z-[60] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200" aria-hidden="true">
+            <div id="reset-confirm-backdrop" class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+            <div class="glass-panel relative w-[82%] max-w-xs rounded-[32px] p-7 flex flex-col items-center border border-red-500/25 shadow-[0_0_40px_rgba(239,68,68,0.15)] z-10">
+                <div class="w-16 h-16 rounded-full bg-red-900/40 border border-red-500/40 flex items-center justify-center mb-4 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
+                    <i class="ph-bold ph-warning text-red-400 text-3xl"></i>
+                </div>
+                <h3 class="text-white font-black text-base uppercase tracking-tight text-center mb-2" data-i18n="reset.title">Remise à zéro</h3>
+                <p class="text-gray-400 text-[11px] text-center leading-relaxed mb-6" data-i18n="reset.body">Toutes tes données seront <span class="text-red-400 font-bold">définitivement supprimées</span> — slimes, progression, collection. Cette action est irréversible.</p>
+                <div class="w-full flex flex-col gap-2">
+                    <button type="button" id="reset-confirm-yes" class="w-full py-3.5 rounded-2xl bg-red-600/80 border border-red-500/60 text-white font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-red-600 shadow-[0_0_14px_rgba(239,68,68,0.3)]" data-i18n="reset.confirm">Tout effacer</button>
+                    <button type="button" id="reset-confirm-no" class="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-gray-400 font-black text-xs tracking-widest uppercase btn-active-scale transition-all hover:bg-white/10" data-i18n="reset.cancel">Annuler</button>
+                </div>
+            </div>
+        </div>
+
+    <!-- ═══ PANNEAU PARAMÈTRES EN JEU ═══════════════════════════════════════
+         Écran complet — mêmes réglages que l'écran titre (son, affichage,
+         gameplay). z-index: 200 → au-dessus de tout (profil, HUD, nav).
+    ══════════════════════════════════════════════════════════════════════ -->
+    <div id="inku-settings-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Paramètres">
+        <div class="igs-header">
+            <button class="igs-back" id="igs-close-btn" aria-label="Fermer les paramètres">
+                <i class="ph ph-arrow-left" style="font-size:0.9rem;"></i>
+            </button>
+            <div class="igs-header-text">
+                <div class="igs-title" data-i18n="settings.title">Paramètres</div>
+                <div class="igs-version">INKÜ · v0.1.0</div>
+            </div>
+        </div>
+
+        <div class="igs-body">
+
+            <!-- SON -->
+            <div class="igs-section">
+                <div class="igs-section-label"><div class="igs-section-bar"></div><span data-i18n="ts.sound">Son</span></div>
+                <div class="igs-card">
+                    <div class="igs-row igs-row--slider">
+                        <div class="igs-row-icon igs-icon-green"><i class="ph ph-speaker-high"></i></div>
+                        <div class="igs-row-body">
+                            <div class="igs-row-top"><span class="igs-row-name" data-i18n="ts.master">Master</span><span class="igs-slider-val" id="igs-master-v">80</span></div>
+                            <input type="range" class="igs-slider" id="igs-master" min="0" max="100">
+                        </div>
+                    </div>
+                    <div class="igs-divider"></div>
+                    <div class="igs-row igs-row--slider">
+                        <div class="igs-row-icon igs-icon-blue"><i class="ph ph-music-note"></i></div>
+                        <div class="igs-row-body">
+                            <div class="igs-row-top"><span class="igs-row-name" data-i18n="ts.music">Musique</span><span class="igs-slider-val" id="igs-music-v">60</span></div>
+                            <input type="range" class="igs-slider" id="igs-music" min="0" max="100">
+                        </div>
+                    </div>
+                    <div class="igs-divider"></div>
+                    <div class="igs-row igs-row--slider">
+                        <div class="igs-row-icon igs-icon-purple"><i class="ph ph-bell"></i></div>
+                        <div class="igs-row-body">
+                            <div class="igs-row-top"><span class="igs-row-name" data-i18n="ts.sfx">Effets sonores</span><span class="igs-slider-val" id="igs-sfx-v">90</span></div>
+                            <input type="range" class="igs-slider" id="igs-sfx" min="0" max="100">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AFFICHAGE -->
+            <div class="igs-section">
+                <div class="igs-section-label"><div class="igs-section-bar igs-bar-blue"></div><span data-i18n="ts.display">Affichage</span></div>
+                <div class="igs-card">
+                    <div class="igs-row">
+                        <div class="igs-row-icon igs-icon-green"><i class="ph ph-gauge"></i></div>
+                        <div class="igs-row-body"><div class="igs-row-name" data-i18n="ts.fps_counter">Compteur FPS</div><div class="igs-row-sub" data-i18n="ts.fps_sub">Afficher le débit d'images</div></div>
+                        <div class="igs-row-ctrl"><label class="igs-toggle"><input type="checkbox" id="igs-fps"><span class="igs-toggle-track"><span class="igs-toggle-knob"></span></span></label></div>
+                    </div>
+                    <div class="igs-divider"></div>
+                    <div class="igs-row">
+                        <div class="igs-row-icon igs-icon-blue"><i class="ph ph-leaf"></i></div>
+                        <div class="igs-row-body"><div class="igs-row-name" data-i18n="ts.reduce_anim">Réduire les animations</div><div class="igs-row-sub" data-i18n="ts.reduce_anim_sub">Moins d'effets visuels</div></div>
+                        <div class="igs-row-ctrl"><label class="igs-toggle"><input type="checkbox" id="igs-motion"><span class="igs-toggle-track"><span class="igs-toggle-knob"></span></span></label></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- QUALITÉ GRAPHIQUE -->
+            <div class="igs-section">
+                <div class="igs-section-label"><div class="igs-section-bar igs-bar-blue"></div><span data-i18n="ts.graphics_quality">Qualité graphique</span></div>
+                <div class="igs-card">
+                    <div class="igs-tier-list">
+                        <button type="button" class="igs-tier-btn" data-igs-tier="low">
+                            <i class="ph-bold ph-leaf igs-tier-icon"></i>
+                            <div class="igs-tier-info">
+                                <span class="igs-tier-name" data-i18n="settings.economy">Économie</span>
+                                <span class="igs-tier-desc" data-i18n="settings.max_fluidity">Fluidité maximale</span>
+                            </div>
+                        </button>
+                        <button type="button" class="igs-tier-btn" data-igs-tier="medium">
+                            <i class="ph-bold ph-lightning igs-tier-icon"></i>
+                            <div class="igs-tier-info">
+                                <span class="igs-tier-name" data-i18n="settings.balanced">Équilibré</span>
+                                <span class="igs-tier-desc" data-i18n="settings.recommended">Recommandé</span>
+                            </div>
+                        </button>
+                        <button type="button" class="igs-tier-btn" data-igs-tier="high">
+                            <i class="ph-bold ph-sparkle igs-tier-icon"></i>
+                            <div class="igs-tier-info">
+                                <span class="igs-tier-name" data-i18n="settings.quality">Qualité</span>
+                                <span class="igs-tier-desc" data-i18n="settings.high_end">Haut de gamme</span>
+                            </div>
+                        </button>
+                    </div>
+                    <button type="button" class="igs-auto-btn" id="igs-auto-detect">
+                        <i class="ph-bold ph-magic-wand"></i>
+                        <span data-i18n="settings.auto_detect">Détection automatique</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- GAMEPLAY -->
+            <div class="igs-section">
+                <div class="igs-section-label"><div class="igs-section-bar igs-bar-purple"></div><span data-i18n="ts.gameplay">Gameplay</span></div>
+                <div class="igs-card">
+                    <div class="igs-row">
+                        <div class="igs-row-icon igs-icon-purple"><i class="ph ph-device-mobile"></i></div>
+                        <div class="igs-row-body"><div class="igs-row-name" data-i18n="ts.vibrations">Vibrations</div><div class="igs-row-sub" data-i18n="ts.vibrations_sub">Retour haptique</div></div>
+                        <div class="igs-row-ctrl"><label class="igs-toggle"><input type="checkbox" id="igs-vibr"><span class="igs-toggle-track"><span class="igs-toggle-knob"></span></span></label></div>
+                    </div>
+                    <div class="igs-divider"></div>
+                    <div class="igs-row">
+                        <div class="igs-row-icon igs-icon-green"><i class="ph ph-hand-tap"></i></div>
+                        <div class="igs-row-body"><div class="igs-row-name" data-i18n="ts.touch">Interactions tactiles</div><div class="igs-row-sub" data-i18n="ts.touch_sub">Déplacer les slimes</div></div>
+                        <div class="igs-row-ctrl"><label class="igs-toggle"><input type="checkbox" id="igs-touch"><span class="igs-toggle-track"><span class="igs-toggle-knob"></span></span></label></div>
+                    </div>
+                    <div class="igs-divider"></div>
+                    <div class="igs-row">
+                        <div class="igs-row-icon igs-icon-green"><i class="ph ph-globe"></i></div>
+                        <div class="igs-row-body"><div class="igs-row-name" data-i18n="ts.language">Langue</div><div class="igs-row-sub" data-i18n="ts.language_sub">Langue de l'interface</div></div>
+                        <div class="igs-row-ctrl">
+                            <div class="igs-seg" id="igs-lang">
+                                <button class="igs-seg-btn" data-igs-lang="fr">🇫🇷 FR</button>
+                                <button class="igs-seg-btn" data-igs-lang="en">🇬🇧 EN</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal redémarrage traduction -->
+    <div id="lang-restart-modal" class="fixed inset-0 z-[70] flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-300" aria-hidden="true">
+        <div class="absolute inset-0 bg-black/75 backdrop-blur-sm"></div>
+        <div class="glass-panel relative w-[78%] max-w-xs rounded-[28px] p-7 flex flex-col items-center border border-emerald/20 shadow-xl z-10">
+            <i class="ph-bold ph-globe text-emerald text-3xl mb-3"></i>
+            <h3 class="text-white font-black text-sm uppercase tracking-tight text-center mb-2" data-i18n="lang.restart_title">Redémarrage requis</h3>
+            <p class="text-gray-400 text-[11px] text-center leading-relaxed mb-4" data-i18n="lang.restart_body">Le jeu va redémarrer pour appliquer la traduction.</p>
+            <div class="w-6 h-6 border-2 border-emerald/40 border-t-emerald rounded-full animate-spin"></div>
+        </div>
+    </div>
+
+    <script type="module" src="./src/bootstrap/main.js"></script>
+    <!-- ── Traductions + sélecteur de langue ──────────────────────────────── -->
+    <script type="module">
+    import { applyTranslations, getLang, setLang } from './src/i18n/i18n.js';
+
+    // Applique les traductions dès que le DOM est prêt
+    applyTranslations();
+
+    // Marque le bouton de langue actif
+    const currentLang = getLang();
+    document.querySelectorAll('[data-lang]').forEach(btn => {
+        btn.classList.toggle('is-active', btn.dataset.lang === currentLang);
+    });
+
+    // Gestion des clics sur les boutons de langue (in-game profile)
+    document.querySelectorAll('[data-lang]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const newLang = btn.dataset.lang;
+            if (newLang === getLang()) return;
+            setLang(newLang);
+            // Afficher la modale de redémarrage
+            const modal = document.getElementById('lang-restart-modal');
+            if (modal) {
+                modal.classList.remove('opacity-0', 'pointer-events-none');
+                modal.setAttribute('aria-hidden', 'false');
+            }
+            // Fondu + rechargement
+            setTimeout(() => {
+                document.body.style.transition = 'opacity 0.45s';
+                document.body.style.opacity = '0';
+            }, 600);
+            setTimeout(() => location.reload(), 1100);
+        });
+    });
+    </script>
+
+    <script>
+    // ── Reset data modal logic ────────────────────────────────────────────────
+    (function() {
+        const resetBtn      = document.getElementById('reset-data-btn');
+        const confirmModal  = document.getElementById('reset-confirm-modal');
+        const confirmYes    = document.getElementById('reset-confirm-yes');
+        const confirmNo     = document.getElementById('reset-confirm-no');
+        const backdrop      = document.getElementById('reset-confirm-backdrop');
+
+        function openResetModal() {
+            confirmModal.classList.remove('opacity-0', 'pointer-events-none');
+            confirmModal.setAttribute('aria-hidden', 'false');
+        }
+
+        function closeResetModal() {
+            confirmModal.classList.add('opacity-0', 'pointer-events-none');
+            confirmModal.setAttribute('aria-hidden', 'true');
+        }
+
+        function executeReset() {
+            // Supprimer toutes les clés INKU connues
+            const inkuKeys = [
+                'inku.storage.v1',
+                'inku.storage.panel.session.v1',
+                'inku.prairie.session.v3',
+            ];
+            inkuKeys.forEach(k => localStorage.removeItem(k));
+
+            // Supprimer toutes les clés inku.* restantes (futures)
+            Object.keys(localStorage)
+                .filter(k => k.startsWith('inku.'))
+                .forEach(k => localStorage.removeItem(k));
+
+            closeResetModal();
+
+            // Feedback visuel bref puis reload
+            document.body.style.transition = 'opacity 0.4s';
+            document.body.style.opacity = '0';
+            setTimeout(() => location.reload(), 420);
+        }
+
+        resetBtn.addEventListener('click', openResetModal);
+        confirmYes.addEventListener('click', executeReset);
+        confirmNo.addEventListener('click', closeResetModal);
+        backdrop.addEventListener('click', closeResetModal);
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && confirmModal.getAttribute('aria-hidden') === 'false') {
+                closeResetModal();
+            }
+        });
+    })();
+    </script>
+</body>
+</html>

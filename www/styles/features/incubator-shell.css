@@ -1,0 +1,297 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   INKÜ — INCUBATOR SHELL v2.0
+   Lab incubator stage layout
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.content-mount--allow-overlap {
+    contain: layout style;
+    overflow: visible;
+}
+
+.content-mount--labo-incubator {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.labo-incubator-feature {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* Garantie CSS : l'attribut hidden sur la feature cache TOUT, y compris le
+   Shadow DOM de l'incubateur. Le sélecteur [hidden] seul n'a pas !important
+   dans Tailwind, donc display:flex ci-dessus l'écraserait sans cette règle. */
+.labo-incubator-feature[hidden] {
+    display: none !important;
+}
+
+.labo-incubator-stage {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    overflow: hidden;
+    contain: layout paint;
+}
+
+.labo-incubator-frame {
+    position: relative;
+    flex: 0 0 auto;
+    width: 560px;
+    height: 720px;
+    transform-origin: center bottom;
+    will-change: transform;
+    pointer-events: auto;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    /* Isolation des reflows internes : empêche tout changement de layout
+       à l'intérieur (animation slime, canvas resize) de remonter vers
+       le document et de déclencher syncIncubatorLayout → saut visuel. */
+    contain: layout size;
+}
+
+.labo-incubator-mount {
+    width: 560px;
+    height: 720px;
+}
+
+.inku-incubator-host {
+    display: block;
+    width: 560px;
+    height: 720px;
+}
+
+.labo-incubator-frame {
+    --inku-storage-shift: 0px;
+    transition: transform 200ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
+}
+
+.labo-incubator-feature--storage-open .labo-incubator-frame {
+    --inku-storage-shift: 14px;
+}
+
+@media (max-width: 430px) {
+    .labo-incubator-feature--storage-open .labo-incubator-frame {
+        --inku-storage-shift: 24px;
+    }
+}
+
+/* ═══════ ECONOMY OVERLAY PANEL ══════════════════════════════════════ */
+
+.labo-economy-panel {
+    position: absolute;
+    top: 0.6rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.32rem 0.32rem 0.32rem 0.65rem;
+    border-radius: var(--radius-pill, 999px);
+    border: 1px solid rgba(59, 130, 246, 0.18);
+    background: linear-gradient(135deg, rgba(6, 12, 26, 0.94), rgba(3, 7, 16, 0.97));
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), 0 0 12px rgba(59, 130, 246, 0.06);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    white-space: nowrap;
+    pointer-events: auto;
+    animation: economy-panel-in 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes economy-panel-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(-6px) scale(0.97); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0)   scale(1);    }
+}
+
+.labo-economy-panel__info {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.labo-economy-panel__price-wrap,
+.labo-economy-panel__income-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.22rem;
+}
+
+.labo-economy-panel__icon {
+    font-size: 0.75rem;
+    line-height: 1;
+    color: rgba(59, 130, 246, 0.85); /* hexagon = bleu */
+}
+
+.labo-economy-panel__icon--income {
+    font-size: 0.7rem;
+    color: rgba(16, 185, 129, 0.8); /* income = vert */
+}
+
+.labo-economy-panel__price {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: rgba(147, 197, 253, 0.95);
+    font-variant-numeric: tabular-nums;
+}
+
+.labo-economy-panel__income {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.65rem;
+    font-weight: 600;
+    color: rgba(52, 211, 153, 0.85);
+}
+
+/* ── Bouton Acquérir ─────────────────────────────────────────────────── */
+.labo-economy-panel__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 30px;
+    padding: 0 0.9rem;
+    border-radius: var(--radius-pill, 999px);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    background: rgba(59, 130, 246, 0.15);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(147, 197, 253, 0.9);
+    cursor: pointer;
+    transition: background 180ms ease, border-color 180ms ease, transform 100ms ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+/* Vert → le joueur peut acheter */
+.labo-economy-panel__btn[data-affordable="true"] {
+    border-color: rgba(16, 185, 129, 0.45);
+    background: rgba(16, 185, 129, 0.18);
+    color: rgba(52, 211, 153, 0.95);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.12);
+}
+
+.labo-economy-panel__btn[data-affordable="true"]:active {
+    transform: scale(0.96);
+    background: rgba(16, 185, 129, 0.28);
+}
+
+/* Rouge → solde insuffisant */
+.labo-economy-panel__btn[data-affordable="false"] {
+    border-color: rgba(239, 68, 68, 0.38);
+    background: rgba(239, 68, 68, 0.12);
+    color: rgba(252, 165, 165, 0.88);
+    cursor: not-allowed;
+}
+
+.labo-economy-panel__btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* ═══════ OVERLAY ORIENTATION PAYSAGE ════════════════════════════════ */
+/* Fallback CSS quand screen.orientation.lock() n'est pas supporté     */
+
+#rotate-prompt {
+    display: none; /* caché par défaut (portrait) */
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #050c18;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    text-align: center;
+    padding: 2rem;
+}
+
+.rotate-prompt__icon {
+    font-size: 3.5rem;
+    color: rgba(16, 185, 129, 0.85);
+    animation: rotate-hint 1.8s ease-in-out infinite;
+}
+
+.rotate-prompt__text {
+    font-family: var(--font-body, sans-serif);
+    font-size: 1rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.6;
+}
+
+@keyframes rotate-hint {
+    0%, 100% { transform: rotate(0deg); }
+    40%       { transform: rotate(-90deg); }
+    60%       { transform: rotate(-90deg); }
+}
+
+/* Activer l'overlay uniquement en paysage sur écrans mobiles */
+@media screen and (orientation: landscape) and (max-height: 540px) {
+    #rotate-prompt {
+        display: flex;
+    }
+
+    /* Masquer le reste de l'app en paysage */
+    body > *:not(#rotate-prompt) {
+        visibility: hidden;
+    }
+}
+
+/* ── Overlay externe du display panel ─────────────────────────────────────────
+   Positionné en fixed au-dessus de l'incubateur.
+   Respecte le HUD (top) et la nav (bottom) avec les safe areas smartphone.
+   pointer-events: none sur le wrapper, auto sur le panel lui-même.
+   ─────────────────────────────────────────────────────────────────────────── */
+.labo-dp-overlay {
+    position: fixed;
+    /* Centré horizontalement, aligné avec l'app (max-width: 448px) */
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(100vw, 448px);
+    /* Espace sous le HUD : ~72px HUD height + safe-top */
+    top: calc(72px + max(1rem, env(safe-area-inset-top, 20px)));
+    /* z-index 9 = derrière le content-shell (z-index: 10) → panel DERRIÈRE l'incubateur */
+    z-index: 9;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Masqué quand pas en mode labo */
+    opacity: 0;
+    transition: opacity 0.25s ease;
+}
+
+.labo-dp-overlay.is-visible {
+    opacity: 1;
+    pointer-events: none; /* le wrapper reste non-interactif */
+}
+
+/* Le panel CRT lui-même : cliquable, scrollable */
+.labo-dp-overlay .display-panel-external {
+    pointer-events: auto;
+    width: min(82vw, 340px);
+    background: #0a0f1a;
+    border: 3px solid #1a2535;
+    border-bottom-width: 6px;
+    border-radius: 12px 12px 8px 8px;
+    padding: 6px;
+    box-shadow:
+        0 14px 32px rgba(0, 0, 0, 0.7),
+        inset 0 0 0 1px rgba(255,255,255,0.04);
+    overflow: hidden;
+}
