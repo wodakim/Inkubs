@@ -1,0 +1,76 @@
+Voici ton **Manuel Opérationnel AIDER**, conçu spécifiquement pour l'architecture de ton jeu. Il garantit un usage économe en tokens, sans hallucinations ni régressions.
+
+### 📜 Le Cycle de Travail Standard (À faire à CHAQUE nouvelle tâche)
+
+1. **Vider le contexte** : Toujours commencer par nettoyer la mémoire.
+   ```powershell
+   /drop
+   ```
+2. **Charger la carte du système (Lecture seule)** : Donne l'architecture globale sans l'éditer.
+   ```powershell
+   /read www/src/systemMap.js
+   ```
+3. **Charger les fichiers cibles (Édition)** : Utilise `/add` UNIQUEMENT sur les fichiers mentionnés dans les cas ci-dessous.
+
+---
+
+### 🗺️ Mappage par Scénario : Quoi charger et Comment demander
+
+#### Cas 1 : Ajouter/Modifier des Statistiques ou la Génétique des Slimes
+*Exemple : "Je veux ajouter une stat de 'fatigue' ou modifier les probabilités de rareté."*
+
+* **Fichiers à charger :**
+    ```powershell
+    /add www/src/vendor/inku-slime-v3/engine/genetics/proceduralStats.js www/src/vendor/inku-slime-v3/engine/genetics/genomeFactory.js www/src/vendor/inku-slime-v3/engine/entities/Slime.js
+    ```
+* **Formulation du prompt :**
+    > "Ajoute une nouvelle statistique 'fatigue' dans `proceduralStats.js`. Cette stat doit être générée lors de la création du génome dans `genomeFactory.js`. **Contrainte stricte :** N'altère pas la logique des autres statistiques existantes (HP, vitesse, etc.). N'ajoute pas de rendu visuel pour le moment, gère uniquement la donnée."
+
+#### Cas 2 : Modifier le comportement physique ou les interactions (La Prairie)
+*Exemple : "Mes slimes se bloquent dans les murs ou rebondissent mal."*
+
+* **Fichiers à charger :**
+    ```powershell
+    /add www/src/vendor/inku-slime-v3/engine/entities/slime/installPhysics.js www/src/vendor/inku-slime-v3/engine/entities/slime/installInteraction.js
+    ```
+* **Fichier en lecture (optionnel pour contexte) :** `/read www/src/vendor/inku-slime-v3/engine/physics/VerletPoint.js`
+* **Formulation du prompt :**
+    > "Il y a un bug de collision. Modifie `installPhysics.js` pour empêcher le slime de dépasser les bordures du canvas. **Ne réécris pas tout le moteur Verlet.** Ajoute juste une contrainte de limite (boundary check) sur les coordonnées (x,y) à la fin de la mise à jour physique."
+
+#### Cas 3 : Ajouter une nouvelle Quête ou modifier l'Économie
+*Exemple : "Je veux créer une quête où il faut cliquer 50 fois sur un slime."*
+
+* **Fichiers à charger :**
+    ```powershell
+    /add www/src/features/bar/quest-catalogue.js www/src/features/bar/quest-engine.js www/src/features/economy/economy-calculator.js
+    ```
+* **Formulation du prompt :**
+    > "Ajoute une nouvelle quête 'Clics frénétiques' dans `quest-catalogue.js`. Modifie `quest-engine.js` pour écouter cet événement de clic. **Règle absolue :** Ne modifie pas la sauvegarde des quêtes existantes, ajoute ta logique en isolation."
+
+#### Cas 4 : Bugs visuels ou modifications CSS / UI
+*Exemple : "Le bouton du menu de l'incubateur est mal aligné sur mobile."*
+
+* **Fichiers à charger :**
+    ```powershell
+    /add www/src/features/incubator/labo-incubator-feature.js www/styles/features/incubator-shell.css
+    ```
+* **Formulation du prompt :**
+    > "Le conteneur `.incubator-menu` dans `incubator-shell.css` déborde de l'écran. Passe-le en Flexbox avec un `flex-wrap` et corrige le JS si une classe dynamique bloque l'affichage. Ne touche à rien d'autre visuellement."
+
+---
+
+### 🛡️ Protocoles Anti-Régressions et Erreurs
+
+**1. La Règle du "Pas-à-pas"**
+Ne demande **jamais** la logique, l'UI et la sauvegarde en un seul prompt.
+* *Étape 1 :* "Crée la logique de calcul de l'argent." (Test)
+* *Étape 2 :* "Maintenant, affiche ce calcul dans le HUD." (Test)
+* *Étape 3 :* "Maintenant, sauvegarde cette donnée." (Test)
+
+**2. Gestion des erreurs (Application stricte de tes règles)**
+Si une erreur survient, **ne lui demande pas de chercher à l'aveugle**. Fais une capture d'écran du message d'erreur (console ou HUD), donne-la à Aider (ou décris l'erreur mot pour mot) avec ce prompt :
+> "Voici l'erreur exacte que je reçois : `[Colle l'erreur ou donne la capture]`. Base 100% de ta correction sur ce message. Si ta première solution a causé ça, **remets en question ton approche initiale** au lieu de patcher aveuglément."
+
+**3. Code d'intégration (Éviter la destruction)**
+Pour être sûr qu'Aider ne supprime pas de code vital en voulant aller vite, ajoute souvent cette phrase à tes prompts complexes :
+> "Fais la modification en préservant strictement les méthodes existantes. Si tu dois remplacer une fonction, montre-moi la nouvelle version complète."
