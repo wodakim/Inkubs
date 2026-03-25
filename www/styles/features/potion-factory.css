@@ -1,0 +1,150 @@
+/* src/styles/features/potion-factory.css */
+.potion-factory-shell {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.potion-factory {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #0f172a; /* Fallback */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ghibli inspired wooden table environment */
+.potion-factory__workspace {
+    flex: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 20px;
+}
+
+.potion-factory__table {
+    position: relative;
+    width: 90%;
+    height: 60%;
+    background: linear-gradient(to bottom, #7c4a32, #5c301d);
+    border-top: 4px solid #8e5a42;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.1);
+    display: flex;
+    flex-direction: column;
+    padding: 20px;
+}
+
+/* Background slots (boxes) */
+.potion-factory__boxes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    height: 45%;
+    margin-bottom: 10%;
+}
+
+/* Foreground slots (flasks) */
+.potion-factory__flasks {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    height: 45%;
+}
+
+.potion-factory__slot {
+    background: rgba(0, 0, 0, 0.2);
+    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.potion-factory__slot--box::before {
+    content: "BOX";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 10px;
+    color: rgba(255,255,255,0.05);
+}
+
+.potion-factory__slot--flask::before {
+    content: "FLASK";
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 900;
+    font-size: 10px;
+    color: rgba(255,255,255,0.05);
+}
+
+/* Team UI sidebar/top */
+.potion-factory__team-ui {
+    padding: 20px;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    background: rgba(0,0,0,0.2);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.potion-factory__slime-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 10px 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 160px;
+    backdrop-filter: blur(5px);
+}
+
+.potion-factory__slime-avatar {
+    width: 32px;
+    height: 32px;
+    background: #10b981;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.potion-factory__slime-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.potion-factory__slime-name {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: 11px;
+    color: white;
+    text-transform: uppercase;
+}
+
+.potion-factory__slime-drops {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: #10b981;
+}
+
+.potion-factory__empty-msg {
+    color: rgba(255,255,255,0.3);
+    font-size: 12px;
+    font-style: italic;
+    width: 100%;
+    text-align: center;
+}

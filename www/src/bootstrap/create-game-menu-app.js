@@ -10,6 +10,7 @@ import { createBlankSectionFeature } from '../features/content/blank-section-fea
 import { createPrairieFeature } from '../features/prairie/prairie-feature.js';
 import { createLaboIncubatorFeature } from '../features/incubator/labo-incubator-feature.js';
 import { createBarFeature } from '../features/bar/bar-feature.js';
+import { createPotionFactoryFeature } from '../features/potion-factory/potion-factory-feature.js';
 import { createHudController } from '../features/hud/hud-controller.js';
 import { loadPlayerState, savePlayerState } from '../features/economy/player-persistence.js';
 import { createPassiveIncomeEngine } from '../features/economy/passive-income-engine.js';
@@ -44,6 +45,11 @@ export function createGameMenuApp(root = document) {
 
         if (item.id === 'bar') {
             contentMountController.registerFeature(item.id, () => createBarFeature({ store }));
+            return;
+        }
+
+        if (item.id === 'potion-factory') {
+            contentMountController.registerFeature(item.id, () => createPotionFactoryFeature({ store }));
             return;
         }
 

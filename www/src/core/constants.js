@@ -1,9 +1,9 @@
 import { t } from '../i18n/i18n.js';
 
 export const NAV_ITEMS = Object.freeze([
-    { index: 0, id: 'prairie', label: t('nav.prairie') },
-    { index: 1, id: 'musee',   label: t('nav.musee')   },
-    { index: 2, id: 'labo',    label: t('nav.labo')    },
+    { index: 0, id: 'prairie',       label: t('nav.prairie') },
+    { index: 1, id: 'potion-factory', label: t('nav.potion_factory') },
+    { index: 2, id: 'labo',          label: t('nav.labo')    },
     { index: 3, id: 'bar',     label: t('nav.bar')     },
     { index: 4, id: 'shop',    label: t('nav.shop')    },
 ]);

@@ -38,5 +38,16 @@ export const SYSTEM_MAP = {
     ui: [
       "features/storage/storage-grid-renderer.js"
     ]
+  },
+
+  potion_factory: {
+    logic: [
+      "features/potion-factory/potion-factory-feature.js",
+      "features/potion-factory/potion-factory-controller.js",
+      "features/potion-factory/potion-engine.js"
+    ],
+    persistence: [
+      "features/potion-factory/potion-persistence.js"
+    ]
   }
-};
+};

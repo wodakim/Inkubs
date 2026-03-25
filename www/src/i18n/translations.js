@@ -10,7 +10,7 @@ export const TRANSLATIONS = {
 
         // Nav
         'nav.prairie': 'Prairie',
-        'nav.musee':   'Musée',
+        'nav.potion_factory': 'Usine à Potion',
         'nav.labo':    'Labo',
         'nav.bar':     'Bar',
         'nav.shop':    'Shop',
@@ -503,7 +503,7 @@ export const TRANSLATIONS = {
 
         // Nav
         'nav.prairie': 'Prairie',
-        'nav.musee':   'Museum',
+        'nav.potion_factory': 'Potion Factory',
         'nav.labo':    'Lab',
         'nav.bar':     'Bar',
         'nav.shop':    'Shop',
