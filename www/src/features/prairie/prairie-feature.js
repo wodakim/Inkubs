@@ -2182,487 +2182,295 @@ export function createPrairieFeature() {
         if (!ctx) return;
         const now = performance.now();
 
-        for (const obj of prairieObjects) {
+        // 1. FOND 2D STRICT (Aucun parallax, ciel de nuit et sol simple)
+        const skyGrad = ctx.createLinearGradient(0, world.top - 800, 0, world.groundY);
+        skyGrad.addColorStop(0, '#0a1128'); 
+        skyGrad.addColorStop(1, '#1c2841'); 
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(world.left - 2000, -3000, world.width + 4000, world.groundY + 3000);
+
+        ctx.fillStyle = '#2a4463';
+        ctx.fillRect(world.left - 2000, world.groundY - 2, world.width + 4000, 4);
+
+        const groundGrad = ctx.createLinearGradient(0, world.groundY, 0, world.bottom + 500);
+        groundGrad.addColorStop(0, '#1c1512');
+        groundGrad.addColorStop(1, '#0a0806');
+        ctx.fillStyle = groundGrad;
+        ctx.fillRect(world.left - 2000, world.groundY, world.width + 4000, world.bottom - world.groundY + 1000);
+
+        const drawGroundShadow = (x, y, radius, alpha = 0.3) => {
+            ctx.fillStyle = `rgba(5, 5, 8, ${alpha})`;
+            ctx.beginPath(); ctx.ellipse(x, y + 2, radius, radius * 0.25, 0, 0, Math.PI * 2); ctx.fill();
+        };
+
+        // 2. TRI CORRIGÉ : L'arbre (-100000) est forcé derrière la maison (-99999)
+        const sortedObjects = [...prairieObjects].sort((a, b) => {
+            const getZ = (o) => {
+                if (o.type === 'tree') return -100000;
+                if (o.type === 'terrarium') return -99999;
+                return o.y;
+            };
+            return getZ(a) - getZ(b) || a.x - b.x;
+        });
+
+        for (const obj of sortedObjects) {
             ctx.save();
             switch (obj.type) {
+                case 'tree': {
+                    const trunkGrad = ctx.createLinearGradient(obj.x - obj.w*0.5, 0, obj.x + obj.w*0.5, 0);
+                    trunkGrad.addColorStop(0, '#0a0d14');
+                    trunkGrad.addColorStop(0.5, '#182430');
+                    trunkGrad.addColorStop(1, '#06080d');
+                    ctx.fillStyle = trunkGrad;
+                    ctx.beginPath();
+                    ctx.moveTo(obj.x - obj.w * 0.35, -2000);
+                    ctx.lineTo(obj.x + obj.w * 0.35, -2000);
+                    ctx.bezierCurveTo(obj.x + obj.w * 0.35, world.groundY - 400, obj.x + obj.w * 0.45, world.groundY - 50, obj.x + obj.w * 0.9, world.groundY);
+                    ctx.lineTo(obj.x - obj.w * 0.9, world.groundY);
+                    ctx.bezierCurveTo(obj.x - obj.w * 0.45, world.groundY - 50, obj.x - obj.w * 0.35, world.groundY - 400, obj.x - obj.w * 0.35, -2000);
+                    ctx.fill();
+                    ctx.strokeStyle = '#04060a'; 
+                    ctx.lineWidth = 8; ctx.lineCap = 'round';
+                    ctx.beginPath(); ctx.moveTo(obj.x - obj.w * 0.1, -2000); ctx.quadraticCurveTo(obj.x - obj.w * 0.15, world.groundY - 300, obj.x - obj.w * 0.5, world.groundY - 10); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(obj.x + obj.w * 0.15, -2000); ctx.quadraticCurveTo(obj.x + obj.w * 0.1, world.groundY - 200, obj.x + obj.w * 0.4, world.groundY - 5); ctx.stroke();
+                    break;
+                }
+                case 'terrarium': {
+                    const hX = obj.x, hY = obj.y - obj.h, hW = obj.w, hH = obj.houseH;
+                    const wallGrad = ctx.createLinearGradient(hX, 0, hX + hW, 0);
+                    wallGrad.addColorStop(0, '#26170f'); wallGrad.addColorStop(0.5, '#3b2517'); wallGrad.addColorStop(1, '#1a0f0a');
+                    ctx.fillStyle = wallGrad;
+                    ctx.fillRect(hX - 30, hY - hH - 30, hW + 60, hH + 60 + obj.h);
+                    
+                    // Fond intérieur OPAQUE qui cache l'arbre
+                    ctx.fillStyle = '#140c08'; 
+                    ctx.fillRect(hX, hY - hH, hW, hH);
+                    
+                    // Peintures
+                    const paintingY = hY - hH + 120;
+                    ctx.shadowColor = 'rgba(0,0,0,0.6)'; ctx.shadowBlur = 12; ctx.shadowOffsetY = 6;
+                    ctx.fillStyle = '#c9a02a'; ctx.fillRect(hX + 150, paintingY, 100, 120);
+                    ctx.fillStyle = '#111'; ctx.fillRect(hX + 155, paintingY + 5, 90, 110);
+                    const sunset = ctx.createLinearGradient(0, paintingY, 0, paintingY + 100);
+                    sunset.addColorStop(0, '#ff4e50'); sunset.addColorStop(1, '#f9d423');
+                    ctx.fillStyle = sunset; ctx.fillRect(hX + 160, paintingY + 10, 80, 100);
+                    ctx.shadowColor = 'transparent'; 
+                    
+                    // Mobilier
+                    const tableY = hY - 60, tableX = hX + hW * 0.5;
+                    ctx.fillStyle = '#6b431e';
+                    ctx.fillRect(tableX - 220, tableY - 100, 15, 160); ctx.fillRect(tableX - 220, tableY + 10, 80, 15); ctx.fillRect(tableX - 160, tableY + 25, 15, 35);   
+                    ctx.fillRect(tableX + 205, tableY - 100, 15, 160); ctx.fillRect(tableX + 140, tableY + 10, 80, 15); ctx.fillRect(tableX + 145, tableY + 25, 15, 35);   
+                    ctx.fillStyle = '#3b2210'; ctx.fillRect(tableX - 100, tableY + 10, 200, 20);
+                    ctx.fillStyle = '#24140a'; ctx.fillRect(tableX - 80, tableY + 30, 20, 30); ctx.fillRect(tableX + 60, tableY + 30, 20, 30);
+                    ctx.fillStyle = '#e8e8e8'; ctx.beginPath(); ctx.arc(tableX - 40, tableY + 5, 10, 0, Math.PI); ctx.fill();
+                    ctx.beginPath(); ctx.arc(tableX + 40, tableY + 5, 10, 0, Math.PI); ctx.fill();
+                    ctx.strokeStyle = 'rgba(255,255,255,0.4)'; ctx.lineWidth = 2;
+                    ctx.beginPath(); ctx.moveTo(tableX-40, tableY-5); ctx.quadraticCurveTo(tableX-35, tableY-15, tableX-45, tableY-25); ctx.stroke();
+                    
+                    // Lampes
+                    const drawLamp = (lx, ly) => {
+                        ctx.strokeStyle = '#0a0a0a'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(lx, hY - hH); ctx.lineTo(lx, ly - 20); ctx.stroke();
+                        ctx.fillStyle = '#e89e27'; ctx.beginPath(); ctx.moveTo(lx - 35, ly + 10); ctx.lineTo(lx + 35, ly + 10); ctx.lineTo(lx + 15, ly - 20); ctx.lineTo(lx - 15, ly - 20); ctx.fill();
+                        const grad = ctx.createRadialGradient(lx, ly + 20, 0, lx, ly + 50, 300);
+                        grad.addColorStop(0, 'rgba(232, 158, 39, 0.25)'); grad.addColorStop(1, 'rgba(232, 158, 39, 0)');
+                        ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(lx, ly + 50, 300, 0, Math.PI * 2); ctx.fill();
+                    };
+                    drawLamp(hX + 300, hY - hH + 180); drawLamp(hX + hW - 300, hY - hH + 180);
+                    
+                    // Plancher
+                    const floorGrad = ctx.createLinearGradient(0, hY, 0, hY + obj.h);
+                    floorGrad.addColorStop(0, '#3b2210'); floorGrad.addColorStop(1, '#24140a');
+                    ctx.fillStyle = floorGrad; ctx.fillRect(hX - 20, hY, hW + 40, obj.h);
+                    ctx.strokeStyle = 'rgba(0,0,0,0.3)'; ctx.lineWidth = 2.5;
+                    for(let i=1; i<4; i++) { ctx.beginPath(); ctx.moveTo(hX-20, hY + (obj.h/4)*i); ctx.lineTo(hX+hW+20, hY + (obj.h/4)*i); ctx.stroke(); }
+                    break;
+                }
                 case 'grass': {
-                    const sw = Math.sin(now * obj.swaySpeed + obj.sway) * 3;
-                    ctx.strokeStyle = `hsla(${obj.hue}, 55%, 38%, ${obj.alpha})`;
-                    ctx.lineWidth = 1.5;
-                    ctx.lineCap = 'round';
+                    const swayPhase = now * 0.0012 + obj.sway;
+                    const sw = Math.sin(swayPhase) * 6; 
+                    const grad = ctx.createLinearGradient(0, obj.y, 0, obj.y - obj.height);
+                    grad.addColorStop(0, `hsla(160, 40%, 15%, ${obj.alpha + 0.4})`); 
+                    grad.addColorStop(1, `hsla(150, 60%, 35%, ${obj.alpha})`);      
+                    ctx.strokeStyle = grad; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
                     for (let b = 0; b < obj.blades; b++) {
-                        const bx = obj.x + (b - obj.blades * 0.5) * 4;
-                        const bsw = sw + Math.sin(b * 1.3) * 2;
-                        ctx.beginPath();
-                        ctx.moveTo(bx, obj.y);
-                        ctx.quadraticCurveTo(bx + bsw * 0.6, obj.y - obj.height * 0.6, bx + bsw, obj.y - obj.height);
-                        ctx.stroke();
+                        const bx = obj.x + (b - obj.blades * 0.5) * 6;
+                        const bsw = sw + Math.sin(swayPhase + b * 0.5) * 3.5; 
+                        ctx.beginPath(); ctx.moveTo(bx, obj.y); ctx.quadraticCurveTo(bx + bsw * 0.5, obj.y - obj.height * 0.5, bx + bsw, obj.y - obj.height * (0.8 + (b%2)*0.2)); ctx.stroke();
                     }
                     break;
                 }
                 case 'flower': {
-                    const sw = Math.sin(now * obj.swaySpeed + obj.sway) * 4;
-                    const topX = obj.x + sw;
-                    const topY = obj.y - obj.stemH;
-                    // Stem
-                    ctx.strokeStyle = 'hsla(130, 50%, 32%, 0.7)';
-                    ctx.lineWidth = 2;
-                    ctx.beginPath();
-                    ctx.moveTo(obj.x, obj.y);
-                    ctx.quadraticCurveTo(obj.x + sw * 0.4, obj.y - obj.stemH * 0.5, topX, topY);
-                    ctx.stroke();
-                    // Petals
+                    drawGroundShadow(obj.x, obj.y, obj.size * 0.6);
+                    const sw = Math.sin(now * 0.0015 + obj.sway) * 5;
+                    const topX = obj.x + sw, topY = obj.y - obj.stemH;
+                    ctx.strokeStyle = 'hsla(150, 50%, 25%, 0.9)'; ctx.lineWidth = 2.5;
+                    ctx.beginPath(); ctx.moveTo(obj.x, obj.y); ctx.quadraticCurveTo(obj.x + sw * 0.5, obj.y - obj.stemH * 0.5, topX, topY); ctx.stroke();
+                    const glow = ctx.createRadialGradient(topX, topY, 0, topX, topY, obj.size * 1.5);
+                    glow.addColorStop(0, `hsla(${obj.petalHue}, 90%, 70%, 0.3)`); glow.addColorStop(1, `hsla(${obj.petalHue}, 90%, 70%, 0)`);
+                    ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(topX, topY, obj.size * 1.5, 0, Math.PI * 2); ctx.fill();
                     for (let p = 0; p < obj.petalCount; p++) {
-                        const a = (p / obj.petalCount) * Math.PI * 2;
-                        const px = topX + Math.cos(a) * obj.size * 0.5;
-                        const py = topY + Math.sin(a) * obj.size * 0.35;
-                        ctx.fillStyle = `hsla(${obj.petalHue}, 70%, 65%, 0.7)`;
-                        ctx.beginPath();
-                        ctx.ellipse(px, py, obj.size * 0.28, obj.size * 0.18, a, 0, Math.PI * 2);
-                        ctx.fill();
+                        const a = (p / obj.petalCount) * Math.PI * 2 + (now * 0.0005);
+                        const px = topX + Math.cos(a) * obj.size * 0.5, py = topY + Math.sin(a) * obj.size * 0.35;
+                        const pGrad = ctx.createRadialGradient(topX, topY, 0, px, py, obj.size * 0.5);
+                        pGrad.addColorStop(0, `hsla(${obj.petalHue}, 90%, 50%, 0.9)`); pGrad.addColorStop(1, `hsla(${obj.petalHue + 20}, 100%, 75%, 0.9)`);
+                        ctx.fillStyle = pGrad; ctx.beginPath(); ctx.ellipse(px, py, obj.size * 0.3, obj.size * 0.15, a, 0, Math.PI * 2); ctx.fill();
                     }
-                    // Center
-                    ctx.fillStyle = `hsla(${(obj.petalHue + 40) % 360}, 80%, 70%, 0.85)`;
-                    ctx.beginPath();
-                    ctx.arc(topX, topY, obj.size * 0.14, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.fillStyle = `hsla(${(obj.petalHue + 45) % 360}, 100%, 65%, 1)`; ctx.beginPath(); ctx.arc(topX, topY, obj.size * 0.16, 0, Math.PI * 2); ctx.fill();
                     break;
                 }
                 case 'rock': {
-                    ctx.fillStyle = `hsla(${obj.hue}, 12%, ${obj.lightness}%, 0.8)`;
-                    ctx.beginPath();
-                    // Blobby rock shape
+                    drawGroundShadow(obj.x, obj.y, obj.w * 0.6, 0.4);
                     const cx = obj.x, cy = obj.y;
-                    ctx.moveTo(cx - obj.w * 0.5, cy);
-                    ctx.quadraticCurveTo(cx - obj.w * 0.45, cy - obj.h * (0.7 + obj.roughness * 0.3), cx, cy - obj.h);
-                    ctx.quadraticCurveTo(cx + obj.w * 0.5, cy - obj.h * (0.6 + obj.roughness * 0.2), cx + obj.w * 0.5, cy);
-                    ctx.closePath();
-                    ctx.fill();
-                    // Highlight
-                    ctx.fillStyle = `hsla(${obj.hue}, 8%, ${obj.lightness + 12}%, 0.25)`;
-                    ctx.beginPath();
-                    ctx.ellipse(cx - obj.w * 0.1, cy - obj.h * 0.65, obj.w * 0.18, obj.h * 0.15, -0.3, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.fillStyle = `hsla(${obj.hue}, 15%, ${obj.lightness - 15}%, 1)`;
+                    ctx.beginPath(); ctx.moveTo(cx - obj.w * 0.5, cy); ctx.lineTo(cx - obj.w * 0.3, cy - obj.h); ctx.lineTo(cx + obj.w * 0.4, cy - obj.h * 0.8); ctx.lineTo(cx + obj.w * 0.5, cy); ctx.closePath(); ctx.fill();
+                    ctx.fillStyle = `hsla(${obj.hue}, 15%, ${obj.lightness}%, 1)`;
+                    ctx.beginPath(); ctx.moveTo(cx - obj.w * 0.2, cy); ctx.lineTo(cx - obj.w * 0.3, cy - obj.h); ctx.lineTo(cx + obj.w * 0.1, cy - obj.h * 0.9); ctx.lineTo(cx + obj.w * 0.2, cy); ctx.closePath(); ctx.fill();
+                    ctx.fillStyle = `hsla(${obj.hue}, 20%, ${obj.lightness + 20}%, 0.3)`;
+                    ctx.beginPath(); ctx.moveTo(cx - obj.w * 0.3, cy - obj.h); ctx.lineTo(cx - obj.w * 0.2, cy - obj.h * 0.9); ctx.lineTo(cx - obj.w * 0.1, cy - obj.h); ctx.closePath(); ctx.fill();
                     break;
                 }
                 case 'ball': {
+                    drawGroundShadow(obj.x, world.groundY, obj.radius * 0.8);
                     const r = obj.radius;
-                    // Shadow
-                    ctx.fillStyle = 'rgba(0,0,0,0.12)';
-                    ctx.beginPath();
-                    ctx.ellipse(obj.x, world.groundY + 1, r * 1.1, r * 0.25, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    // Ball
                     const grad = ctx.createRadialGradient(obj.x - r * 0.3, obj.y - r * 0.3, r * 0.1, obj.x, obj.y, r);
-                    grad.addColorStop(0, `hsla(${obj.hue}, ${obj.saturation}%, 72%, 0.95)`);
-                    grad.addColorStop(1, `hsla(${obj.hue}, ${obj.saturation}%, 42%, 0.9)`);
-                    ctx.fillStyle = grad;
-                    ctx.beginPath();
-                    ctx.arc(obj.x, obj.y, r, 0, Math.PI * 2);
-                    ctx.fill();
-                    // Shine
-                    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-                    ctx.beginPath();
-                    ctx.arc(obj.x - r * 0.25, obj.y - r * 0.3, r * 0.25, 0, Math.PI * 2);
-                    ctx.fill();
+                    grad.addColorStop(0, `hsla(${obj.hue}, ${obj.saturation}%, 85%, 1)`); grad.addColorStop(0.3, `hsla(${obj.hue}, ${obj.saturation}%, 60%, 1)`); grad.addColorStop(1, `hsla(${obj.hue}, ${obj.saturation}%, 20%, 1)`);
+                    ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(obj.x, obj.y, r, 0, Math.PI * 2); ctx.fill();
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)'; ctx.beginPath(); ctx.ellipse(obj.x - r * 0.3, obj.y - r * 0.4, r * 0.3, r * 0.15, -0.5, 0, Math.PI * 2); ctx.fill();
                     break;
                 }
                 case 'mushroom': {
+                    drawGroundShadow(obj.x, obj.y, obj.capW * 0.4);
                     const mx = obj.x, my = obj.y;
-                    // Stem
-                    ctx.fillStyle = 'hsla(45, 20%, 82%, 0.75)';
-                    ctx.fillRect(mx - 4, my - obj.stemH, 8, obj.stemH);
-                    // Cap
-                    ctx.fillStyle = `hsla(${obj.capHue}, 60%, 48%, 0.8)`;
-                    ctx.beginPath();
-                    ctx.ellipse(mx, my - obj.stemH, obj.capW * 0.5, obj.capH, 0, Math.PI, 0);
-                    ctx.fill();
-                    // Dots
-                    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+                    const stemGrad = ctx.createLinearGradient(mx - 4, my - obj.stemH, mx + 4, my);
+                    stemGrad.addColorStop(0, 'hsla(45, 10%, 70%, 1)'); stemGrad.addColorStop(1, 'hsla(45, 10%, 30%, 1)');
+                    ctx.fillStyle = stemGrad; ctx.beginPath(); ctx.roundRect(mx - 4, my - obj.stemH, 8, obj.stemH, 3); ctx.fill();
+                    const capGrad = ctx.createRadialGradient(mx, my - obj.stemH - obj.capH * 0.5, 0, mx, my - obj.stemH, obj.capW);
+                    capGrad.addColorStop(0, `hsla(${obj.capHue}, 70%, 65%, 1)`); capGrad.addColorStop(1, `hsla(${obj.capHue}, 80%, 30%, 1)`);
+                    ctx.fillStyle = capGrad; ctx.beginPath(); ctx.moveTo(mx - obj.capW * 0.5, my - obj.stemH); ctx.bezierCurveTo(mx - obj.capW * 0.5, my - obj.stemH - obj.capH * 1.6, mx + obj.capW * 0.5, my - obj.stemH - obj.capH * 1.6, mx + obj.capW * 0.5, my - obj.stemH); ctx.closePath(); ctx.fill();
                     for (let d = 0; d < obj.dots; d++) {
-                        const da = (d / obj.dots) * Math.PI - Math.PI * 0.1;
-                        const dr = obj.capW * 0.25;
-                        ctx.beginPath();
-                        ctx.arc(mx + Math.cos(da) * dr, my - obj.stemH - Math.sin(da) * obj.capH * 0.5, 2, 0, Math.PI * 2);
-                        ctx.fill();
+                        const da = (d / obj.dots) * Math.PI - Math.PI * 0.1, dr = obj.capW * 0.3;
+                        const dotX = mx + Math.cos(da) * dr, dotY = my - obj.stemH - Math.sin(da) * obj.capH * 0.6;
+                        ctx.fillStyle = 'rgba(220, 255, 230, 0.8)'; ctx.beginPath(); ctx.arc(dotX, dotY, 2.5, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = 'rgba(120, 255, 180, 0.3)'; ctx.beginPath(); ctx.arc(dotX, dotY, 6, 0, Math.PI * 2); ctx.fill();
                     }
                     break;
                 }
+                case 'puddle': {
+                    const shimmer = 0.2 + Math.sin(now * 0.0015 + obj.x * 0.01) * 0.1;
+                    const grad = ctx.createRadialGradient(obj.x, obj.y, 0, obj.x, obj.y, obj.w * 0.5);
+                    grad.addColorStop(0, `rgba(140, 200, 220, ${shimmer + 0.2})`); grad.addColorStop(0.8, `rgba(60, 140, 180, ${shimmer})`); grad.addColorStop(1, 'rgba(60, 140, 180, 0)');
+                    ctx.fillStyle = grad; ctx.beginPath(); ctx.ellipse(obj.x, obj.y, obj.w * 0.5, obj.h, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = `rgba(160, 220, 240, ${shimmer + 0.1})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.ellipse(obj.x, obj.y, obj.w * 0.45, obj.h * 0.8, 0, 0, Math.PI * 2); ctx.stroke();
+                    break;
+                }
+                case 'teleporter': {
+                    drawGroundShadow(obj.x, obj.y, 45, 0.4);
+                    const t = now * 0.0025;
+                    const r = 32 + Math.sin(t * 2) * 3;
+                    const grad = ctx.createRadialGradient(obj.x, obj.y, 0, obj.x, obj.y, r * 1.3);
+                    grad.addColorStop(0, 'rgba(100, 220, 255, 0.9)'); grad.addColorStop(0.4, 'rgba(40, 140, 220, 0.4)'); grad.addColorStop(1, 'rgba(10, 30, 80, 0)');
+                    ctx.fillStyle = grad; ctx.beginPath(); ctx.ellipse(obj.x, obj.y, r * 1.3, r * 0.35, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.lineWidth = 2.5; ctx.strokeStyle = 'rgba(180, 240, 255, 0.8)'; ctx.beginPath(); ctx.ellipse(obj.x, obj.y, r, r * 0.25, t, Math.PI, Math.PI * 2); ctx.stroke();
+                    ctx.strokeStyle = 'rgba(60, 180, 240, 0.6)'; ctx.beginPath(); ctx.ellipse(obj.x, obj.y, r * 0.8, r * 0.2, -t * 1.5, 0, Math.PI); ctx.stroke();
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                    for(let i=0; i<4; i++) {
+                        const py = obj.y - ((now * 0.06 + i * 18) % 60), px = obj.x + Math.sin(py * 0.12) * 12;
+                        ctx.beginPath(); ctx.arc(px, py, 1.8, 0, Math.PI*2); ctx.fill();
+                    }
+                    break;
+                }
+                case 'berry_bush':
                 case 'bush': {
-                    // Three overlapping circles for a round leafy bush
-                    const bx = obj.x, by = obj.y;
-                    const r = obj.r;
-                    // Back-left lobe
-                    ctx.fillStyle = `hsla(${obj.leafHue - 5}, 44%, 28%, 0.78)`;
-                    ctx.beginPath();
-                    ctx.arc(bx - r * 0.45, by - r * 0.55, r * 0.72, 0, Math.PI * 2);
-                    ctx.fill();
-                    // Back-right lobe
-                    ctx.fillStyle = `hsla(${obj.leafHue}, 44%, 30%, 0.78)`;
-                    ctx.beginPath();
-                    ctx.arc(bx + r * 0.42, by - r * 0.52, r * 0.68, 0, Math.PI * 2);
-                    ctx.fill();
-                    // Front main lobe
-                    ctx.fillStyle = `hsla(${obj.leafHue + 6}, 46%, 34%, 0.82)`;
-                    ctx.beginPath();
-                    ctx.arc(bx, by - r * 0.75, r, 0, Math.PI * 2);
-                    ctx.fill();
-                    // Highlight dot
-                    ctx.fillStyle = `hsla(${obj.leafHue + 12}, 50%, 50%, 0.18)`;
-                    ctx.beginPath();
-                    ctx.arc(bx - r * 0.2, by - r * 1.1, r * 0.3, 0, Math.PI * 2);
-                    ctx.fill();
+                    drawGroundShadow(obj.x, obj.y, obj.r * 1.2);
+                    const bx = obj.x, by = obj.y, r = obj.r, isBerry = obj.type === 'berry_bush';
+                    const sat = isBerry && obj.berryCount > 0 ? 55 : 40, lum = isBerry && obj.berryCount > 0 ? 30 : 20;
+                    const drawLobe = (lx, ly, lr, hOffset, lOffset) => {
+                        const lobeGrad = ctx.createRadialGradient(lx - lr*0.2, ly - lr*0.2, 0, lx, ly, lr);
+                        lobeGrad.addColorStop(0, `hsla(${obj.leafHue + hOffset}, ${sat}%, ${lum + 15 + lOffset}%, 1)`);
+                        lobeGrad.addColorStop(1, `hsla(${obj.leafHue + hOffset}, ${sat}%, ${lum - 15 + lOffset}%, 1)`);
+                        ctx.fillStyle = lobeGrad; ctx.beginPath(); ctx.arc(lx, ly, lr, 0, Math.PI * 2); ctx.fill();
+                    };
+                    drawLobe(bx - r * 0.4, by - r * 0.5, r * 0.75, -5, -5); drawLobe(bx + r * 0.4, by - r * 0.5, r * 0.7, 5, -5); drawLobe(bx, by - r * 0.75, r * 0.9, 0, 5);
+                    if (isBerry && obj.berryCount > 0) {
+                        const BERRY_COLORS = { red: '350, 80%, 55%', blue: '220, 80%, 65%', yellow: '50, 90%, 60%' };
+                        const bColor = BERRY_COLORS[obj.berryType] || BERRY_COLORS.red;
+                        const pos = [ {dx:-r*0.3, dy:-r*0.8}, {dx:r*0.2, dy:-r*1.0}, {dx:0, dy:-r*0.6}, {dx:-r*0.6, dy:-r*0.5}, {dx:r*0.5, dy:-r*0.6} ];
+                        for (let bi = 0; bi < Math.min(obj.berryCount, pos.length); bi++) {
+                            const px = bx + pos[bi].dx, py = by + pos[bi].dy;
+                            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.beginPath(); ctx.arc(px, py+2, 4.5, 0, Math.PI * 2); ctx.fill();
+                            const bGrad = ctx.createRadialGradient(px-1.5, py-1.5, 0, px, py, 4.5);
+                            bGrad.addColorStop(0, `hsla(${bColor.replace('%', '%').replace('55%', '85%')}, 1)`); bGrad.addColorStop(1, `hsla(${bColor}, 1)`);
+                            ctx.fillStyle = bGrad; ctx.beginPath(); ctx.arc(px, py, 4.5, 0, Math.PI * 2); ctx.fill();
+                        }
+                    }
+                    break;
+                }
+                case 'stump': {
+                    drawGroundShadow(obj.x, obj.y, obj.w * 0.6);
+                    const sx = obj.x, sy = obj.y;
+                    const trunkGrad = ctx.createLinearGradient(sx - obj.w*0.5, 0, sx + obj.w*0.5, 0);
+                    trunkGrad.addColorStop(0, 'hsla(30, 25%, 15%, 1)'); trunkGrad.addColorStop(0.5, 'hsla(30, 25%, 25%, 1)'); trunkGrad.addColorStop(1, 'hsla(30, 25%, 10%, 1)');
+                    ctx.fillStyle = trunkGrad; ctx.beginPath(); ctx.moveTo(sx - obj.w * 0.5, sy); ctx.lineTo(sx - obj.w * 0.4, sy - obj.h); ctx.lineTo(sx + obj.w * 0.4, sy - obj.h); ctx.lineTo(sx + obj.w * 0.5, sy); ctx.closePath(); ctx.fill();
+                    ctx.fillStyle = 'hsla(120, 50%, 25%, 0.8)'; ctx.beginPath(); ctx.ellipse(sx - obj.w*0.3, sy - 5, 18, 10, 0, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = 'hsla(35, 20%, 35%, 1)'; ctx.beginPath(); ctx.ellipse(sx, sy - obj.h, obj.w * 0.4, obj.h * 0.25, 0, 0, Math.PI * 2); ctx.fill();
+                    ctx.strokeStyle = 'hsla(30, 20%, 20%, 0.6)'; ctx.lineWidth = 1.5;
+                    for (let r = 1; r <= obj.rings; r++) { const rf = r / (obj.rings + 1); ctx.beginPath(); ctx.ellipse(sx, sy - obj.h, obj.w * 0.4 * rf, obj.h * 0.25 * rf, 0, 0, Math.PI * 2); ctx.stroke(); }
+                    break;
+                }
+                case 'bench': {
+                    drawGroundShadow(obj.x, obj.y, obj.w * 0.6);
+                    const bx = obj.x, by = obj.y, hw = obj.w * 0.5, seatY = by - obj.legH, wH = obj.woodHue;
+                    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 4.5; ctx.lineCap = 'round';
+                    [-hw * 0.7, -hw * 0.3, hw * 0.3, hw * 0.7].forEach(lx => { ctx.beginPath(); ctx.moveTo(bx + lx, by); ctx.lineTo(bx + lx, seatY); ctx.stroke(); });
+                    const woodGrad = ctx.createLinearGradient(0, seatY - 5, 0, seatY + 5);
+                    woodGrad.addColorStop(0, `hsla(${wH}, 35%, 35%, 1)`); woodGrad.addColorStop(1, `hsla(${wH}, 35%, 15%, 1)`);
+                    ctx.fillStyle = woodGrad; ctx.beginPath(); ctx.roundRect(bx - hw * 0.85, seatY - 4, obj.w * 0.85, 8, 4); ctx.fill();
+                    const backY = seatY - obj.h;
+                    ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 3.5;
+                    ctx.beginPath(); ctx.moveTo(bx - hw*0.7, seatY); ctx.lineTo(bx - hw*0.8, backY); ctx.moveTo(bx + hw*0.7, seatY); ctx.lineTo(bx + hw*0.8, backY); ctx.stroke();
+                    ctx.fillStyle = woodGrad; ctx.beginPath(); ctx.roundRect(bx - hw * 0.9, backY - 6, obj.w * 0.9, 12, 4); ctx.fill();
+                    break;
+                }
+                case 'jump_ball': {
+                    const t = now * 0.005; const r = obj.r * (1 + Math.sin(t) * 0.05);
+                    const grad = ctx.createRadialGradient(obj.x, obj.y, 0, obj.x, obj.y, r);
+                    grad.addColorStop(0, 'rgba(255, 240, 100, 0.9)'); grad.addColorStop(1, 'rgba(255, 140, 0, 0.2)');
+                    ctx.fillStyle = grad; ctx.beginPath(); ctx.arc(obj.x, obj.y, r, 0, Math.PI * 2); ctx.fill();
+                    break;
+                }
+                case 'trampoline': {
+                    const tx = obj.x - obj.w * 0.5, ty = obj.y - obj.h;
+                    ctx.strokeStyle = '#222'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+                    ctx.beginPath(); ctx.moveTo(tx + 15, obj.y); ctx.lineTo(tx + 15, ty); ctx.moveTo(tx + obj.w - 15, obj.y); ctx.lineTo(tx + obj.w - 15, ty); ctx.stroke();
+                    ctx.fillStyle = '#111'; ctx.fillRect(tx, ty, obj.w, 12);
+                    ctx.strokeStyle = '#d6244d'; ctx.lineWidth = 4; ctx.strokeRect(tx, ty, obj.w, 12);
                     break;
                 }
                 case 'pebbles': {
                     for (const p of obj.pebbles) {
                         const pr = Math.max(2, p.r);
-                        ctx.fillStyle = `hsla(${p.hue}, 12%, ${p.l}%, 0.70)`;
-                        ctx.beginPath();
-                        ctx.arc(obj.x + p.dx, obj.y - pr * 0.4, pr, 0, Math.PI * 2);
-                        ctx.fill();
-                        // Tiny specular dot
-                        ctx.fillStyle = `hsla(${p.hue}, 8%, ${p.l + 16}%, 0.20)`;
-                        ctx.beginPath();
-                        ctx.arc(obj.x + p.dx - pr * 0.3, obj.y - pr * 0.7, pr * 0.28, 0, Math.PI * 2);
-                        ctx.fill();
+                        ctx.fillStyle = `hsla(${p.hue}, 10%, ${p.l - 5}%, 0.8)`;
+                        ctx.beginPath(); ctx.arc(obj.x + p.dx, obj.y - pr * 0.5, pr, 0, Math.PI * 2); ctx.fill();
                     }
                     break;
                 }
-
-                case 'berry_bush': {
-                    const bx = obj.x, by = obj.y;
-                    const r = obj.r;
-                    // Empty bush is more desaturated and darker
-                    const satBoost = obj.berryCount > 0 ? 1 : 0.45;
-                    const litBoost = obj.berryCount > 0 ? 1 : 0.75;
-                    // Bush lobes
-                    ctx.fillStyle = `hsla(${obj.leafHue - 8}, ${50 * satBoost}%, ${22 * litBoost}%, 0.88)`;
-                    ctx.beginPath();
-                    ctx.arc(bx - r * 0.42, by - r * 0.5, r * 0.70, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = `hsla(${obj.leafHue}, ${50 * satBoost}%, ${24 * litBoost}%, 0.88)`;
-                    ctx.beginPath();
-                    ctx.arc(bx + r * 0.38, by - r * 0.48, r * 0.66, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.fillStyle = `hsla(${obj.leafHue + 8}, ${52 * satBoost}%, ${28 * litBoost}%, 0.90)`;
-                    ctx.beginPath();
-                    ctx.arc(bx, by - r * 0.72, r, 0, Math.PI * 2);
-                    ctx.fill();
-                    // Berries
-                    if (obj.berryCount > 0) {
-                        const BERRY_HUES = { red: 0, blue: 240, yellow: 55 };
-                        const bHue = BERRY_HUES[obj.berryType] ?? 0;
-                        const berryPositions = [
-                            { dx: -r * 0.28, dy: -r * 0.82 }, { dx: r * 0.3,  dy: -r * 0.95 },
-                            { dx: 0,          dy: -r * 1.12 }, { dx: -r * 0.5, dy: -r * 0.62 },
-                            { dx: r * 0.48,   dy: -r * 0.60 }, { dx: -r * 0.12, dy: -r * 1.30 },
-                            { dx: r * 0.18,   dy: -r * 1.35 },
-                        ];
-                        for (let bi = 0; bi < Math.min(obj.berryCount, berryPositions.length); bi++) {
-                            const bp = berryPositions[bi];
-                            ctx.fillStyle = `hsla(${bHue}, 70%, 48%, 0.92)`;
-                            ctx.beginPath();
-                            ctx.arc(bx + bp.dx, by + bp.dy, 3.5, 0, Math.PI * 2);
-                            ctx.fill();
-                            // Tiny shine
-                            ctx.fillStyle = `hsla(${bHue}, 60%, 72%, 0.5)`;
-                            ctx.beginPath();
-                            ctx.arc(bx + bp.dx - 1, by + bp.dy - 1, 1.2, 0, Math.PI * 2);
-                            ctx.fill();
-                        }
-                    }
-                    break;
-                }
-
                 case 'bird': {
                     if (obj.state === 'captured' || obj.state === 'landing') break;
-                    // Don't render birds that are well off-screen
                     if (obj.y < world.groundY - 800) break;
-                    const bx = obj.x, by = obj.y;
-                    const sz = obj.size;
-                    const h = obj.hue;
-                    const inFlight = obj.state === 'flying' || obj.state === 'startled';
-
-                    ctx.save();
-                    ctx.translate(bx, by);
-
+                    const bx = obj.x, by = obj.y, sz = obj.size, h = obj.hue, inFlight = obj.state === 'flying' || obj.state === 'startled';
+                    ctx.save(); ctx.translate(bx, by);
                     if (inFlight) {
-                        // Flying: wings up
                         const flap = Math.sin(now * 0.018) * 0.45;
-                        // Body
-                        ctx.fillStyle = `hsla(${h}, 55%, 42%, 0.90)`;
-                        ctx.beginPath();
-                        ctx.ellipse(0, -sz * 0.3, sz * 0.45, sz * 0.28, -0.3, 0, Math.PI * 2);
-                        ctx.fill();
-                        // Wings
-                        ctx.fillStyle = `hsla(${h}, 48%, 36%, 0.82)`;
-                        ctx.beginPath();
-                        ctx.ellipse(-sz * 0.6, -sz * 0.35 - flap * sz, sz * 0.55, sz * 0.18, -0.5 - flap, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.beginPath();
-                        ctx.ellipse(sz * 0.6, -sz * 0.35 - flap * sz, sz * 0.55, sz * 0.18, 0.5 + flap, 0, Math.PI * 2);
-                        ctx.fill();
+                        ctx.fillStyle = `hsla(${h}, 55%, 45%, 1)`; ctx.beginPath(); ctx.ellipse(0, -sz * 0.3, sz * 0.45, sz * 0.28, -0.3, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = `hsla(${h}, 45%, 35%, 1)`; ctx.beginPath(); ctx.ellipse(-sz * 0.6, -sz * 0.35 - flap * sz, sz * 0.55, sz * 0.18, -0.5 - flap, 0, Math.PI * 2); ctx.fill();
+                        ctx.beginPath(); ctx.ellipse(sz * 0.6, -sz * 0.35 - flap * sz, sz * 0.55, sz * 0.18, 0.5 + flap, 0, Math.PI * 2); ctx.fill();
                     } else {
-                        // Landed: small bird on ground
-                        // Body
-                        ctx.fillStyle = `hsla(${h}, 55%, 44%, 0.88)`;
-                        ctx.beginPath();
-                        ctx.ellipse(0, -sz * 0.38, sz * 0.42, sz * 0.32, 0, 0, Math.PI * 2);
-                        ctx.fill();
-                        // Head
-                        ctx.fillStyle = `hsla(${h + 15}, 60%, 52%, 0.90)`;
-                        ctx.beginPath();
-                        ctx.arc(sz * 0.28, -sz * 0.68, sz * 0.22, 0, Math.PI * 2);
-                        ctx.fill();
-                        // Beak
-                        ctx.fillStyle = `hsla(40, 70%, 60%, 0.88)`;
-                        ctx.beginPath();
-                        ctx.moveTo(sz * 0.48, -sz * 0.70);
-                        ctx.lineTo(sz * 0.70, -sz * 0.62);
-                        ctx.lineTo(sz * 0.48, -sz * 0.60);
-                        ctx.closePath();
-                        ctx.fill();
-                        // Eye
-                        ctx.fillStyle = 'rgba(0,0,0,0.7)';
-                        ctx.beginPath();
-                        ctx.arc(sz * 0.34, -sz * 0.72, sz * 0.06, 0, Math.PI * 2);
-                        ctx.fill();
-                        // Feet
-                        ctx.strokeStyle = `hsla(40, 50%, 45%, 0.6)`;
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.moveTo(-sz * 0.1, 0); ctx.lineTo(-sz * 0.1, sz * 0.1);
-                        ctx.moveTo(-sz * 0.1, sz * 0.1); ctx.lineTo(-sz * 0.25, sz * 0.18);
-                        ctx.moveTo(-sz * 0.1, sz * 0.1); ctx.lineTo(sz * 0.0, sz * 0.18);
-                        ctx.moveTo(sz * 0.1, 0); ctx.lineTo(sz * 0.1, sz * 0.1);
-                        ctx.moveTo(sz * 0.1, sz * 0.1); ctx.lineTo(-sz * 0.05, sz * 0.18);
-                        ctx.moveTo(sz * 0.1, sz * 0.1); ctx.lineTo(sz * 0.22, sz * 0.18);
-                        ctx.stroke();
+                        ctx.fillStyle = `hsla(${h}, 55%, 45%, 1)`; ctx.beginPath(); ctx.ellipse(0, -sz * 0.38, sz * 0.42, sz * 0.32, 0, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = `hsla(${h + 15}, 60%, 55%, 1)`; ctx.beginPath(); ctx.arc(sz * 0.28, -sz * 0.68, sz * 0.22, 0, Math.PI * 2); ctx.fill();
+                        ctx.fillStyle = '#e89e27'; ctx.beginPath(); ctx.moveTo(sz * 0.48, -sz * 0.70); ctx.lineTo(sz * 0.70, -sz * 0.62); ctx.lineTo(sz * 0.48, -sz * 0.60); ctx.fill();
                     }
                     ctx.restore();
-                    break;
-                }
-                case 'stump': {
-                    const sx = obj.x, sy = obj.y;
-                    // Body
-                    ctx.fillStyle = 'hsla(28, 35%, 28%, 0.8)';
-                    ctx.beginPath();
-                    ctx.moveTo(sx - obj.w * 0.5, sy);
-                    ctx.lineTo(sx - obj.w * 0.42, sy - obj.h);
-                    ctx.lineTo(sx + obj.w * 0.42, sy - obj.h);
-                    ctx.lineTo(sx + obj.w * 0.5, sy);
-                    ctx.closePath();
-                    ctx.fill();
-                    // Top
-                    ctx.fillStyle = 'hsla(30, 28%, 35%, 0.75)';
-                    ctx.beginPath();
-                    ctx.ellipse(sx, sy - obj.h, obj.w * 0.42, obj.h * 0.22, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    // Rings
-                    ctx.strokeStyle = 'hsla(32, 22%, 25%, 0.4)';
-                    ctx.lineWidth = 1;
-                    for (let r = 0; r < obj.rings; r++) {
-                        const rf = (r + 1) / (obj.rings + 1);
-                        ctx.beginPath();
-                        ctx.ellipse(sx, sy - obj.h, obj.w * 0.42 * rf, obj.h * 0.22 * rf, 0, 0, Math.PI * 2);
-                        ctx.stroke();
-                    }
-                    break;
-                }
-
-                case 'bench': {
-                    const bx = obj.x, by = obj.y;
-                    const hw = obj.w * 0.5;
-                    const legH = obj.legH;
-                    const seatY = by - legH;
-                    const wH = obj.woodHue;
-
-                    // Shadow under bench
-                    ctx.fillStyle = 'rgba(0,0,0,0.10)';
-                    ctx.beginPath();
-                    ctx.ellipse(bx, by + 2, hw * 0.75, 5, 0, 0, Math.PI * 2);
-                    ctx.fill();
-
-                    // Legs (4 posts)
-                    ctx.strokeStyle = `hsla(${wH - 4}, 40%, 24%, 0.88)`;
-                    ctx.lineWidth = 5;
-                    ctx.lineCap = 'round';
-                    const legOffsets = [-hw * 0.68, -hw * 0.22, hw * 0.22, hw * 0.68];
-                    for (const lx of legOffsets) {
-                        ctx.beginPath();
-                        ctx.moveTo(bx + lx, by);
-                        ctx.lineTo(bx + lx, seatY);
-                        ctx.stroke();
-                    }
-
-                    // Cross-brace (back support)
-                    const backY = seatY - obj.h * 1.1;
-                    ctx.strokeStyle = `hsla(${wH}, 38%, 30%, 0.80)`;
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.moveTo(bx - hw * 0.78, backY);
-                    ctx.lineTo(bx + hw * 0.78, backY);
-                    ctx.stroke();
-
-                    // Back slat
-                    ctx.fillStyle = `hsla(${wH + 2}, 42%, 28%, 0.82)`;
-                    ctx.beginPath();
-                    ctx.roundRect(bx - hw * 0.80, backY - 5, obj.w * 0.80, 7, 3);
-                    ctx.fill();
-
-                    // Seat planks (3 overlapping)
-                    for (let pi = 0; pi < 3; pi++) {
-                        const py = seatY - pi * 4;
-                        const alpha = 0.88 - pi * 0.08;
-                        ctx.fillStyle = `hsla(${wH + pi * 3}, 44%, ${30 + pi * 4}%, ${alpha})`;
-                        ctx.beginPath();
-                        ctx.roundRect(bx - hw * 0.82 + pi * 2, py - obj.h * 0.5, (obj.w * 0.82 - pi * 4), obj.h * 0.65, 2);
-                        ctx.fill();
-                    }
-
-                    // Grain lines on seat
-                    ctx.strokeStyle = `hsla(${wH - 3}, 30%, 20%, 0.12)`;
-                    ctx.lineWidth = 0.8;
-                    for (let gi = 0; gi < 4; gi++) {
-                        const gx = bx - hw * 0.6 + gi * (hw * 0.38);
-                        ctx.beginPath();
-                        ctx.moveTo(gx, seatY - obj.h * 0.5);
-                        ctx.lineTo(gx + 3, seatY + obj.h * 0.1);
-                        ctx.stroke();
-                    }
-
-                    // Heart carving if 2 lovers have sat here recently
-                    if (obj._sitterCount >= 2) {
-                        ctx.fillStyle = 'rgba(220, 80, 100, 0.28)';
-                        ctx.font = '8px sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.textBaseline = 'middle';
-                        ctx.fillText('♥', bx, seatY - obj.h * 0.15);
-                    }
-                    break;
-                }
-                case 'puddle': {
-                    const shimmer = 0.08 + Math.sin(now * 0.001 + obj.x * 0.01) * 0.04;
-                    ctx.fillStyle = `rgba(120, 200, 220, ${shimmer})`;
-                    ctx.beginPath();
-                    ctx.ellipse(obj.x, obj.y, obj.w * 0.5, obj.h, 0, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = `rgba(160, 230, 245, ${shimmer + 0.06})`;
-                    ctx.lineWidth = 0.8;
-                    ctx.stroke();
-                    break;
-                }
-                case 'tree': {
-                    ctx.fillStyle = 'rgba(54, 38, 26, 1)';
-                    ctx.beginPath();
-                    ctx.moveTo(obj.x - obj.w * 0.5, world.groundY);
-                    ctx.lineTo(obj.x - obj.w * 0.35, -2000); // Vers le haut
-                    ctx.lineTo(obj.x + obj.w * 0.35, -2000);
-                    ctx.lineTo(obj.x + obj.w * 0.5, world.groundY);
-                    ctx.closePath();
-                    ctx.fill();
-                    // Texture écorce
-                    ctx.strokeStyle = 'rgba(40, 25, 15, 0.3)';
-                    ctx.lineWidth = 15;
-                    for (let i = -1; i <= 1; i++) {
-                        ctx.beginPath();
-                        ctx.moveTo(obj.x + i * obj.w * 0.2, world.groundY);
-                        ctx.lineTo(obj.x + i * obj.w * 0.15, -2000);
-                        ctx.stroke();
-                    }
-                    break;
-                }
-                case 'terrarium': {
-                    const hX = obj.x;
-                    const hY = obj.y - obj.h;
-                    const hW = obj.w;
-                    const hH = obj.houseH;
-                    // Structure bois
-                    ctx.fillStyle = 'rgba(84, 58, 42, 1)';
-                    ctx.fillRect(hX - 20, hY - hH - 20, hW + 40, hH + 40 + obj.h);
-                    // Intérieur (Terrarium)
-                    ctx.fillStyle = 'rgba(50, 40, 30, 0.6)';
-                    ctx.fillRect(hX, hY - hH, hW, hH);
-                    // Vitre (Transparence)
-                    ctx.fillStyle = 'rgba(180, 240, 255, 0.15)';
-                    ctx.fillRect(hX, hY - hH, hW, hH);
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-                    ctx.lineWidth = 2;
-                    ctx.strokeRect(hX, hY - hH, hW, hH);
-                    // Toit épais
-                    ctx.fillStyle = 'rgba(104, 78, 62, 1)';
-                    ctx.fillRect(hX - 40, hY - hH - 40, hW + 80, 40);
-                    // Sol épais
-                    ctx.fillStyle = 'rgba(94, 68, 52, 1)';
-                    ctx.fillRect(hX - 20, hY, hW + 40, obj.h);
-                    // Lampes
-                    const drawLamp = (lx, ly) => {
-                        ctx.fillStyle = 'rgba(255, 245, 180, 0.95)';
-                        ctx.shadowBlur = 20;
-                        ctx.shadowColor = 'rgba(255, 200, 50, 0.8)';
-                        ctx.beginPath();
-                        ctx.arc(lx, ly, 10, 0, Math.PI * 2);
-                        ctx.fill();
-                        ctx.shadowBlur = 0;
-                        ctx.strokeStyle = '#333';
-                        ctx.lineWidth = 2;
-                        ctx.beginPath();
-                        ctx.moveTo(lx, ly - 10); ctx.lineTo(lx, hY - hH);
-                        ctx.stroke();
-                    };
-                    drawLamp(hX + 100, hY - hH + 60);
-                    drawLamp(hX + hW - 100, hY - hH + 60);
-                    break;
-                }
-                case 'jump_ball': {
-                    const t = now * 0.005;
-                    const r = obj.r * (1 + Math.sin(t) * 0.05);
-                    const grad = ctx.createRadialGradient(obj.x, obj.y, 0, obj.x, obj.y, r);
-                    grad.addColorStop(0, 'rgba(255, 255, 100, 0.9)');
-                    grad.addColorStop(1, 'rgba(255, 150, 0, 0.2)');
-                    ctx.fillStyle = grad;
-                    ctx.beginPath();
-                    ctx.arc(obj.x, obj.y, r, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-                    ctx.lineWidth = 3;
-                    ctx.beginPath();
-                    ctx.arc(obj.x, obj.y, r, t, t + Math.PI * 0.5);
-                    ctx.stroke();
-                    break;
-                }
-                case 'teleporter': {
-                    const t = now * 0.003;
-                    const r = 32 * (1 + Math.sin(t) * 0.15);
-                    const grad = ctx.createRadialGradient(obj.x, obj.y, 0, obj.x, obj.y, r);
-                    grad.addColorStop(0, 'rgba(130, 235, 255, 0.9)');
-                    grad.addColorStop(1, 'rgba(60, 60, 220, 0)');
-                    ctx.fillStyle = grad;
-                    ctx.beginPath();
-                    ctx.arc(obj.x, obj.y, r, 0, Math.PI * 2);
-                    ctx.fill();
-                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-                    ctx.lineWidth = 2.5;
-                    ctx.beginPath();
-                    ctx.arc(obj.x, obj.y, r * 0.65, t, t + Math.PI * 0.8);
-                    ctx.stroke();
-                    break;
-                }
-                case 'trampoline': {
-                    const tx = obj.x - obj.w * 0.5;
-                    const ty = obj.y - obj.h;
-                    ctx.strokeStyle = '#3d3d3d';
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.moveTo(tx + 10, obj.y); ctx.lineTo(tx + 10, ty);
-                    ctx.moveTo(tx + obj.w - 10, obj.y); ctx.lineTo(tx + obj.w - 10, ty);
-                    ctx.stroke();
-                    ctx.fillStyle = '#1a1a1a';
-                    ctx.fillRect(tx, ty, obj.w, 10);
-                    ctx.strokeStyle = '#ff3388';
-                    ctx.lineWidth = 3;
-                    ctx.strokeRect(tx, ty, obj.w, 10);
                     break;
                 }
             }
@@ -3123,33 +2931,61 @@ export function createPrairieFeature() {
         }
     }
 
+    function drawHouseGlass() {
+        if (!ctx) return;
+        for (const obj of prairieObjects) {
+            if (obj.type === 'terrarium') {
+                const hX = obj.x, hY = obj.y - obj.h, hW = obj.w, hH = obj.houseH;
+                
+                ctx.fillStyle = 'rgba(210, 230, 255, 0.08)'; 
+                ctx.fillRect(hX, hY - hH, hW, hH);
+                
+                const glassReflect = ctx.createLinearGradient(hX, hY-hH, hX+hW, hY);
+                glassReflect.addColorStop(0, 'rgba(255,255,255,0.1)'); 
+                glassReflect.addColorStop(0.5, 'rgba(255,255,255,0)'); 
+                glassReflect.addColorStop(1, 'rgba(255,255,255,0.03)');
+                
+                ctx.fillStyle = glassReflect; 
+                ctx.beginPath(); 
+                ctx.moveTo(hX+150, hY-hH); 
+                ctx.lineTo(hX+450, hY-hH); 
+                ctx.lineTo(hX+hW-150, hY); 
+                ctx.lineTo(hX+hW-450, hY); 
+                ctx.fill();
+                
+                ctx.strokeStyle = '#050505'; 
+                ctx.lineWidth = 12; 
+                ctx.strokeRect(hX, hY - hH, hW, hH);
+            }
+        }
+    }
+
+
     function drawFrame() {
         if (!canvas || !ctx) {
             return;
         }
-        // Re-assert our canvas as the global context each frame.
-        // Another SlimeEngine (incubator) keeps a window 'resize' listener that
-        // calls setCanvas() even while suspended, overwriting ctx with its own
-        // canvas. Re-asserting here is free (getContext returns a cached object)
-        // and guarantees slime.draw() always targets the prairie canvas.
         ensureCanvasRuntime();
         const zoom = Number.isFinite(camera.zoom) ? camera.zoom : 1;
-        // Scale by DPR so that world units (CSS pixels) map correctly to device pixels.
         const dpr = Math.min(window.devicePixelRatio || 1, getPerfSettings().dprCap);
         const effectiveZoom = zoom * dpr;
         const translateX = (canvas.width * 0.5) - (camera.x * effectiveZoom);
         const translateY = (canvas.height * 0.5) - (camera.y * effectiveZoom);
+        
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
         ctx.setTransform(effectiveZoom, 0, 0, effectiveZoom, translateX, translateY);
 
-        // Draw prairie background objects (grass, puddles, flowers behind slimes)
+        // 1. FOND ET MAISON (L'arbre opaque est planqué derrière)
         drawPrairieObjects();
 
+        // 2. SLIMES
         for (const entry of getActiveEntries()) {
             entry.slime.draw();
         }
 
+        // 3. PARTICULES
         for (let i = particles.length - 1; i >= 0; i -= 1) {
             const particle = particles[i];
             particle.update();
@@ -3159,12 +2995,15 @@ export function createPrairieFeature() {
             }
         }
 
-        // ── Inkübus speech bubbles ──────────────────────────────────────────
+        // 4. VITRE (Au tout premier plan !)
+        drawHouseGlass();
+
+        // 5. BULLES DE TEXTE
         drawSpeechBubbles();
 
         ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
-
+    
     function step() {
         rafId = window.requestAnimationFrame(step);
 
