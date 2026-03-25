@@ -30,7 +30,9 @@ export const EYE_POOLS = {
     // New eyes
     {id:'shiny_round',w:8},{id:'mascara',w:6},{id:'pupil_star',w:5},
     {id:'number_3',w:4},{id:'cat_slit',w:3},{id:'glowing',w:3},
-    {id:'loading',w:1}
+    {id:'loading',w:1},
+    // New cute
+    {id:'blob_eye',w:8},{id:'dot_line',w:6}
   ],
   normal:[
     {id:'dot',w:12},{id:'big_round',w:10},{id:'sleepy',w:9},
@@ -41,7 +43,8 @@ export const EYE_POOLS = {
     // New eyes
     {id:'cat_slit',w:6},{id:'tired',w:6},{id:'cross',w:4},
     {id:'square',w:3},{id:'sus',w:3},{id:'dollar',w:2},
-    {id:'omega',w:1.5},{id:'loading',w:1}
+    {id:'omega',w:1.5},{id:'loading',w:1},
+    {id:'blob_eye',w:4},{id:'dot_line',w:4}
   ],
   scary:[
     {id:'slit',w:12},{id:'angry_arc',w:10},{id:'void',w:9},
@@ -68,13 +71,15 @@ export const MOUTH_POOLS = {
     {id:'smile',w:12},{id:'cat',w:10},{id:'tiny_o',w:10},
     {id:'grin',w:9},{id:'open_smile',w:9},{id:'pout',w:8},
     {id:'bubble',w:5},{id:'kiss',w:5},{id:'candy_smile',w:4},
-    {id:'laugh_open',w:3},{id:'starfish_mouth',w:1.5}
+    {id:'laugh_open',w:3},{id:'starfish_mouth',w:1.5},
+    {id:'wavy',w:6},{id:'cat_open',w:7},{id:'tiny_smile',w:8}
   ],
   normal:[
     {id:'smile',w:12},{id:'smirk',w:10},{id:'flat',w:10},
     {id:'tiny_o',w:9},{id:'open_smile',w:9},{id:'tiny_frown',w:8},
     {id:'whistle',w:5},{id:'chew',w:5},{id:'hmm',w:4},
-    {id:'laugh_open',w:3},{id:'starfish_mouth',w:1.2}
+    {id:'laugh_open',w:3},{id:'starfish_mouth',w:1.2},
+    {id:'wavy',w:4},{id:'cat_open',w:5},{id:'tiny_smile',w:5}
   ],
   scary:[
     {id:'fangs',w:12},{id:'zigzag',w:10},{id:'smirk',w:9},

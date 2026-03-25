@@ -487,6 +487,27 @@ function renderEyeMarkup({ eyeStyle, faceAnchor }) {
     if (eyeStyle === 'crystal_eye') return `${drawCrystalEye(leftX, y, r)}${drawCrystalEye(rightX, y, r)}`;
     if (eyeStyle === 'galaxy_eye') return `${drawGalaxyEye(leftX, y, r)}${drawGalaxyEye(rightX, y, r)}`;
 
+    if (eyeStyle === 'cat_slit') return `
+        <ellipse cx="${round(leftX)}" cy="${round(y)}" rx="${round(r*1.5)}" ry="${round(r*1.5)}" fill="rgba(255,220,50,0.95)" />
+        <ellipse cx="${round(rightX)}" cy="${round(y)}" rx="${round(r*1.5)}" ry="${round(r*1.5)}" fill="rgba(255,220,50,0.95)" />
+        <ellipse cx="${round(leftX)}" cy="${round(y)}" rx="${round(Math.max(1, r*0.3))}" ry="${round(r*1.5)}" fill="${fill}" />
+        <ellipse cx="${round(rightX)}" cy="${round(y)}" rx="${round(Math.max(1, r*0.3))}" ry="${round(r*1.5)}" fill="${fill}" />
+        <circle cx="${round(leftX-r*0.3)}" cy="${round(y-r*0.4)}" r="1.2" fill="rgba(255,255,255,0.8)" />
+        <circle cx="${round(rightX-r*0.3)}" cy="${round(y-r*0.4)}" r="1.2" fill="rgba(255,255,255,0.8)" />`;
+    if (eyeStyle === 'blob_eye') return `
+        <ellipse cx="${round(leftX)}" cy="${round(y)}" rx="${round(r*1.1)}" ry="${round(r*0.9)}" transform="rotate(15 ${round(leftX)} ${round(y)})" fill="${fill}" />
+        <ellipse cx="${round(rightX)}" cy="${round(y)}" rx="${round(r*0.9)}" ry="${round(r*1.1)}" transform="rotate(-18 ${round(rightX)} ${round(y)})" fill="${fill}" />
+        <circle cx="${round(leftX-r*0.25)}" cy="${round(y-r*0.3)}" r="${round(Math.max(1, r*0.25))}" fill="rgba(255,255,255,0.9)" />
+        <circle cx="${round(rightX-r*0.25)}" cy="${round(y-r*0.3)}" r="${round(Math.max(1, r*0.25))}" fill="rgba(255,255,255,0.9)" />`;
+    if (eyeStyle === 'dot_line') return `
+        <rect x="${round(leftX-r*0.6)}" y="${round(y-r*1.2)}" width="${round(r*1.2)}" height="${round(Math.max(2, r*2.4))}" rx="${round(r)}" fill="${fill}" />
+        <rect x="${round(rightX-r*0.6)}" y="${round(y-r*1.2)}" width="${round(r*1.2)}" height="${round(Math.max(2, r*2.4))}" rx="${round(r)}" fill="${fill}" />`;
+    if (eyeStyle === 'shiny_round') return `
+        ${drawRound(leftX, r + 2.5, true)}
+        ${drawRound(rightX, r + 2.5, true)}
+        <circle cx="${round(leftX+r*0.4)}" cy="${round(y+r*0.4)}" r="${round(r*0.18)}" fill="rgba(255,255,255,0.6)" />
+        <circle cx="${round(rightX+r*0.4)}" cy="${round(y+r*0.4)}" r="${round(r*0.18)}" fill="rgba(255,255,255,0.6)" />`;
+
     // Default
     return `${drawRound(leftX, r, true)}${drawRound(rightX, r, true)}`;
 }
@@ -545,21 +566,27 @@ function renderMouthMarkup({ mouthStyle, faceAnchor }) {
     const h  = faceAnchor.mouthHeight;
     const s  = 'rgba(5,10,26,0.92)';
     const sw = 'stroke-width="2.2" stroke-linecap="round" fill="none"';
+    const innerFill = 'rgba(255,140,160,0.55)'; // Simple static cute-fill
+    const swf = `stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="${innerFill}"`;
 
     if (mouthStyle === 'flat')         return `<path d="M ${round(x - w/2)} ${round(y)} L ${round(x + w/2)} ${round(y)}" stroke="${s}" ${sw} />`;
     if (mouthStyle === 'tiny_frown')   return `<path d="M ${round(x - w*0.36)} ${round(y+1.6)} Q ${round(x)} ${round(y-h*0.45)} ${round(x+w*0.36)} ${round(y+1.6)}" stroke="${s}" ${sw} />`;
     if (mouthStyle === 'tiny_o' || mouthStyle === 'pout') return `<ellipse cx="${round(x)}" cy="${round(y)}" rx="${round(Math.max(3, w*0.14))}" ry="${round(Math.max(3.6, h*0.7))}" stroke="${s}" stroke-width="1.8" fill="none" />`;
     if (mouthStyle === 'smirk')        return `<path d="M ${round(x-w*0.34)} ${round(y)} Q ${round(x+w*0.1)} ${round(y+h*0.4)} ${round(x+w*0.42)} ${round(y-1.2)}" stroke="${s}" ${sw} />`;
     if (mouthStyle === 'zigzag' || mouthStyle === 'fangs') return `<path d="M ${round(x-w*0.46)} ${round(y)} L ${round(x-w*0.2)} ${round(y-3)} L ${round(x)} ${round(y)} L ${round(x+w*0.2)} ${round(y-3)} L ${round(x+w*0.46)} ${round(y)}" stroke="${s}" ${sw} />`;
-    if (mouthStyle === 'grin' || mouthStyle === 'open_smile') return `<path d="M ${round(x-w/2)} ${round(y-1.2)} Q ${round(x)} ${round(y+h)} ${round(x+w/2)} ${round(y-1.2)}" stroke="${s}" ${sw} />`;
+    if (mouthStyle === 'grin' || mouthStyle === 'open_smile') return `<path d="M ${round(x-w/2)} ${round(y-1.2)} Q ${round(x)} ${round(y+h)} ${round(x+w/2)} ${round(y-1.2)} Z" stroke="${s}" ${swf} />`;
     if (mouthStyle === 'cat')          return `<path d="M ${round(x-w*0.42)} ${round(y-0.6)} Q ${round(x-w*0.16)} ${round(y+h*0.8)} ${round(x)} ${round(y-0.2)} Q ${round(x+w*0.16)} ${round(y+h*0.8)} ${round(x+w*0.42)} ${round(y-0.6)}" stroke="${s}" ${sw} />`;
     // New mouth styles
+    if (mouthStyle === 'toothy')       return `<rect x="${round(x-6)}" y="${round(y-2)}" width="12" height="7" rx="2" stroke="${s}" stroke-width="2.2" fill="none" /><path d="M ${round(x-2)} ${round(y-2)} L ${round(x-2)} ${round(y+5)} M ${round(x+2)} ${round(y-2)} L ${round(x+2)} ${round(y+5)}" stroke="${s}" stroke-width="2.2" />`;
     if (mouthStyle === 'bubble')       return `<circle cx="${round(x)}" cy="${round(y)}" r="${round(Math.max(3, w*0.18))}" stroke="${s}" stroke-width="1.8" fill="none" />`;
-    if (mouthStyle === 'laugh_open')   return `<path d="M ${round(x-w*0.5)} ${round(y)} A ${round(w/2)} ${round(h)} 0 0 0 ${round(x+w*0.5)} ${round(y)}" stroke="${s}" ${sw} />`;
+    if (mouthStyle === 'laugh_open')   return `<path d="M ${round(x-w*0.5)} ${round(y)} A ${round(w/2)} ${round(h)} 0 0 0 ${round(x+w*0.5)} ${round(y)} Z" stroke="${s}" ${swf} />`;
     if (mouthStyle === 'whistle')      return `<ellipse cx="${round(x)}" cy="${round(y)}" rx="${round(Math.max(2, w*0.1))}" ry="${round(Math.max(3.2, h*0.65))}" stroke="${s}" stroke-width="1.8" fill="none" />`;
     if (mouthStyle === 'hmm')          return `<path d="M ${round(x-w*0.4)} ${round(y)} Q ${round(x-w*0.1)} ${round(y-2)} ${round(x)} ${round(y)} Q ${round(x+w*0.1)} ${round(y+2)} ${round(x+w*0.4)} ${round(y)}" stroke="${s}" ${sw} />`;
-    if (mouthStyle === 'drool')        return `<path d="M ${round(x-w*0.4)} ${round(y-1)} Q ${round(x)} ${round(y+h*0.6)} ${round(x+w*0.4)} ${round(y-1)}" stroke="${s}" ${sw} /><ellipse cx="${round(x+w*0.08)}" cy="${round(y+h+2)}" rx="1.2" ry="2.6" fill="rgba(100,200,255,0.6)" />`;
-    if (mouthStyle === 'wide_gape')    return `<rect x="${round(x-w*0.5)}" y="${round(y-1)}" width="${round(w)}" height="${round(h)}" rx="2" stroke="${s}" stroke-width="1.8" fill="rgba(5,10,26,0.18)" />`;
+    if (mouthStyle === 'drool')        return `<path d="M ${round(x-w*0.4)} ${round(y-1)} Q ${round(x)} ${round(y+h*0.6)} ${round(x+w*0.4)} ${round(y-1)} Z" stroke="${s}" ${swf} /><ellipse cx="${round(x+w*0.08)}" cy="${round(y+h+2)}" rx="1.2" ry="2.6" fill="rgba(100,200,255,0.6)" />`;
+    if (mouthStyle === 'wide_gape')    return `<rect x="${round(x-8)}" y="${round(y-1)}" width="16" height="9" rx="3" stroke="${s}" stroke-width="2.2" fill="${innerFill}" />`;
+    if (mouthStyle === 'wavy')         return `<path d="M ${round(x-6)} ${round(y)} Q ${round(x-3)} ${round(y-4)} ${round(x)} ${round(y)} Q ${round(x+3)} ${round(y+4)} ${round(x+6)} ${round(y)}" stroke="${s}" ${sw} />`;
+    if (mouthStyle === 'cat_open')     return `<path d="M ${round(x-6)} ${round(y-1)} Q ${round(x-3)} ${round(y+4)} ${round(x)} ${round(y)} Q ${round(x+3)} ${round(y+4)} ${round(x+6)} ${round(y-1)} Z" stroke="${s}" ${swf} />`;
+    if (mouthStyle === 'tiny_smile')   return `<path d="M ${round(x-3)} ${round(y)} Q ${round(x)} ${round(y+3)} ${round(x+3)} ${round(y)}" stroke="${s}" ${sw} />`;
     if (mouthStyle === 'squiggle')     return `<path d="M ${round(x-w*0.46)} ${round(y)} Q ${round(x-w*0.24)} ${round(y-3)} ${round(x-w*0.06)} ${round(y)} Q ${round(x+w*0.12)} ${round(y+3)} ${round(x+w*0.3)} ${round(y)} Q ${round(x+w*0.4)} ${round(y-1)} ${round(x+w*0.48)} ${round(y)}" stroke="${s}" ${sw} />`;
     if (mouthStyle === 'abyss_mouth')  return `<ellipse cx="${round(x)}" cy="${round(y)}" rx="${round(w*0.46)}" ry="${round(h*0.7)}" stroke="${s}" stroke-width="1.8" fill="rgba(5,10,26,0.45)" />`;
     if (mouthStyle === 'starfish_mouth') {
@@ -572,8 +599,10 @@ function renderMouthMarkup({ mouthStyle, faceAnchor }) {
         }
         return `<polygon points="${pts.join(' ')}" stroke="${s}" stroke-width="1.6" fill="rgba(5,10,26,0.25)" />`;
     }
+    if (mouthStyle === 'candy_smile')  return `<path d="M ${round(x-7)} ${round(y)} Q ${round(x)} ${round(y+7)} ${round(x+7)} ${round(y)} Z" stroke="${s}" ${swf} />`;
+
     // Default smile
-    return `<path d="M ${round(x-w/2)} ${round(y-1)} Q ${round(x)} ${round(y+h)} ${round(x+w/2)} ${round(y-1)}" stroke="${s}" ${sw} />`;
+    return `<path d="M ${round(x-w/2)} ${round(y-1)} Q ${round(x)} ${round(y+h)} ${round(x+w/2)} ${round(y-1)} Z" stroke="${s}" ${swf} />`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

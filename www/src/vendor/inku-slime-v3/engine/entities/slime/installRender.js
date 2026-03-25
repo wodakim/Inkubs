@@ -1662,28 +1662,13 @@ export function installRender(Slime) {
     ctx.strokeStyle = eyeColor;
     ctx.lineWidth = 2.4;
 
-    // drawOpenRoundEye — kawaii for ALL types: sclera always, proportioned pupil, sparkle
+    // drawOpenRoundEye — kawaii for ALL types: simple slime eye style with sparkle
     const drawOpenRoundEye = (x, y, r, withSparkle = false) => {
       const rSafe = Math.max(1, r);
 
-      // ── Sclera (white) — always visible, not just for cute ──
-      ctx.fillStyle = isScary ? 'rgba(220,200,200,0.88)' : 'rgba(255,255,255,0.94)';
-      ctx.beginPath(); ctx.arc(x, y, rSafe + (isCute ? 1.8 : 1.2), 0, Math.PI*2); ctx.fill();
-
-      // ── Iris gradient — vivid but not dark ──
-      // For normal slimes: use a lighter, more saturated iris so it reads as cute
-      const irisLightAdj = isScary ? irisLight : `hsl(${irisHue},90%,${isCute ? 72 : 65}%)`;
-      const irisColorAdj = isScary ? irisColor : `hsl(${irisHue},80%,${isCute ? 52 : 48}%)`;
-      const ig = ctx.createRadialGradient(x - rSafe*0.18, y - rSafe*0.22, 0, x, y, rSafe);
-      ig.addColorStop(0,    irisLightAdj);
-      ig.addColorStop(0.55, irisColorAdj);
-      ig.addColorStop(1,    `hsl(${irisHue},60%,${isScary ? 20 : 32}%)`);
-      ctx.fillStyle = ig;
-      ctx.beginPath(); ctx.arc(x, y, rSafe, 0, Math.PI*2); ctx.fill();
-
-      // ── Pupil — smaller ratio, more kawaii ──
+      // ── Simple main eye circle ──
       ctx.fillStyle = eyeColor;
-      ctx.beginPath(); ctx.arc(x, y, rSafe * 0.32, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y, rSafe, 0, Math.PI*2); ctx.fill();
 
       // ── Primary sparkle ──
       ctx.fillStyle = 'rgba(255,255,255,0.97)';
@@ -1962,15 +1947,31 @@ export function installRender(Slime) {
 
       // ── NEW EYE STYLES ───────────────────────────────────────────────────────
       case 'cat_slit': {
-        // Vertical cat-like slit pupils
-        ctx.beginPath(); ctx.ellipse(-eyeDist/2, 0, R*scx+2, Math.max(0.5,R*scy+2), 0, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse( eyeDist/2, 0, R*scx+2, Math.max(0.5,R*scy+2), 0, 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle='rgba(255,220,50,0.85)'; // golden iris
-        ctx.beginPath(); ctx.ellipse(-eyeDist/2, 0, R*scx+0.5, Math.max(0.4,R*scy+0.5), 0, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse( eyeDist/2, 0, R*scx+0.5, Math.max(0.4,R*scy+0.5), 0, 0, Math.PI*2); ctx.fill();
+        // Vertical cat-like slit pupils without human-white sclera
+        ctx.fillStyle='rgba(255,220,50,0.95)'; // golden iris base
+        ctx.beginPath(); ctx.ellipse(-eyeDist/2, 0, R*scx+1.5, Math.max(0.8,R*scy+1.5), 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse( eyeDist/2, 0, R*scx+1.5, Math.max(0.8,R*scy+1.5), 0, 0, Math.PI*2); ctx.fill();
         ctx.fillStyle=eyeColor; // thin vertical pupil
-        ctx.beginPath(); ctx.ellipse(-eyeDist/2, 0, R*0.22, Math.max(0.5,R*scy+1.5), 0, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.ellipse( eyeDist/2, 0, R*0.22, Math.max(0.5,R*scy+1.5), 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(-eyeDist/2, 0, Math.max(1, R*0.3), Math.max(0.5,R*scy+1.5), 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse( eyeDist/2, 0, Math.max(1, R*0.3), Math.max(0.5,R*scy+1.5), 0, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,0.85)';
+        ctx.beginPath(); ctx.arc(-eyeDist/2 - R*0.3, -R*scy*0.3, 1.2, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc( eyeDist/2 - R*0.3, -R*scy*0.3, 1.2, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle=eyeColor;
+        break;
+      }
+      case 'blob_eye': {
+        ctx.beginPath(); ctx.ellipse(-eyeDist/2, 0, R*scx*1.1, Math.max(0.5,R*scy*0.9), Math.PI/12, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse( eyeDist/2, 0, R*scx*0.9, Math.max(0.5,R*scy*1.1), -Math.PI/10, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,0.9)';
+        ctx.beginPath(); ctx.arc(-eyeDist/2-R*0.25, -R*0.3, Math.max(1,R*0.25), 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc( eyeDist/2-R*0.25, -R*0.3, Math.max(1,R*0.25), 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle=eyeColor;
+        break;
+      }
+      case 'dot_line': {
+        ctx.beginPath(); ctx.roundRect(-eyeDist/2-R*scx*0.6, -R*scy*1.2, R*scx*1.2, Math.max(1, R*scy*2.4), R); ctx.fill();
+        ctx.beginPath(); ctx.roundRect( eyeDist/2-R*scx*0.6, -R*scy*1.2, R*scx*1.2, Math.max(1, R*scy*2.4), R); ctx.fill();
         break;
       }
       case 'shiny_round': {
@@ -2188,7 +2189,7 @@ export function installRender(Slime) {
       case 'open_smile':  ctx.moveTo(-7,mouthY-1); ctx.quadraticCurveTo(0,mouthY+9,7,mouthY-1); break;
       case 'pout':        ctx.moveTo(-5,mouthY+1); ctx.quadraticCurveTo(0,mouthY+5,5,mouthY+1); ctx.moveTo(-2,mouthY+1); ctx.quadraticCurveTo(0,mouthY-2,2,mouthY+1); break;
       case 'tiny_frown':  ctx.moveTo(-5,mouthY+3); ctx.quadraticCurveTo(0,mouthY-1,5,mouthY+3); break;
-      case 'toothy':      ctx.rect(-7,mouthY-2,14,7); ctx.moveTo(-2,mouthY-2); ctx.lineTo(-2,mouthY+5); ctx.moveTo(2,mouthY-2); ctx.lineTo(2,mouthY+5); break;
+      case 'toothy':      ctx.roundRect(-6,mouthY-2,12,7, 2); ctx.moveTo(-2,mouthY-2); ctx.lineTo(-2,mouthY+5); ctx.moveTo(2,mouthY-2); ctx.lineTo(2,mouthY+5); break;
       case 'squiggle':    ctx.moveTo(-7,mouthY); ctx.quadraticCurveTo(-4,mouthY-4,-1,mouthY); ctx.quadraticCurveTo(2,mouthY+4,5,mouthY); ctx.quadraticCurveTo(6,mouthY-1,7,mouthY); break;
       case 'bubble':      ctx.arc(0,mouthY,5,0,Math.PI*2); break;
       case 'kiss':        ctx.moveTo(-3,mouthY); ctx.arc(-3,mouthY,3,0,Math.PI); ctx.moveTo(3,mouthY); ctx.arc(3,mouthY,3,0,Math.PI); break;
@@ -2206,27 +2207,31 @@ export function installRender(Slime) {
       case 'chew':        ctx.moveTo(-5,mouthY); ctx.lineTo(5,mouthY); ctx.stroke(); ctx.beginPath(); ctx.moveTo(-3,mouthY+2); ctx.bezierCurveTo(-1,mouthY+5,1,mouthY+5,3,mouthY+2); break;
       case 'hmm':         ctx.moveTo(-6,mouthY); ctx.quadraticCurveTo(-2,mouthY-3,0,mouthY); ctx.quadraticCurveTo(2,mouthY+3,6,mouthY); break;
       case 'drool':       ctx.moveTo(-7,mouthY-1); ctx.quadraticCurveTo(0,mouthY+7,7,mouthY-1); break;
-      case 'wide_gape':   ctx.rect(-9,mouthY-1,18,9); break;
+      case 'wide_gape':   ctx.roundRect(-8,mouthY-1,16,9, 3); break;
       case 'venom_drip':  ctx.moveTo(-7,mouthY-1); ctx.lineTo(-3,mouthY+3); ctx.lineTo(0,mouthY-1); ctx.lineTo(3,mouthY+3); ctx.lineTo(7,mouthY-1); break;
       case 'abyss_mouth': ctx.arc(0,mouthY,8,0,Math.PI*2); break;
+      case 'wavy':        ctx.moveTo(-6,mouthY); ctx.quadraticCurveTo(-3,mouthY-4,0,mouthY); ctx.quadraticCurveTo(3,mouthY+4,6,mouthY); break;
+      case 'cat_open':    ctx.moveTo(-6,mouthY-1); ctx.quadraticCurveTo(-3,mouthY+4,0,mouthY); ctx.quadraticCurveTo(3,mouthY+4,6,mouthY-1); break;
+      case 'tiny_smile':  ctx.moveTo(-3,mouthY); ctx.quadraticCurveTo(0,mouthY+3,3,mouthY); break;
       default:            ctx.moveTo(-5,mouthY); ctx.quadraticCurveTo(0,mouthY+5,5,mouthY); break;
     }
     ctx.stroke();
     ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
 
     // Inner fill for open mouths — extended to more styles
-    if (['open_smile','laugh_open','wide_gape','abyss_mouth','grin','smile','candy_smile','drool'].includes(mouthStyle)) {
+    if (['open_smile','laugh_open','wide_gape','abyss_mouth','grin','smile','candy_smile','drool','cat_open'].includes(mouthStyle)) {
       ctx.fillStyle = innerFill;
       ctx.beginPath();
       switch (mouthStyle) {
         case 'open_smile':  ctx.moveTo(-7,mouthY-1); ctx.quadraticCurveTo(0,mouthY+9,7,mouthY-1); ctx.closePath(); break;
         case 'laugh_open':  ctx.arc(0,mouthY,8,0,Math.PI); ctx.closePath(); break;
-        case 'wide_gape':   ctx.rect(-9,mouthY-1,18,9); break;
+        case 'wide_gape':   ctx.roundRect(-8,mouthY-1,16,9, 3); break;
         case 'abyss_mouth': ctx.arc(0,mouthY,8,0,Math.PI*2); break;
         case 'grin':        ctx.moveTo(-8,mouthY); ctx.quadraticCurveTo(0,mouthY+9,8,mouthY); ctx.closePath(); break;
         case 'smile':       ctx.moveTo(-6,mouthY-1); ctx.quadraticCurveTo(0,mouthY+6,6,mouthY-1); ctx.closePath(); break;
         case 'candy_smile': ctx.moveTo(-7,mouthY); ctx.quadraticCurveTo(0,mouthY+7,7,mouthY); ctx.closePath(); break;
         case 'drool':       ctx.moveTo(-7,mouthY-1); ctx.quadraticCurveTo(0,mouthY+7,7,mouthY-1); ctx.closePath(); break;
+        case 'cat_open':    ctx.moveTo(-6,mouthY-1); ctx.quadraticCurveTo(-3,mouthY+4,0,mouthY); ctx.quadraticCurveTo(3,mouthY+4,6,mouthY-1); ctx.closePath(); break;
       }
       ctx.fill();
     }
@@ -2238,8 +2243,8 @@ export function installRender(Slime) {
         ctx.beginPath(); ctx.moveTo(-7,mouthY-2); ctx.lineTo(-3,mouthY+2); ctx.lineTo(0,mouthY-2); ctx.closePath(); ctx.fill();
         ctx.beginPath(); ctx.moveTo(0,mouthY-2); ctx.lineTo(3,mouthY+2); ctx.lineTo(7,mouthY-2); ctx.closePath(); ctx.fill();
       } else {
-        [-4, 0, 4].forEach(tx => {
-          ctx.beginPath(); ctx.rect(tx-1.8, mouthY-2, 3.6, 5); ctx.fill();
+        [-3, 0, 3].forEach(tx => {
+          ctx.beginPath(); ctx.roundRect(tx-1.4, mouthY-2, 2.8, 5, 2); ctx.fill();
         });
       }
     }
