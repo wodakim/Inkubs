@@ -1,5 +1,6 @@
 // src/features/potion-factory/potion-factory-controller.js
 import { getStorageRuntimeContext } from '../storage/storage-runtime-context.js';
+import { getPotionDropLimit } from './potion-persistence.js';
 import { createStoragePanelController } from '../storage/storage-panel-controller.js';
 import { buildCanonicalPortraitSvg } from '../storage/storage-canonical-visual-renderer.js';
 
@@ -11,30 +12,33 @@ export function createPotionFactoryController({ store }) {
     let unsubscribeRepo = null;
     let timerInterval = null;
 
-    let state = {
+    const state = {
         selectedSlimeId: null,
-        flasks: Array(4).fill(null).map(() => ({ doses: [] })),
+        flasks: [
+            { id: 0, doses: [] },
+            { id: 1, doses: [] },
+            { id: 2, doses: [] },
+            { id: 3, doses: [] }
+        ],
         box: {
             potions: [],
-            state: 'idle', // 'idle', 'packaging', 'ready'
+            status: 'idle',
             timerEnd: null,
             rewardValue: 0
         }
     };
 
     function mixHues(hues) {
-        if (hues.length === 0) return 0;
+        if (!hues || hues.length === 0) return 0;
         if (hues.length === 1) return hues[0];
-        let x = 0;
-        let y = 0;
+        let x = 0; let y = 0;
         for (let hue of hues) {
-            let rad = hue * Math.PI / 180;
+            const rad = hue * (Math.PI / 180);
             x += Math.cos(rad);
             y += Math.sin(rad);
         }
-        let avgHue = Math.atan2(y, x) * 180 / Math.PI;
-        if (avgHue < 0) avgHue += 360;
-        return avgHue;
+        let avgHue = Math.atan2(y, x) * (180 / Math.PI);
+        return avgHue < 0 ? Math.round(avgHue + 360) : Math.round(avgHue);
     }
 
     function calculateBoxTimerAndReward() {
@@ -43,36 +47,33 @@ export function createPotionFactoryController({ store }) {
 
         state.box.potions.forEach(potion => {
             potion.doses.forEach(dose => {
-                totalRarity += dose.rarity || 1;
+                totalRarity += (dose.rarity || 1);
                 totalDoses++;
             });
         });
 
         const avgRarity = totalDoses > 0 ? (totalRarity / totalDoses) : 1;
 
-        // Timer: 2 minutes to 10 minutes based on rarity (1 to 5)
-        const minTime = 120; // 2 mins in seconds
-        const maxTime = 600; // 10 mins in seconds
-        const durationSec = minTime + ((Math.min(avgRarity, 5) - 1) / 4) * (maxTime - minTime);
+        const minTimeSec = 120;
+        const maxTimeSec = 600;
+        const durationSec = minTimeSec + ((Math.min(avgRarity, 5) - 1) / 4) * (maxTimeSec - minTimeSec);
 
         state.box.timerEnd = Date.now() + Math.floor(durationSec * 1000);
-        state.box.rewardValue = Math.floor(avgRarity * 10 * state.box.potions.length);
-        state.box.state = 'packaging';
+        state.box.rewardValue = Math.floor(avgRarity * 25 * state.box.potions.length);
+        state.box.status = 'packaging';
 
         startTimerLoop();
     }
 
     function startTimerLoop() {
         if (timerInterval) clearInterval(timerInterval);
-
         timerInterval = setInterval(() => {
-            if (state.box.state === 'packaging') {
-                const now = Date.now();
-                if (now >= state.box.timerEnd) {
-                    state.box.state = 'ready';
+            if (state.box.status === 'packaging') {
+                if (Date.now() >= state.box.timerEnd) {
+                    state.box.status = 'ready';
                     clearInterval(timerInterval);
                 }
-                updateWorkspaceUI();
+                updateBoxUI();
             } else {
                 clearInterval(timerInterval);
             }
@@ -87,92 +88,44 @@ export function createPotionFactoryController({ store }) {
         return `${m}:${s}`;
     }
 
-    function render() {
-        if (!container) return;
-
-        const repository = getStorageRuntimeContext().repository;
-        const teamIds = store.getState().storage?.teamSlots || [];
-        const teamSlimes = teamIds
-            .map(id => repository.findById(id))
-            .filter(Boolean);
-
-        const hasSlimes = teamSlimes.length > 0;
-
-        if (state.selectedSlimeId && !teamSlimes.find(s => s.id === state.selectedSlimeId)) {
-            state.selectedSlimeId = null;
-        }
-
+    function buildStaticDOM() {
         container.innerHTML = `
-            <div class="potion-factory">
-                <div class="potion-factory__background">
-                    <div class="potion-factory__light-beam"></div>
-                    <div class="potion-factory__light-beam"></div>
-                </div>
-                
-                <header class="potion-factory__header">
-                    <div class="potion-factory__header-title">
-                        <i class="ph-fill ph-flask"></i>
-                        <h1>Atelier de Potions</h1>
-                    </div>
-                    <button class="potion-factory__edit-team-btn" title="Modifier l'équipe">
-                        <i class="ph-bold ph-users-three"></i>
-                        <span>Équipe</span>
+            <div class="pf-shell">
+                <header class="pf-header">
+                    <h1 class="pf-title"><i class="ph-bold ph-flask"></i> Atelier</h1>
+                    <button id="pf-btn-team" class="pf-btn-team">
+                        <i class="ph-bold ph-users-three"></i> Équipe
                     </button>
                 </header>
 
-                <div class="potion-factory__team-display">
-                    ${hasSlimes ? teamSlimes.map(slime => `
-                        <div class="potion-factory__slime-podium" data-slime-id="${slime.id}">
-                            <div class="potion-factory__slime-visual">
-                                ${buildCanonicalPortraitSvg(slime, { size: 80, variant: 'slot', includePlate: true })}
-                            </div>
-                            <div class="potion-factory__slime-pedestal"></div>
-                            <div class="potion-factory__slime-badge">
-                                <span class="potion-factory__badge-name">${slime.displayName}</span>
-                            </div>
-                        </div>
-                    `).join('') : `
-                        <div class="potion-factory__empty-state">
-                            <i class="ph-fill ph-sparkle potion-factory__empty-icon"></i>
-                            <p>Place des slimes dans ton équipe pour commencer à infuser !</p>
-                        </div>
-                    `}
+                <div class="pf-shelf-area">
+                    <div id="pf-shelf-track" class="pf-shelf-track"></div>
                 </div>
 
-                <div class="potion-factory__workspace">
-                    <div class="potion-factory__table">
-                        <div class="potion-factory__box-area">
-                            <div class="potion-factory__shipping-box" id="shipping-box">
-                                <div class="potion-factory__box-flap flap-top"></div>
-                                <div class="potion-factory__box-flap flap-bottom"></div>
-                                <div class="potion-factory__box-flap flap-left"></div>
-                                <div class="potion-factory__box-flap flap-right"></div>
-                                
-                                <div class="potion-factory__box-grid">
-                                    <div class="potion-factory__box-slot" data-slot="0"></div>
-                                    <div class="potion-factory__box-slot" data-slot="1"></div>
-                                    <div class="potion-factory__box-slot" data-slot="2"></div>
-                                    <div class="potion-factory__box-slot" data-slot="3"></div>
+                <div class="pf-workspace">
+                    <div class="pf-desk">
+                        <div class="pf-box-zone">
+                            <div id="pf-box" class="pf-box">
+                                <div class="pf-box-grid">
+                                    <div class="pf-box-slot" data-box-slot="0"></div>
+                                    <div class="pf-box-slot" data-box-slot="1"></div>
+                                    <div class="pf-box-slot" data-box-slot="2"></div>
+                                    <div class="pf-box-slot" data-box-slot="3"></div>
                                 </div>
-
-                                <div class="potion-factory__box-overlay">
-                                    <div class="potion-factory__timer-display"></div>
-                                    <div class="potion-factory__ready-text">
-                                        <i class="ph-bold ph-check-circle"></i> PRÊT
-                                    </div>
+                                <div id="pf-box-hud" class="pf-box-hud">
+                                    <span id="pf-timer-txt" class="pf-timer-txt"></span>
+                                    <span id="pf-ready-txt" class="pf-ready-txt"><i class="ph-bold ph-check-circle"></i> VENDRE</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="potion-factory__flasks">
-                            ${state.flasks.map((_, i) => `
-                                <div class="potion-factory__slot potion-factory__slot--flask" data-flask-index="${i}">
-                                    <div class="potion-factory__flask-bg"></div>
-                                    <div class="potion-factory__flask-neck"></div>
-                                    <div class="potion-factory__flask-body">
-                                        <div class="potion-factory__flask-liquid"></div>
-                                        <div class="potion-factory__flask-reflection"></div>
+                        <div class="pf-flasks-zone">
+                            ${state.flasks.map(flask => `
+                                <div class="pf-flask" data-flask-id="${flask.id}">
+                                    <div class="pf-flask-body">
+                                        <div class="pf-flask-liquid"></div>
                                     </div>
+                                    <div class="pf-flask-neck"></div>
                                 </div>
                             `).join('')}
                         </div>
@@ -181,146 +134,191 @@ export function createPotionFactoryController({ store }) {
             </div>
         `;
 
-        bindEvents(teamSlimes);
-        updateWorkspaceUI();
+        bindEvents();
     }
 
-    function updateWorkspaceUI() {
-        if (!container) return;
-
-        const podiums = container.querySelectorAll('.potion-factory__slime-podium');
-        podiums.forEach(podium => {
-            const id = podium.dataset.slimeId;
-            podium.classList.toggle('is-selected', id === state.selectedSlimeId);
-        });
-
-        const flasks = container.querySelectorAll('.potion-factory__slot--flask');
-        flasks.forEach((flaskEl, i) => {
-            const flaskState = state.flasks[i];
-            const doseCount = flaskState.doses.length;
-            const isFull = doseCount >= 2;
-
-            flaskEl.classList.toggle('is-full', isFull);
-            flaskEl.classList.toggle('flask--empty', doseCount === 0);
-            flaskEl.classList.toggle('flask--half-full', doseCount === 1);
-            flaskEl.classList.toggle('flask--full', doseCount === 2);
-
-            const liquid = flaskEl.querySelector('.potion-factory__flask-liquid');
-            if (liquid) {
-                const fillLevel = (doseCount / 2) * 100;
-                const mixedHue = doseCount > 0 ? mixHues(flaskState.doses.map(d => d.hue)) : 0;
-                liquid.style.height = `${fillLevel}%`;
-                if (doseCount > 0) {
-                    liquid.style.setProperty('--liquid-hue', mixedHue);
-                }
-            }
-        });
-
-        const boxEl = container.querySelector('#shipping-box');
-        if (boxEl) {
-            boxEl.className = 'potion-factory__shipping-box'; // reset
-            if (state.box.state === 'packaging') boxEl.classList.add('is-packaging');
-            if (state.box.state === 'ready') boxEl.classList.add('is-ready');
-
-            const timerDisplay = boxEl.querySelector('.potion-factory__timer-display');
-            if (timerDisplay) {
-                if (state.box.state === 'packaging') {
-                    const remaining = Math.max(0, state.box.timerEnd - Date.now());
-                    timerDisplay.textContent = formatTime(remaining);
-                } else {
-                    timerDisplay.textContent = '';
-                }
-            }
-
-            const slots = boxEl.querySelectorAll('.potion-factory__box-slot');
-            slots.forEach((slot, i) => {
-                const potion = state.box.potions[i];
-                if (potion) {
-                    const mixedHue = mixHues(potion.doses.map(d => d.hue));
-                    if (!slot.querySelector('.potion-factory__packed-potion')) {
-                        slot.innerHTML = `<div class="potion-factory__packed-potion" style="--potion-hue: ${mixedHue};"></div>`;
-                    } else {
-                        slot.querySelector('.potion-factory__packed-potion').style.setProperty('--potion-hue', mixedHue);
-                    }
-                } else {
-                    slot.innerHTML = '';
-                }
+    function bindEvents() {
+        const teamBtn = container.querySelector('#pf-btn-team');
+        if (teamBtn) {
+            teamBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                getStoragePanel().toggle();
             });
         }
-    }
 
-    function bindEvents(teamSlimes) {
-        const editBtn = container.querySelector('.potion-factory__edit-team-btn');
-        if (editBtn) {
-            editBtn.addEventListener('click', () => ensureStoragePanel().toggle());
-        }
+        container.addEventListener('click', (e) => {
+            e.stopPropagation();
 
-        const podiums = container.querySelectorAll('.potion-factory__slime-podium');
-        podiums.forEach(podium => {
-            podium.addEventListener('click', () => {
-                const id = podium.dataset.slimeId;
+            const slimeCard = e.target.closest('.pf-slime-card');
+            if (slimeCard) {
+                const id = slimeCard.dataset.slimeId;
                 state.selectedSlimeId = state.selectedSlimeId === id ? null : id;
-                updateWorkspaceUI();
-            });
+                updateTeamUI();
+                return;
+            }
+
+            const flaskEl = e.target.closest('.pf-flask');
+            if (flaskEl) {
+                const flaskId = parseInt(flaskEl.dataset.flaskId, 10);
+                handleFlaskInteraction(flaskId);
+                return;
+            }
+
+            const boxEl = e.target.closest('#pf-box');
+            if (boxEl && state.box.status === 'ready') {
+                handleBoxShipping();
+                return;
+            }
         });
 
-        const flasks = container.querySelectorAll('.potion-factory__slot--flask');
+        // Verrouillage des comportements natifs de drag sur l'application usine
+        container.addEventListener('dragstart', e => e.preventDefault());
+        container.addEventListener('contextmenu', e => e.preventDefault());
+    }
+
+    function handleFlaskInteraction(flaskId) {
+        const flask = state.flasks.find(f => f.id === flaskId);
+        if (!flask) return;
+
+        if (flask.doses.length >= 2) {
+            if (state.box.status === 'idle' && state.box.potions.length < 4) {
+                state.box.potions.push({ doses: [...flask.doses] });
+                flask.doses = [];
+                if (state.box.potions.length === 4) {
+                    calculateBoxTimerAndReward();
+                }
+                updateBoxUI();
+            }
+        }
+        else if (state.selectedSlimeId && state.box.status === 'idle') {
+            const team = getTeamRecords();
+            const activeSlime = team.find(s => s.id === state.selectedSlimeId);
+            if (activeSlime) {
+                const hue = activeSlime.proceduralCore?.genome?.hue || 0;
+                const rarity = activeSlime.storageDisplay?.rarityScore || activeSlime.rarity || 1;
+                flask.doses.push({ hue, rarity });
+            }
+        }
+        updateFlasksUI();
+    }
+
+    function handleBoxShipping() {
+        store.dispatch({
+            type: 'ADD_CURRENCY',
+            payload: { currency: 'hexagon', amount: state.box.rewardValue }
+        });
+
+        state.box.potions = [];
+        state.box.status = 'idle';
+        state.box.timerEnd = null;
+        state.box.rewardValue = 0;
+
+        updateBoxUI();
+        updateFlasksUI();
+    }
+
+    function getTeamRecords() {
+        const repository = getStorageRuntimeContext().repository;
+        const snapshot = repository.getSnapshot();
+        const teamIds = snapshot.teamSlots || [];
+        return teamIds.map(id => snapshot.recordsById[id]).filter(Boolean);
+    }
+
+    function updateTeamUI() {
+        const track = container.querySelector('#pf-shelf-track');
+        if (!track) return;
+
+        const teamSlimes = getTeamRecords();
+
+        if (state.selectedSlimeId && !teamSlimes.find(s => s.id === state.selectedSlimeId)) {
+            state.selectedSlimeId = null;
+        }
+
+        if (teamSlimes.length === 0) {
+            track.innerHTML = `<div class="pf-empty-state">Aucun slime dans l'équipe active.</div>`;
+            return;
+        }
+
+        track.innerHTML = teamSlimes.map(slime => {
+            const isSelected = slime.id === state.selectedSlimeId;
+            return `
+                <div class="pf-slime-card ${isSelected ? 'is-selected' : ''}" data-slime-id="${slime.id}">
+                    <div class="pf-slime-visual-wrapper">
+                        ${buildCanonicalPortraitSvg(slime, { size: 80, variant: 'slot', includePlate: true })}
+                    </div>
+                    <div class="pf-slime-nameplate">${slime.displayName || slime.speciesKey}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function updateFlasksUI() {
+        const flasks = container.querySelectorAll('.pf-flask');
         flasks.forEach(flaskEl => {
-            flaskEl.addEventListener('click', () => {
-                const index = parseInt(flaskEl.dataset.flaskIndex, 10);
-                const flask = state.flasks[index];
+            const id = parseInt(flaskEl.dataset.flaskId, 10);
+            const data = state.flasks.find(f => f.id === id);
+            if (!data) return;
 
-                if (flask.doses.length >= 2) {
-                    // Full flask -> Move to box
-                    if (state.box.state === 'idle' && state.box.potions.length < 4) {
-                        state.box.potions.push({ doses: [...flask.doses] });
-                        flask.doses = [];
-                        
-                        if (state.box.potions.length === 4) {
-                            calculateBoxTimerAndReward();
-                        }
+            const doses = data.doses.length;
+            const liquid = flaskEl.querySelector('.pf-flask-liquid');
+
+            flaskEl.classList.toggle('is-full', doses >= 2);
+
+            if (liquid) {
+                liquid.style.height = `${(doses / 2) * 100}%`;
+                if (doses > 0) {
+                    const hue = mixHues(data.doses.map(d => d.hue));
+                    liquid.style.backgroundColor = `hsl(${hue}, 85%, 55%)`;
+                    if (doses >= 2) {
+                        flaskEl.style.setProperty('--flask-color', `hsl(${hue}, 85%, 55%)`);
+                    } else {
+                        flaskEl.style.removeProperty('--flask-color');
                     }
-                } else if (state.selectedSlimeId) {
-                    // Empty or half full -> Add dose
-                    const activeSlime = teamSlimes.find(s => s.id === state.selectedSlimeId);
-                    if (activeSlime && state.box.state === 'idle') {
-                        const hue = activeSlime.proceduralCore?.genome?.hue || 0;
-                        const rarity = activeSlime.rarity || 1;
-                        flask.doses.push({ hue, rarity });
-                    }
+                } else {
+                    liquid.style.backgroundColor = 'transparent';
+                    flaskEl.style.removeProperty('--flask-color');
                 }
-                updateWorkspaceUI();
-            });
+            }
+        });
+    }
+
+    function updateBoxUI() {
+        const box = container.querySelector('#pf-box');
+        if (!box) return;
+
+        box.setAttribute('data-status', state.box.status);
+
+        const slots = box.querySelectorAll('.pf-box-slot');
+        slots.forEach((slot, i) => {
+            const potion = state.box.potions[i];
+            if (potion) {
+                const hue = mixHues(potion.doses.map(d => d.hue));
+                slot.innerHTML = `<div class="pf-packed-item" style="background-color: hsl(${hue}, 85%, 55%);"></div>`;
+            } else {
+                slot.innerHTML = '';
+            }
         });
 
-        const boxEl = container.querySelector('#shipping-box');
-        if (boxEl) {
-            boxEl.addEventListener('click', () => {
-                if (state.box.state === 'ready') {
-                    store.dispatch({ 
-                        type: 'ADD_CURRENCY', 
-                        payload: { currency: 'hexagon', amount: state.box.rewardValue } 
-                    });
-                    
-                    state.box.potions = [];
-                    state.box.state = 'idle';
-                    state.box.timerEnd = null;
-                    state.box.rewardValue = 0;
-                    updateWorkspaceUI();
-                }
-            });
+        const timerTxt = box.querySelector('#pf-timer-txt');
+        if (timerTxt && state.box.status === 'packaging') {
+            timerTxt.textContent = formatTime(Math.max(0, state.box.timerEnd - Date.now()));
         }
     }
 
-    function ensureStoragePanel() {
+    function getStoragePanel() {
         if (!storagePanel) {
+            const repository = getStorageRuntimeContext().repository;
             storagePanel = createStoragePanelController({
-                mountTarget: container,
-                repository: getStorageRuntimeContext().repository,
+                mountTarget: root,
+                repository,
                 store,
                 floatingPanel: true,
+                draggable: true,
+                dragHandleClassName: 'storage-panel__header',
+                zIndex: 9999,
                 onVisibilityChange: (isVisible) => {
-                    if (!isVisible) render(); 
+                    if (!isVisible) updateTeamUI();
                 }
             });
             storagePanel.render();
@@ -332,32 +330,32 @@ export function createPotionFactoryController({ store }) {
         mount(mountPoint) {
             root = mountPoint;
             container = document.createElement('div');
-            container.className = 'potion-factory-shell';
+            container.className = 'potion-factory-root-container';
             root.appendChild(container);
 
-            unsubscribeStore = store.subscribe((appState, prevState) => {
-                if (appState.storage?.teamSlots !== prevState.storage?.teamSlots) {
-                    render();
-                }
-            });
+            buildStaticDOM();
+            updateTeamUI();
+            updateFlasksUI();
+            updateBoxUI();
 
-            const repository = getStorageRuntimeContext().repository;
-            unsubscribeRepo = repository.subscribe(() => render());
+            if (state.box.status === 'packaging') startTimerLoop();
 
-            if (state.box.state === 'packaging') {
-                startTimerLoop();
+            const repo = getStorageRuntimeContext().repository;
+            if (repo && typeof repo.subscribe === 'function') {
+                unsubscribeRepo = repo.subscribe(() => updateTeamUI());
             }
-
-            render();
+            if (store && typeof store.subscribe === 'function') {
+                unsubscribeStore = store.subscribe(() => updateTeamUI());
+            }
         },
         suspend() {
-            if (storagePanel) storagePanel.close();
+            if (storagePanel && storagePanel.isOpen) storagePanel.close();
             if (container) container.style.display = 'none';
         },
         unmount() {
             if (timerInterval) clearInterval(timerInterval);
-            if (unsubscribeStore) unsubscribeStore();
             if (unsubscribeRepo) unsubscribeRepo();
+            if (unsubscribeStore) unsubscribeStore();
             if (storagePanel) {
                 storagePanel.destroy();
                 storagePanel = null;
@@ -366,6 +364,7 @@ export function createPotionFactoryController({ store }) {
                 container.remove();
                 container = null;
             }
+            root = null;
         }
     };
 }
