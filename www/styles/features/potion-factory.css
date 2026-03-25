@@ -1,150 +1,592 @@
 /* src/styles/features/potion-factory.css */
+/* Complete rewrite incorporating existing Phase 2.0 with the Phase 2.5 additions */
 .potion-factory-shell {
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
+    background: #1a1a2e;
 }
 
 .potion-factory {
     position: relative;
     width: 100%;
     height: 100%;
-    background: #0f172a; /* Fallback */
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    background: radial-gradient(circle at 50% 30%, #4a3b2b 0%, #1a1a2e 100%);
+    font-family: 'Outfit', sans-serif;
 }
 
-/* Ghibli inspired wooden table environment */
-.potion-factory__workspace {
-    flex: 1;
-    display: flex;
-    align-items: flex-end;
-    justify-content: center;
-    padding-bottom: 20px;
-}
-
-.potion-factory__table {
-    position: relative;
-    width: 90%;
-    height: 60%;
-    background: linear-gradient(to bottom, #7c4a32, #5c301d);
-    border-top: 4px solid #8e5a42;
-    border-radius: 12px 12px 0 0;
-    box-shadow: 0 -10px 30px rgba(0,0,0,0.5), inset 0 2px 0 rgba(255,255,255,0.1);
-    display: flex;
-    flex-direction: column;
-    padding: 20px;
-}
-
-/* Background slots (boxes) */
-.potion-factory__boxes {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
-    height: 45%;
-    margin-bottom: 10%;
-}
-
-/* Foreground slots (flasks) */
-.potion-factory__flasks {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
-    height: 45%;
-}
-
-.potion-factory__slot {
-    background: rgba(0, 0, 0, 0.2);
-    border: 2px dashed rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    position: relative;
-    transition: all 0.3s ease;
-}
-
-.potion-factory__slot--box::before {
-    content: "BOX";
+/* Warm Workshop Environment */
+.potion-factory__background {
     position: absolute;
     inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: 'Outfit', sans-serif;
-    font-weight: 900;
-    font-size: 10px;
-    color: rgba(255,255,255,0.05);
+    pointer-events: none;
+    z-index: 0;
 }
 
-.potion-factory__slot--flask::before {
-    content: "FLASK";
+.potion-factory__light-beam {
     position: absolute;
-    inset: 0;
+    top: -100px;
+    width: 300px;
+    height: 800px;
+    background: linear-gradient(to bottom, rgba(255, 230, 150, 0.1) 0%, transparent 100%);
+    transform: rotate(25deg);
+    filter: blur(40px);
+}
+
+.potion-factory__light-beam:nth-child(2) {
+    left: 40%;
+    width: 200px;
+    opacity: 0.6;
+    transform: rotate(30deg);
+}
+
+/* Header & Team Button */
+.potion-factory__header {
+    position: relative;
+    z-index: 10;
+    padding: 24px 30px;
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    justify-content: center;
-    font-family: 'Outfit', sans-serif;
-    font-weight: 900;
-    font-size: 10px;
-    color: rgba(255,255,255,0.05);
 }
 
-/* Team UI sidebar/top */
-.potion-factory__team-ui {
-    padding: 20px;
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    background: rgba(0,0,0,0.2);
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-
-.potion-factory__slime-card {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 16px;
-    padding: 10px 15px;
+.potion-factory__header-title {
     display: flex;
     align-items: center;
     gap: 12px;
-    min-width: 160px;
-    backdrop-filter: blur(5px);
 }
 
-.potion-factory__slime-avatar {
-    width: 32px;
-    height: 32px;
-    background: #10b981;
-    border-radius: 50%;
+.potion-factory__header-title i {
+    font-size: 28px;
+    color: #ffd166;
+    filter: drop-shadow(0 0 10px rgba(255, 209, 102, 0.4));
+}
+
+.potion-factory__header-title h1 {
+    color: #f8f9fa;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin: 0;
+}
+
+.potion-factory__edit-team-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 10px 18px;
+    border-radius: 50px;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.potion-factory__edit-team-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    border-color: #ffd166;
+}
+
+/* Slime Display Section */
+.potion-factory__team-display {
+    position: relative;
+    z-index: 5;
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    gap: 20px;
+    padding: 0 40px;
 }
 
-.potion-factory__slime-info {
+.potion-factory__slime-podium {
     display: flex;
     flex-direction: column;
+    align-items: center;
+    position: relative;
+    animation: floatingPodium 4s ease-in-out infinite alternate;
+    cursor: pointer;
+    transition: transform 0.2s ease, filter 0.2s ease;
 }
 
-.potion-factory__slime-name {
-    font-family: 'Outfit', sans-serif;
-    font-weight: 800;
-    font-size: 11px;
+.potion-factory__slime-podium:hover {
+    transform: scale(1.05);
+}
+
+.potion-factory__slime-podium.is-selected {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.6));
+    z-index: 10;
+}
+
+.potion-factory__slime-podium.is-selected .potion-factory__slime-pedestal {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+}
+
+.potion-factory__slime-podium:nth-child(even) {
+    animation-delay: -2s;
+}
+
+@keyframes floatingPodium {
+    from { transform: translateY(0px); }
+    to { transform: translateY(-8px); }
+}
+
+.potion-factory__slime-visual {
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.potion-factory__slime-pedestal {
+    width: 80px;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 50%;
+    margin-top: -15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: all 0.3s ease;
+}
+
+.potion-factory__slime-badge {
+    margin-top: 15px;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 5px 12px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+    border: 1px solid rgba(255,255,255,0.05);
+    pointer-events: none;
+}
+
+.potion-factory__badge-name {
     color: white;
+    font-weight: 700;
+    font-size: 11px;
     text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
-.potion-factory__slime-drops {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9px;
-    color: #10b981;
-}
-
-.potion-factory__empty-msg {
-    color: rgba(255,255,255,0.3);
-    font-size: 12px;
-    font-style: italic;
-    width: 100%;
+/* Empty State */
+.potion-factory__empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    max-width: 300px;
     text-align: center;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.potion-factory__empty-icon {
+    font-size: 40px;
+    margin-bottom: 5px;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.potion-factory__empty-state p {
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+/* Base structural layout for workspace */
+.potion-factory__workspace {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 380px;
+    perspective: 1000px;
+}
+
+/* The Thick Wooden Real Desk */
+.potion-factory__table {
+    position: absolute;
+    bottom: 0;
+    left: -2%;
+    right: -2%;
+    height: 100%;
+    background: linear-gradient(180deg, #4e342e 0%, #3e2723 100%);
+    border-top: 25px solid #5d4037;
+    border-radius: 40px 40px 0 0;
+    box-shadow: 
+        0 -15px 50px rgba(0,0,0,0.9),
+        inset 0 4px 6px rgba(255,255,255,0.1),
+        inset 0 25px 0 rgba(0,0,0,0.2),
+        inset 0 -80px 100px rgba(0,0,0,0.6);
+    padding: 30px 10%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 40px;
+}
+
+/* Wood grain */
+.potion-factory__table::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: repeating-linear-gradient(
+        92deg,
+        rgba(0,0,0,0.02) 0px,
+        rgba(0,0,0,0.02) 3px,
+        transparent 3px,
+        transparent 15px
+    ),
+    repeating-linear-gradient(
+        175deg,
+        rgba(255,255,255,0.01) 0px,
+        rgba(255,255,255,0.01) 2px,
+        transparent 2px,
+        transparent 10px
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Top-Down Cardboard Box */
+.potion-factory__box-area {
+    position: relative;
+    z-index: 5;
+    width: 220px;
+    height: 140px;
+    margin-top: 20px;
+}
+
+.potion-factory__shipping-box {
+    width: 100%;
+    height: 100%;
+    background: #5d4037; 
+    border: 4px solid #8d6e63;
+    position: relative;
+    box-shadow: 
+        inset 0 15px 25px rgba(0,0,0,0.6),
+        0 15px 30px rgba(0,0,0,0.4);
+    transition: transform 0.5s ease, filter 0.5s ease, box-shadow 0.3s ease;
+}
+
+.potion-factory__box-flap {
+    position: absolute;
+    background: #a1887f;
+    border: 1px solid #795548;
+    z-index: 20;
+    transition: transform 0.5s ease;
+}
+
+.flap-top {
+    top: -20px; left: -2px; right: -2px; height: 20px;
+    transform-origin: bottom; transform: rotateX(45deg);
+}
+.flap-bottom {
+    bottom: -20px; left: -2px; right: -2px; height: 20px;
+    transform-origin: top; transform: rotateX(-45deg);
+}
+.flap-left {
+    top: -2px; bottom: -2px; left: -20px; width: 20px;
+    transform-origin: right; transform: rotateY(-45deg);
+}
+.flap-right {
+    top: -2px; bottom: -2px; right: -20px; width: 20px;
+    transform-origin: left; transform: rotateY(45deg);
+}
+
+.potion-factory__box-grid {
+    position: absolute;
+    inset: 5px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 4px;
+    z-index: 10;
+}
+
+.potion-factory__box-slot {
+    background: rgba(0,0,0,0.15);
+    border: 1px dashed rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+}
+
+.potion-factory__packed-potion {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: hsl(var(--potion-hue), 80%, 60%);
+    box-shadow: 
+        inset -5px -5px 10px rgba(0,0,0,0.5), 
+        inset 5px 5px 10px rgba(255,255,255,0.6),
+        0 5px 10px rgba(0,0,0,0.6);
+    border: 1px solid rgba(255,255,255,0.3);
+    position: relative;
+    animation: dropIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes dropIn {
+    0% { transform: scale(3) translateY(-20px); opacity: 0; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.potion-factory__packed-potion::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 12px;
+    height: 12px;
+    background: #d4a373;
+    border-radius: 50%;
+    border: 1px solid #a98467;
+}
+
+/* Box Overlay for Packaging Phase */
+.potion-factory__box-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(2px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.potion-factory__timer-display {
+    font-family: 'JetBrains Mono', monospace;
+    color: #ffd166;
+    font-size: 24px;
+    font-weight: bold;
+    text-shadow: 0 2px 10px rgba(255,209,102,0.5);
+    display: none;
+}
+
+.potion-factory__ready-text {
+    font-family: 'Outfit', sans-serif;
+    color: #10b981;
+    font-size: 20px;
+    font-weight: 800;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    text-shadow: 0 2px 10px rgba(16,185,129,0.5);
+}
+
+/* Packaging State */
+.potion-factory__shipping-box.is-packaging {
+    /* Box might pulse gently */
+    animation: boxPackaging 2s infinite alternate ease-in-out;
+}
+
+.potion-factory__shipping-box.is-packaging .potion-factory__box-overlay {
+    opacity: 1;
+}
+
+.potion-factory__shipping-box.is-packaging .potion-factory__timer-display {
+    display: block;
+}
+
+.potion-factory__shipping-box.is-packaging .potion-factory__box-flap {
+    /* Partially close flaps during packaging */
+    transform: rotateX(80deg);
+}
+
+@keyframes boxPackaging {
+    from { transform: scale(1); box-shadow: 0 15px 30px rgba(0,0,0,0.4); }
+    to { transform: scale(1.02); box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 20px rgba(255,209,102,0.2); }
+}
+
+/* Ready State */
+.potion-factory__shipping-box.is-ready {
+    cursor: pointer;
+    animation: boxReady 1s infinite alternate ease-in-out;
+    border-color: #10b981;
+    pointer-events: all;
+}
+
+.potion-factory__shipping-box.is-ready .potion-factory__box-overlay {
+    opacity: 1;
+    background: rgba(16, 185, 129, 0.2);
+}
+
+.potion-factory__shipping-box.is-ready .potion-factory__ready-text {
+    display: flex;
+}
+
+.potion-factory__shipping-box.is-ready .potion-factory__box-flap {
+    /* Fully close flaps when ready */
+    transform: rotateX(90deg);
+    background: #8d6e63;
+}
+
+@keyframes boxReady {
+    from { transform: translateY(0); filter: drop-shadow(0 0 10px rgba(16,185,129,0.4)); }
+    to { transform: translateY(-5px); filter: drop-shadow(0 0 25px rgba(16,185,129,0.8)); }
+}
+
+/* Flasks (Front Row) */
+.potion-factory__flasks {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 30px;
+    height: 160px;
+    align-items: end;
+    z-index: 40;
+}
+
+.potion-factory__slot--flask {
+    width: 60px;
+    height: 110px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.potion-factory__slot--flask.flask--empty:hover,
+.potion-factory__slot--flask.flask--half-full:hover {
+    transform: translateY(-10px) scale(1.05);
+}
+
+/* Base Glass BG to fix empty transparency issues */
+.potion-factory__flask-bg {
+    position: absolute;
+    inset: 0;
+    bottom: 0px;
+    top: 35px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 40px 40px 20px 20px;
+    z-index: 0;
+}
+
+.potion-factory__flask-neck {
+    width: 24px;
+    height: 35px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(5px);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-bottom: none;
+    border-radius: 6px 6px 0 0;
+    position: relative;
+    z-index: 2;
+    box-shadow: inset 4px 0 8px rgba(255,255,255,0.3), inset -4px 0 8px rgba(0,0,0,0.2);
+}
+
+.potion-factory__flask-neck::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: -6px;
+    right: -6px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3), inset 0 2px 4px rgba(255,255,255,0.8);
+    border: 1px solid rgba(255,255,255,0.7);
+}
+
+.potion-factory__flask-body {
+    width: 60px;
+    height: 75px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 40px 40px 20px 20px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 
+        0 15px 25px rgba(0,0,0,0.7),
+        inset 0 0 15px rgba(255,255,255,0.2),
+        inset -10px -10px 20px rgba(0,0,0,0.4);
+    z-index: 1;
+}
+
+/* The liquid inside */
+.potion-factory__flask-liquid {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 0%;
+    /* Subtle gradient to look like liquid volume */
+    background: linear-gradient(
+        to bottom,
+        hsl(var(--liquid-hue, 0), 85%, 65%),
+        hsl(var(--liquid-hue, 0), 80%, 45%)
+    );
+    transition: height 0.5s cubic-bezier(0.34, 1.56, 0.64, 1), 
+                background 0.5s ease;
+    box-shadow: 
+        inset 0 -10px 20px rgba(0,0,0,0.4),
+        0 -2px 10px rgba(255,255,255,0.4);
+}
+
+/* Liquid surface ellipse */
+.potion-factory__flask-liquid::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 12px;
+    background: hsl(var(--liquid-hue, 0), 90%, 80%);
+    border-radius: 50%;
+    transform: translateY(-50%);
+    box-shadow: inset 0 2px 4px rgba(255,255,255,0.8), 0 0 10px rgba(255,255,255,0.5);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.potion-factory__slot--flask:not(.flask--empty) .potion-factory__flask-liquid::before {
+    opacity: 1;
+}
+
+/* Full flask pulsing */
+.potion-factory__slot--flask.flask--full {
+    animation: fullFlaskPulse 1.5s infinite alternate;
+}
+
+@keyframes fullFlaskPulse {
+    from { filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.2)); transform: scale(1.02); }
+    to { filter: drop-shadow(0 0 20px hsla(var(--liquid-hue, 0), 100%, 70%, 0.6)); transform: scale(1.05); }
+}
+
+.potion-factory__flask-reflection {
+    position: absolute;
+    top: 15px;
+    left: 8px;
+    width: 15px;
+    height: 40px;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.8), transparent);
+    border-radius: 20px;
+    transform: rotate(20deg);
+    pointer-events: none;
+    filter: blur(1px);
+    z-index: 10;
 }
