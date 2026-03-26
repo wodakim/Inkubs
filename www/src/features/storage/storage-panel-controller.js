@@ -120,6 +120,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
     let activePress = null;
     let activeDrag = null;
     let pendingSell = null;
+    let pendingBoxSelection = null;
     let panelLayout = normalizePanelLayout(loadPanelSession());
     let panelDrag = null;
     let panelResize = null;

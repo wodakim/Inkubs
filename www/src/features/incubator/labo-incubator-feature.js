@@ -134,6 +134,118 @@ export function createLaboIncubatorFeature({ store } = {}) {
         return storagePanel;
     }
 
+    /**
+     * Plays a tube animation from the incubator's mount center to the storage
+     * panel / storage button. Returns a Promise that resolves when the animation
+     * is done (≈ 900 ms).  Fully responsive: coordinates come from
+     * getBoundingClientRect at call-time, so it works on any screen size.
+     */
+    function playStorageTubeAnimation() {
+        return new Promise((resolve) => {
+            // ── Source: incubator frame center ──────────────────────────────
+            const srcEl = frame || mountTarget || root;
+            const srcRect = srcEl?.getBoundingClientRect?.() || { left: 0, top: 0, width: 80, height: 80 };
+            const x1 = srcRect.left + srcRect.width  * 0.5;
+            const y1 = srcRect.top  + srcRect.height * 0.5;
+
+            // ── Destination: storage panel button or storage panel root ──────
+            // Try several selectors in priority order
+            const dstEl =
+                document.querySelector('[data-storage-open-btn]') ||
+                document.querySelector('.labo-external-display-panel__storage-btn') ||
+                document.querySelector('.labo-incubator-feature .storage-panel') ||
+                root?.querySelector?.('.storage-panel') ||
+                root;
+            const dstRect = dstEl?.getBoundingClientRect?.() || { left: window.innerWidth - 60, top: 60, width: 40, height: 40 };
+            const x2 = dstRect.left + dstRect.width  * 0.5;
+            const y2 = dstRect.top  + dstRect.height * 0.5;
+
+            // ── Bezier control point (arc slightly to the right) ────────────
+            const cx = x1 + (x2 - x1) * 0.5 + (y2 - y1) * 0.25;
+            const cy = y1 + (y2 - y1) * 0.5 - Math.abs(x2 - x1) * 0.35;
+
+            const dur = 900; // ms
+
+            const overlay = document.createElement('div');
+            overlay.setAttribute('aria-hidden', 'true');
+            overlay.style.cssText = [
+                'position:fixed',
+                'inset:0',
+                'pointer-events:none',
+                'z-index:99999',
+                'overflow:hidden',
+            ].join(';');
+
+            const pathData = `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
+            const pathLen  = Math.hypot(x2 - x1, y2 - y1) * 1.2; // rough arc length
+
+            overlay.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg"
+                     style="position:absolute;inset:0;width:100%;height:100%;overflow:visible"
+                     aria-hidden="true">
+                  <defs>
+                    <filter id="labo-tube-glow" x="-40%" y="-40%" width="180%" height="180%">
+                      <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="blur"/>
+                      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                  </defs>
+                  <!-- Tube background (dark) -->
+                  <path d="${pathData}"
+                        fill="none"
+                        stroke="rgba(30,20,50,0.55)"
+                        stroke-width="14"
+                        stroke-linecap="round"/>
+                  <!-- Tube walls (gradient-ish via two strokes) -->
+                  <path d="${pathData}"
+                        fill="none"
+                        stroke="rgba(130,90,200,0.45)"
+                        stroke-width="12"
+                        stroke-linecap="round"/>
+                  <!-- Animated highlight -->
+                  <path id="labo-tube-path" d="${pathData}"
+                        fill="none"
+                        stroke="rgba(200,160,255,0.7)"
+                        stroke-width="6"
+                        stroke-linecap="round"
+                        stroke-dasharray="${pathLen}"
+                        stroke-dashoffset="${pathLen}"
+                        filter="url(#labo-tube-glow)">
+                    <animate attributeName="stroke-dashoffset"
+                             from="${pathLen}" to="0"
+                             dur="${dur}ms" begin="0s"
+                             fill="freeze" calcMode="spline"
+                             keyTimes="0;1" keySplines="0.4 0 0.2 1"/>
+                  </path>
+                  <!-- Slime blob travelling along the path -->
+                  <circle r="9" fill="rgba(180,120,255,0.92)" filter="url(#labo-tube-glow)">
+                    <animateMotion dur="${dur}ms" begin="0s" fill="freeze"
+                                  calcMode="spline" keyTimes="0;1" keySplines="0.4 0 0.2 1">
+                      <mpath href="#labo-tube-path"/>
+                    </animateMotion>
+                  </circle>
+                  <!-- Destination burst -->
+                  <circle cx="${x2}" cy="${y2}" r="0"
+                          fill="none" stroke="rgba(200,160,255,0.8)" stroke-width="3">
+                    <animate attributeName="r"
+                             from="0" to="28"
+                             begin="${dur * 0.85}ms" dur="${dur * 0.4}ms"
+                             fill="freeze"/>
+                    <animate attributeName="opacity"
+                             from="1" to="0"
+                             begin="${dur * 0.85}ms" dur="${dur * 0.4}ms"
+                             fill="freeze"/>
+                  </circle>
+                </svg>`;
+
+            document.body.appendChild(overlay);
+
+            window.setTimeout(() => {
+                overlay.remove();
+                resolve();
+            }, dur + 120);
+        });
+    }
+
     function createRuntimeHelpers() {
         if (!preview) {
             preview = createIncubatorSlimePreview();
@@ -172,30 +284,49 @@ export function createLaboIncubatorFeature({ store } = {}) {
                             if (price > balance) {
                                 const { showToast } = await import('../../utils/toast.js');
                                 showToast(t('incubator.toast.insufficient_funds').replace('{price}', price.toLocaleString()), { type: 'error' });
-                                // Return false to abort the purchase without refreshing the slime —
-                                // the countdown keeps running and the player must wait for the timer.
                                 return false;
                             }
 
                             try {
-                                if (acquisitionMode === 'store') {
-                                    const selection = await ensureStorageContext().panel.requestBoxSelection();
-                                    if (!selection) {
-                                        // User cancelled box selection, abort purchase (stay in suspended state)
-                                        return;
-                                    }
-                                    
-                                    await ensureStorageContext().acquisitionPipeline.acquireCurrentCandidate({
+                                // ── Check if team has a free slot ──────────────────────────
+                                const ctx = ensureStorageContext();
+                                const snapshot = ctx.repository.getSnapshot();
+                                const freeTeamSlot = ctx.teamService.findFirstEmptySlot(snapshot.teamSlots);
+                                const teamIsFull = freeTeamSlot < 0;
+
+                                if (!teamIsFull) {
+                                    // Auto-assign to team — no dialog needed
+                                    await ctx.acquisitionPipeline.acquireCurrentCandidate({
                                         candidate: candidatePayload,
                                         preview,
-                                        targetPlacement: { page: selection.page }
+                                        // no targetPlacement → pipeline assigns to team automatically
                                     });
                                 } else {
-                                    await ensureStorageContext().acquisitionPipeline.acquireCurrentCandidate({
+                                    // Team full: play tube animation then open box selection
+                                    await playStorageTubeAnimation();
+
+                                    // Ensure the panel is open so the box-selection modal
+                                    // is rendered inside a visible container.
+                                    const panel = ensureStoragePanel();
+                                    panel?.open?.();
+
+                                    const selection = await panel?.requestBoxSelection?.();
+                                    if (!selection) {
+                                        // User cancelled box selection, abort purchase
+                                        panel?.close?.();
+                                        return;
+                                    }
+
+                                    await ctx.acquisitionPipeline.acquireCurrentCandidate({
                                         candidate: candidatePayload,
                                         preview,
+                                        targetPlacement: { page: selection.page },
                                     });
+
+                                    // Close the panel after successful acquisition
+                                    panel?.close?.();
                                 }
+
                                 // Deduct the cost from the player's balance
                                 store?.dispatch?.({
                                     type: 'ADD_CURRENCY',

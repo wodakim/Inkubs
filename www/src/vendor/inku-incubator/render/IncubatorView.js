@@ -350,6 +350,16 @@ export class IncubatorView {
 
   setEnergyMeterState(state = 'blocked') {
     this.refs.root.dataset.meterState = state;
+    // Also set the HTML disabled attribute so keyboard/assistive tech can't trigger
+    // the purchase when the player can't afford the slime.
+    const isBlocked = state !== 'allowed';
+    this.refs.buyButtons?.forEach((btn) => {
+      if (isBlocked) {
+        btn.setAttribute('disabled', '');
+      } else {
+        btn.removeAttribute('disabled');
+      }
+    });
   }
 
   clearCandidateBay() {
@@ -361,9 +371,15 @@ export class IncubatorView {
   }
 
   setButtonsEnabled(isEnabled) {
-    const buttons = [...this.refs.buyButtons, this.refs.purgeButton].filter(Boolean);
-    buttons.forEach((button) => {
-      button.disabled = !isEnabled;
+    // Purge button: always follow isEnabled directly
+    if (this.refs.purgeButton) {
+      this.refs.purgeButton.disabled = !isEnabled;
+    }
+    // Buy buttons: when disabling (busy), always disable.
+    // When re-enabling, only enable if the player can currently afford (meter=allowed).
+    const canAfford = this.refs.root?.dataset?.meterState === 'allowed';
+    this.refs.buyButtons?.forEach((btn) => {
+      btn.disabled = !isEnabled || !canAfford;
     });
   }
 

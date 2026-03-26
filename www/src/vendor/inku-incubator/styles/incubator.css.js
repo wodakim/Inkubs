@@ -1026,6 +1026,11 @@ const stylesheetText = `
 }
 
 /* Red = cannot buy */
+.inku-incubator[data-meter-state="blocked"] .side-module__toggle {
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 .inku-incubator[data-meter-state="blocked"] .side-module__toggle::before {
   background: linear-gradient(180deg, #f87171, #dc2626);
   border-color: #450a0a;
@@ -1037,6 +1042,12 @@ const stylesheetText = `
 
 .inku-incubator[data-meter-state="blocked"] .side-module__toggle::after {
   opacity: 0.35;
+}
+
+/* Green = can buy — restore cursor explicitly */
+.inku-incubator[data-meter-state="allowed"] .side-module__toggle {
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 @keyframes inkuLedPulse {
