@@ -1,6 +1,7 @@
 // src/features/potion-factory/potion-factory-controller.js
 import { getStorageRuntimeContext } from '../storage/storage-runtime-context.js';
-import { getPotionDropLimit } from './potion-persistence.js';
+import { getPotionDropLimit, PotionPersistence } from './potion-persistence.js';
+import { PotionEngine } from './potion-engine.js';
 import { createStoragePanelController } from '../storage/storage-panel-controller.js';
 import { buildCanonicalPortraitSvg } from '../storage/storage-canonical-visual-renderer.js';
 
@@ -12,7 +13,10 @@ export function createPotionFactoryController({ store }) {
     let unsubscribeRepo = null;
     let timerInterval = null;
 
-    const state = {
+    // -------------------------------------------------------------------------
+    // ÉTAT PAR DÉFAUT
+    // -------------------------------------------------------------------------
+    const DEFAULT_STATE = () => ({
         selectedSlimeId: null,
         flasks: [
             { id: 0, doses: [] },
@@ -26,57 +30,78 @@ export function createPotionFactoryController({ store }) {
             timerEnd: null,
             rewardValue: 0
         }
-    };
+    });
 
-    function mixHues(hues) {
-        if (!hues || hues.length === 0) return 0;
-        if (hues.length === 1) return hues[0];
-        let x = 0; let y = 0;
-        for (let hue of hues) {
-            const rad = hue * (Math.PI / 180);
-            x += Math.cos(rad);
-            y += Math.sin(rad);
+    // -------------------------------------------------------------------------
+    // INITIALISATION DE L'ÉTAT (avec restauration depuis la persistance)
+    // -------------------------------------------------------------------------
+    function buildInitialState() {
+        const saved = PotionPersistence.loadFactoryState();
+
+        if (!saved) {
+            return DEFAULT_STATE();
         }
-        let avgHue = Math.atan2(y, x) * (180 / Math.PI);
-        return avgHue < 0 ? Math.round(avgHue + 360) : Math.round(avgHue);
+
+        // Reconstruction d'un état valide depuis le snapshot sauvegardé
+        return {
+            selectedSlimeId: null, // Non persisté : toujours réinitialisé à null
+            flasks: saved.flasks.map(f => ({
+                id: f.id,
+                doses: Array.isArray(f.doses) ? [...f.doses] : []
+            })),
+            box: {
+                potions: Array.isArray(saved.box.potions)
+                    ? saved.box.potions.map(p => ({ doses: Array.isArray(p.doses) ? [...p.doses] : [] }))
+                    : [],
+                status: saved.box.status || 'idle',
+                timerEnd: saved.box.timerEnd || null,
+                rewardValue: saved.box.rewardValue || 0
+            }
+        };
     }
 
+    const state = buildInitialState();
+
+    // -------------------------------------------------------------------------
+    // LOGIQUE MÉTIER — Délégation à PotionEngine
+    // -------------------------------------------------------------------------
+
+    /**
+     * Calcule la minuterie et la récompense de la boîte via PotionEngine.
+     * Met à jour state.box en conséquence et lance la boucle de timer.
+     */
     function calculateBoxTimerAndReward() {
-        let totalRarity = 0;
-        let totalDoses = 0;
+        const avgRarity = PotionEngine.calculateAverageRarity(state.box.potions);
+        const durationMs = PotionEngine.calculatePackagingDurationMs(avgRarity);
 
-        state.box.potions.forEach(potion => {
-            potion.doses.forEach(dose => {
-                totalRarity += (dose.rarity || 1);
-                totalDoses++;
-            });
-        });
-
-        const avgRarity = totalDoses > 0 ? (totalRarity / totalDoses) : 1;
-
-        const minTimeSec = 120;
-        const maxTimeSec = 600;
-        const durationSec = minTimeSec + ((Math.min(avgRarity, 5) - 1) / 4) * (maxTimeSec - minTimeSec);
-
-        state.box.timerEnd = Date.now() + Math.floor(durationSec * 1000);
-        state.box.rewardValue = Math.floor(avgRarity * 25 * state.box.potions.length);
+        state.box.timerEnd = Date.now() + durationMs;
+        state.box.rewardValue = PotionEngine.calculateRewardValue(avgRarity, state.box.potions.length);
         state.box.status = 'packaging';
 
+        PotionPersistence.saveFactoryState(state);
         startTimerLoop();
     }
 
+    // -------------------------------------------------------------------------
+    // MINUTERIE
+    // -------------------------------------------------------------------------
+
     function startTimerLoop() {
         if (timerInterval) clearInterval(timerInterval);
+
         timerInterval = setInterval(() => {
-            if (state.box.status === 'packaging') {
-                if (Date.now() >= state.box.timerEnd) {
-                    state.box.status = 'ready';
-                    clearInterval(timerInterval);
-                }
-                updateBoxUI();
-            } else {
+            if (state.box.status !== 'packaging') {
                 clearInterval(timerInterval);
+                return;
             }
+
+            if (Date.now() >= state.box.timerEnd) {
+                state.box.status = 'ready';
+                clearInterval(timerInterval);
+                PotionPersistence.saveFactoryState(state);
+            }
+
+            updateBoxUI();
         }, 1000);
     }
 
@@ -87,6 +112,10 @@ export function createPotionFactoryController({ store }) {
         const s = (totalSec % 60).toString().padStart(2, '0');
         return `${m}:${s}`;
     }
+
+    // -------------------------------------------------------------------------
+    // CONSTRUCTION DU DOM STATIQUE
+    // -------------------------------------------------------------------------
 
     function buildStaticDOM() {
         container.innerHTML = `
@@ -137,6 +166,10 @@ export function createPotionFactoryController({ store }) {
         bindEvents();
     }
 
+    // -------------------------------------------------------------------------
+    // LIAISON DES ÉVÉNEMENTS
+    // -------------------------------------------------------------------------
+
     function bindEvents() {
         const teamBtn = container.querySelector('#pf-btn-team');
         if (teamBtn) {
@@ -177,32 +210,72 @@ export function createPotionFactoryController({ store }) {
         container.addEventListener('contextmenu', e => e.preventDefault());
     }
 
+    // -------------------------------------------------------------------------
+    // GESTION DES INTERACTIONS
+    // -------------------------------------------------------------------------
+
+    /**
+     * Gère le clic sur une fiole.
+     *
+     * Deux comportements :
+     *   1. Fiole PLEINE (≥ 2 doses) + boîte non remplie → transvase la fiole dans la boîte.
+     *   2. Fiole NON PLEINE + slime sélectionné + boîte idle → ajoute des doses depuis le slime,
+     *      dans la limite donnée par getPotionDropLimit() et la capacité restante de la fiole.
+     */
     function handleFlaskInteraction(flaskId) {
         const flask = state.flasks.find(f => f.id === flaskId);
         if (!flask) return;
 
-        if (flask.doses.length >= 2) {
+        const FLASK_MAX_DOSES = 2;
+
+        // --- CAS 1 : Transvasement de la fiole pleine vers la boîte ---
+        if (flask.doses.length >= FLASK_MAX_DOSES) {
             if (state.box.status === 'idle' && state.box.potions.length < 4) {
                 state.box.potions.push({ doses: [...flask.doses] });
                 flask.doses = [];
+
                 if (state.box.potions.length === 4) {
-                    calculateBoxTimerAndReward();
+                    calculateBoxTimerAndReward(); // Sauvegarde incluse
+                } else {
+                    PotionPersistence.saveFactoryState(state);
                 }
+
                 updateBoxUI();
+                updateFlasksUI();
             }
+            return;
         }
-        else if (state.selectedSlimeId && state.box.status === 'idle') {
+
+        // --- CAS 2 : Ajout de gouttes depuis le slime sélectionné ---
+        if (state.selectedSlimeId && state.box.status === 'idle') {
             const team = getTeamRecords();
             const activeSlime = team.find(s => s.id === state.selectedSlimeId);
-            if (activeSlime) {
-                const hue = activeSlime.proceduralCore?.genome?.hue || 0;
-                const rarity = activeSlime.storageDisplay?.rarityScore || activeSlime.rarity || 1;
+
+            if (!activeSlime) return;
+
+            const dropLimit = getPotionDropLimit(activeSlime);
+            const availableCapacity = FLASK_MAX_DOSES - flask.doses.length;
+
+            // Nombre de gouttes à ajouter = min(limite du slime, capacité restante de la fiole)
+            const dosesToAdd = Math.min(dropLimit, availableCapacity);
+
+            if (dosesToAdd <= 0) return;
+
+            const hue = activeSlime.proceduralCore?.genome?.hue || 0;
+            const rarity = activeSlime.storageDisplay?.rarityScore ?? activeSlime.rarity ?? 1;
+
+            for (let i = 0; i < dosesToAdd; i++) {
                 flask.doses.push({ hue, rarity });
             }
+
+            PotionPersistence.saveFactoryState(state);
+            updateFlasksUI();
         }
-        updateFlasksUI();
     }
 
+    /**
+     * Vend la boîte prête : récompense le joueur, réinitialise la boîte et sauvegarde.
+     */
     function handleBoxShipping() {
         store.dispatch({
             type: 'ADD_CURRENCY',
@@ -214,9 +287,15 @@ export function createPotionFactoryController({ store }) {
         state.box.timerEnd = null;
         state.box.rewardValue = 0;
 
+        PotionPersistence.saveFactoryState(state);
+
         updateBoxUI();
         updateFlasksUI();
     }
+
+    // -------------------------------------------------------------------------
+    // ACCÈS AUX DONNÉES DU REPOSITORY
+    // -------------------------------------------------------------------------
 
     function getTeamRecords() {
         const repository = getStorageRuntimeContext().repository;
@@ -225,12 +304,17 @@ export function createPotionFactoryController({ store }) {
         return teamIds.map(id => snapshot.recordsById[id]).filter(Boolean);
     }
 
+    // -------------------------------------------------------------------------
+    // MISE À JOUR DU DOM
+    // -------------------------------------------------------------------------
+
     function updateTeamUI() {
         const track = container.querySelector('#pf-shelf-track');
         if (!track) return;
 
         const teamSlimes = getTeamRecords();
 
+        // Désélection automatique si le slime sélectionné a quitté l'équipe
         if (state.selectedSlimeId && !teamSlimes.find(s => s.id === state.selectedSlimeId)) {
             state.selectedSlimeId = null;
         }
@@ -255,6 +339,7 @@ export function createPotionFactoryController({ store }) {
 
     function updateFlasksUI() {
         const flasks = container.querySelectorAll('.pf-flask');
+
         flasks.forEach(flaskEl => {
             const id = parseInt(flaskEl.dataset.flaskId, 10);
             const data = state.flasks.find(f => f.id === id);
@@ -267,9 +352,12 @@ export function createPotionFactoryController({ store }) {
 
             if (liquid) {
                 liquid.style.height = `${(doses / 2) * 100}%`;
+
                 if (doses > 0) {
-                    const hue = mixHues(data.doses.map(d => d.hue));
+                    // Utilisation de PotionEngine.mixColorsHSL() à la place de la fonction locale
+                    const hue = PotionEngine.mixColorsHSL(data.doses.map(d => d.hue));
                     liquid.style.backgroundColor = `hsl(${hue}, 85%, 55%)`;
+
                     if (doses >= 2) {
                         flaskEl.style.setProperty('--flask-color', `hsl(${hue}, 85%, 55%)`);
                     } else {
@@ -289,22 +377,29 @@ export function createPotionFactoryController({ store }) {
 
         box.setAttribute('data-status', state.box.status);
 
+        // Mise à jour des slots de la boîte
         const slots = box.querySelectorAll('.pf-box-slot');
         slots.forEach((slot, i) => {
             const potion = state.box.potions[i];
             if (potion) {
-                const hue = mixHues(potion.doses.map(d => d.hue));
+                // Utilisation de PotionEngine.mixColorsHSL() à la place de la fonction locale
+                const hue = PotionEngine.mixColorsHSL(potion.doses.map(d => d.hue));
                 slot.innerHTML = `<div class="pf-packed-item" style="background-color: hsl(${hue}, 85%, 55%);"></div>`;
             } else {
                 slot.innerHTML = '';
             }
         });
 
+        // Mise à jour du HUD (timer / bouton vendre)
         const timerTxt = box.querySelector('#pf-timer-txt');
         if (timerTxt && state.box.status === 'packaging') {
             timerTxt.textContent = formatTime(Math.max(0, state.box.timerEnd - Date.now()));
         }
     }
+
+    // -------------------------------------------------------------------------
+    // PANNEAU DE STOCKAGE (lazy init)
+    // -------------------------------------------------------------------------
 
     function getStoragePanel() {
         if (!storagePanel) {
@@ -326,6 +421,10 @@ export function createPotionFactoryController({ store }) {
         return storagePanel;
     }
 
+    // -------------------------------------------------------------------------
+    // INTERFACE PUBLIQUE DU CONTRÔLEUR
+    // -------------------------------------------------------------------------
+
     return {
         mount(mountPoint) {
             root = mountPoint;
@@ -338,8 +437,12 @@ export function createPotionFactoryController({ store }) {
             updateFlasksUI();
             updateBoxUI();
 
-            if (state.box.status === 'packaging') startTimerLoop();
+            // Reprend le timer si la boîte était en cours d'emballage à la reprise de session
+            if (state.box.status === 'packaging') {
+                startTimerLoop();
+            }
 
+            // Abonnements aux changements externes
             const repo = getStorageRuntimeContext().repository;
             if (repo && typeof repo.subscribe === 'function') {
                 unsubscribeRepo = repo.subscribe(() => updateTeamUI());
@@ -348,10 +451,12 @@ export function createPotionFactoryController({ store }) {
                 unsubscribeStore = store.subscribe(() => updateTeamUI());
             }
         },
+
         suspend() {
             if (storagePanel && storagePanel.isOpen) storagePanel.close();
             if (container) container.style.display = 'none';
         },
+
         unmount() {
             if (timerInterval) clearInterval(timerInterval);
             if (unsubscribeRepo) unsubscribeRepo();
