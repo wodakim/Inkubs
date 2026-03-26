@@ -720,7 +720,7 @@ canvas{display:block;position:absolute;bottom:0;left:0;width:100%;height:100%;z-
         _initSettings();
         const btn=root.querySelector('#ts-btn-play');
         btn.addEventListener('click',_play);
-        btn.addEventListener('touchend',e=>{e.preventDefault();_play();});
+        btn.addEventListener('touchend',e=>{if(e.cancelable)e.preventDefault();_play();});
     }
 
     function _destroy(){

@@ -85,6 +85,10 @@ function getTickMs() {
     return 50;
 }
 
+function sigmoid(x) {
+    return 1 / (1 + Math.exp(-0.06 * (x - 50)));
+}
+
 export class SlimeInteractionEngine {
     constructor() {
         this._lastTick = 0;

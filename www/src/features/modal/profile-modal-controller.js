@@ -136,6 +136,7 @@ export function createProfileModalController({ refs, store, settingsPanelControl
     const profileCard = refs.profileCard;
     if (profileCard) {
         listeners.listen(profileCard, 'click', (e) => {
+            e.stopPropagation();
             const action = e.target.closest('[data-action]')?.dataset.action;
             if (action === 'open-profile-settings') openSettingsPanel('profile');
             if (action === 'open-perf-settings')    openSettingsPanel('perf');

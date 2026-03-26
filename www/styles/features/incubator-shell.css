@@ -78,15 +78,7 @@
     transition: transform 200ms var(--ease-out-expo, cubic-bezier(0.16, 1, 0.3, 1));
 }
 
-.labo-incubator-feature--storage-open .labo-incubator-frame {
-    --inku-storage-shift: 14px;
-}
-
-@media (max-width: 430px) {
-    .labo-incubator-feature--storage-open .labo-incubator-frame {
-        --inku-storage-shift: 24px;
-    }
-}
+/* Le décalage intentionnel (--inku-storage-shift) a été retiré pour corriger le Layout Shift */
 
 /* ═══════ ECONOMY OVERLAY PANEL ══════════════════════════════════════ */
 

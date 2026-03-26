@@ -255,10 +255,10 @@ export function createCanonicalInspectionSandbox() {
             activePointers.set(e.pointerId, { clientX: e.clientX, clientY: e.clientY });
             canvas.setPointerCapture?.(e.pointerId);
             if (activePointers.size === 1) {
-                slime?.checkGrab?.(pt.x, pt.y);
+                withOwnContext(() => slime?.checkGrab?.(pt.x, pt.y));
                 activeSinglePointer = { pointerId: e.pointerId, startedAt: performance.now(), startClientX: e.clientX, startClientY: e.clientY, startPoint: pt };
             } else if (activePointers.size === 2) {
-                slime?.releaseGrab?.();
+                withOwnContext(() => slime?.releaseGrab?.());
                 activeSinglePointer = null;
                 const [a, b] = [...activePointers.values()];
                 pinchState = { distance: pdist(a, b), center: midXY(a, b) };
@@ -272,28 +272,18 @@ export function createCanonicalInspectionSandbox() {
                 const [a, b] = [...activePointers.values()];
                 const nd = pdist(a, b), nc = midXY(a, b);
                 if (pinchState && nc) {
-                    applyPinch(nc, (nd - pinchState.distance) * PINCH_SENS);
+                    withOwnContext(() => applyPinch(nc, (nd - pinchState.distance) * PINCH_SENS));
                     pinchState = { distance: nd, center: nc };
                 }
                 return;
             }
             if (!activeSinglePointer || activeSinglePointer.pointerId !== e.pointerId) return;
 
-            // Natural detach: release the slime when the finger leaves the canvas area.
-            if (slime?.draggedNode) {
-                const r = canvas?.getBoundingClientRect?.();
-                const margin = 20;
-                if (r && (e.clientX < r.left - margin || e.clientX > r.right + margin ||
-                          e.clientY < r.top - margin  || e.clientY > r.bottom + margin)) {
-                    slime.releaseGrab?.();
-                    activeSinglePointer = null;
-                    canvas.releasePointerCapture?.(e.pointerId);
-                    return;
-                }
-            }
+            // Let setPointerCapture handle the drag out of bounds natively, 
+            // so we can drag the slime firmly without it dropping abruptly.
 
             const pt = toXY(e);
-            if (pt) slime?.updateGrab?.(pt.x, pt.y);
+            if (pt) withOwnContext(() => slime?.updateGrab?.(pt.x, pt.y));
         };
 
         const onUp = (e) => {
@@ -301,19 +291,19 @@ export function createCanonicalInspectionSandbox() {
             canvas.releasePointerCapture?.(e.pointerId);
             if (activePointers.size < 2) pinchState = null;
             if (!activeSinglePointer || activeSinglePointer.pointerId !== e.pointerId) {
-                slime?.releaseGrab?.(); return;
+                withOwnContext(() => slime?.releaseGrab?.()); return;
             }
             const dur = performance.now() - activeSinglePointer.startedAt;
             const mov = Math.hypot(e.clientX - activeSinglePointer.startClientX, e.clientY - activeSinglePointer.startClientY);
             const pt  = toXY(e) || activeSinglePointer.startPoint;
-            slime?.releaseGrab?.();
-            if (dur <= TAP_MAX_MS && mov <= TAP_MAX_MOVE && pt) applyTap(pt, record);
+            withOwnContext(() => slime?.releaseGrab?.());
+            if (dur <= TAP_MAX_MS && mov <= TAP_MAX_MOVE && pt) withOwnContext(() => applyTap(pt, record));
             activeSinglePointer = null;
         };
 
         const onCancel = () => {
             activePointers.clear(); activeSinglePointer = null; pinchState = null;
-            slime?.releaseGrab?.();
+            withOwnContext(() => slime?.releaseGrab?.());
         };
 
         canvas.addEventListener('pointerdown',       onDown,   { passive: true });

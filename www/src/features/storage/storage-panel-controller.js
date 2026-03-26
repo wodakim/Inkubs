@@ -387,6 +387,19 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         refs.moveZone?.addEventListener('click', (event) => event.preventDefault());
         refs.prevButton?.addEventListener('click', () => setPage(currentPage - 1));
         refs.nextButton?.addEventListener('click', () => setPage(currentPage + 1));
+        
+        // Isoler complètement la modale de détails pour qu'elle ne "fuit" pas vers le storage
+        if (refs.detailModal) {
+            refs.detailModal.addEventListener('wheel', (e) => e.stopPropagation());
+            refs.detailModal.addEventListener('touchmove', (e) => e.stopPropagation());
+            // Empêcher un drag depuis le fond de la modale de déclencher le drag du panneau
+            refs.detailModal.addEventListener('pointerdown', (e) => {
+                if (e.target === refs.detailModal || e.target.classList.contains('storage-detail-modal__backdrop')) {
+                    e.stopPropagation();
+                }
+            });
+        }
+
         root.addEventListener('click', onRootClick);
         root.addEventListener('keydown', onRootKeyDown);
         root.addEventListener('pointerdown', onPointerDown);
