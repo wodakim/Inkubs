@@ -242,6 +242,8 @@ export class SlimeInteractionEngine {
                         const dir = Math.sign(cb.x - ca.x) || 1;
                         applyKnockbackToSlime(eb.slime, dir * 7, -4);
                         eb.slime.triggerAction('hurt', 500, 1.0);
+                        eb.slime.emotion = 'surprise';
+                        eb.slime._emotionUntil = now + 1500;
                         if (eb.slime._prairieBrain) eb.slime._prairieBrain._pendingBubble = { emotion: 'pain' };
                         SlimeSoundEngine.playBump(ea.slime);
                         break;
@@ -289,6 +291,8 @@ export class SlimeInteractionEngine {
                 if (vel.y > 0.8 || slime.draggedNode) {
                     applyKnockbackToSlime(slime, 0, -18);
                     slime.triggerAction('jump', 400, 1.2);
+                    slime.emotion = 'joie';
+                    slime._emotionUntil = now + 2000;
                     SlimeSoundEngine.playTrampoline();
                 }
             }
@@ -296,6 +300,8 @@ export class SlimeInteractionEngine {
             if (obj.type === 'jump_ball' && dist < radius + obj.r) {
                 applyKnockbackToSlime(slime, 0, 26);
                 slime.triggerAction('hurt', 600, 1.3);
+                slime.emotion = 'surprise';
+                slime._emotionUntil = now + 1500;
                 SlimeSoundEngine.playMagicWoosh();
             }
 
@@ -306,6 +312,8 @@ export class SlimeInteractionEngine {
                     teleportSlime(slime, obj.targetX, obj.targetY);
                     SlimeSoundEngine.playTeleport();
                     slime.triggerAction('observe', 500, 1.0);
+                    slime.emotion = 'surprise';
+                    slime._emotionUntil = now + 2000;
                 }
             }
         }
@@ -332,5 +340,7 @@ export class SlimeInteractionEngine {
 
         startBehavior(brain, behaviorName, null, now, obj);
         brain.logInteraction(behaviorName, null, `nudged by player near ${obj.type}`);
+        slime.emotion = 'surprise';
+        slime._emotionUntil = now + 1000;
     }
 }

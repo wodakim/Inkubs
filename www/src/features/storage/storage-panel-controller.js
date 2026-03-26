@@ -210,7 +210,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         root.className = floatingPanel ? 'storage-panel storage-panel--floating' : 'storage-panel';
         root.classList.remove('is-open');
         root.hidden = true;
-        root.setAttribute('aria-hidden', 'true');
+        root.setAttribute('inert', '');
         root.innerHTML = `
             <div class="storage-panel__surface">
                 <header class="storage-panel__header" data-storage-panel-drag-handle>
@@ -294,7 +294,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
                 ` : ''}
             </div>
 
-            <div class="storage-confirm-modal" data-storage-sell-modal hidden aria-hidden="true">
+            <div class="storage-confirm-modal" data-storage-sell-modal hidden inert>
                 <div class="storage-confirm-modal__backdrop" data-storage-sell-cancel></div>
                 <section class="storage-confirm-modal__dialog" aria-label="${t('storage.confirm_sell_aria')}">
                     <div class="storage-confirm-modal__modal-header">
@@ -310,7 +310,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
                 </section>
             </div>
 
-            <div class="storage-detail-modal" data-storage-detail-modal hidden aria-hidden="true">
+            <div class="storage-detail-modal" data-storage-detail-modal hidden inert>
                 <div class="storage-detail-modal__backdrop" data-storage-detail-close></div>
                 <section class="storage-detail-modal__dialog" aria-label="${t('storage.slime_file_aria')}">
                     <header class="storage-detail-modal__header">
@@ -489,7 +489,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         isOpen = true;
         root.hidden = false;
         root.classList.add('is-open');
-        root.setAttribute('aria-hidden', 'false');
+        root.removeAttribute('inert');
         // Toujours s'ouvrir sur l'onglet Équipe — c'est l'info prioritaire
         setTab('team');
         // Re-normalize every time the panel opens — catches stale
@@ -511,8 +511,11 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         // drag actions are already hidden (clearDrag was called above)
         isOpen = false;
         root.classList.remove('is-open');
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
+        root.setAttribute('inert', '');
         root.hidden = true;
-        root.setAttribute('aria-hidden', 'true');
         onVisibilityChange?.(false);
     }
 

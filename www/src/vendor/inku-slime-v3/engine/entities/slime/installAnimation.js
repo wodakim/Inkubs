@@ -1,6 +1,14 @@
 import { inputState } from '../../../runtime/runtimeState.js';
 import { clamp, lerp } from '../../../shared/math.js';
 
+const SlimeFaceStates = {
+  neutre: { overrideEyeStyle: null, overrideMouthStyle: null, browLift: 0, browTilt: 0, eyeScaleX: 1.0, eyeScaleY: 1.0, mouthScaleX: 1.0, mouthScaleY: 1.0, faceOffsetY: 0 },
+  discussion: { overrideEyeStyle: null, overrideMouthStyle: null, browLift: 0.2, browTilt: 0.1, eyeScaleX: 1.0, eyeScaleY: 1.0, mouthScaleX: 1.0, mouthScaleY: 1.3, faceOffsetY: -1 },
+  joie: { overrideEyeStyle: null, overrideMouthStyle: null, browLift: 0.6, browTilt: -0.15, eyeScaleX: 1.0, eyeScaleY: 1.0, mouthScaleX: 1.2, mouthScaleY: 1.1, faceOffsetY: -2 },
+  tristesse: { overrideEyeStyle: null, overrideMouthStyle: null, browLift: -0.4, browTilt: -0.8, eyeScaleX: 0.95, eyeScaleY: 0.9, mouthScaleX: 0.9, mouthScaleY: 0.9, faceOffsetY: 2 },
+  surprise: { overrideEyeStyle: null, overrideMouthStyle: null, browLift: 1.0, browTilt: 0, eyeScaleX: 1.25, eyeScaleY: 1.25, mouthScaleX: 0.8, mouthScaleY: 1.4, faceOffsetY: -3 }
+};
+
 export function installAnimation(Slime) {
   Slime.prototype.triggerAction = function(action, duration = 880, intensity = 1) {
     const allowed = new Set(['attack', 'hurt', 'observe', 'flee', 'question', 'study']);
@@ -110,6 +118,16 @@ export function installAnimation(Slime) {
         face.eyeScaleY = clamp(1 - impact * 0.35, 0.2, 1);
         face.faceOffsetY = impact * 2.5;
         face.browLift  = -impact * 0.15;
+    } else if (locomotion === 'dragged') {
+        const dragDx = this.draggedNode ? clamp((this.dragX - this.visualCenterX) / Math.max(20, this.baseRadius), -1.4, 1.4) : 0;
+        const dragDy = this.draggedNode ? clamp((this.dragY - this.visualCenterY) / Math.max(20, this.baseRadius), -1.4, 1.4) : 0;
+        face.lookBiasX += dragDx * 6;
+        face.lookBiasY += dragDy * 6 - 2;
+        face.eyeScaleY *= 1.2;
+        face.eyeScaleX *= 0.9;
+        face.mouthScaleY *= 1.3;
+        face.mouthScaleX *= 0.7;
+        face.browLift += 0.5;
     } else if (locomotion === 'idle') {
         // Gentle idle look drift — breathing-sync eye blink
         face.eyeScaleY = 1 + idleBreath * 0.04;
@@ -265,15 +283,69 @@ export function installAnimation(Slime) {
     pose.roll = clamp(pose.roll, -0.16, 0.16);
     pose.shadowX = clamp(pose.shadowX, 0.72, 1.32);
     pose.shadowY = clamp(pose.shadowY, 0.8, 1.18);
+
+    // ── EMOTION DICTIONARY INTEGRATION (LERP) ────────────────────────────────
+    if (!this.emotion) this.emotion = 'neutre';
+    if (!this.smoothedEmotion) {
+        this.smoothedEmotion = { ...(SlimeFaceStates[this.emotion] || SlimeFaceStates.neutre) };
+    }
+    const targetEmotion = SlimeFaceStates[this.emotion] || SlimeFaceStates.neutre;
     
+    const lerpRate = 0.15;
+    const se = this.smoothedEmotion;
+    se.browLift = lerp(se.browLift, targetEmotion.browLift, lerpRate);
+    se.browTilt = lerp(se.browTilt, targetEmotion.browTilt, lerpRate);
+    se.eyeScaleX = lerp(se.eyeScaleX, targetEmotion.eyeScaleX, lerpRate);
+    se.eyeScaleY = lerp(se.eyeScaleY, targetEmotion.eyeScaleY, lerpRate);
+    se.mouthScaleX = lerp(se.mouthScaleX, targetEmotion.mouthScaleX, lerpRate);
+    se.mouthScaleY = lerp(se.mouthScaleY, targetEmotion.mouthScaleY, lerpRate);
+    se.faceOffsetY = lerp(se.faceOffsetY, targetEmotion.faceOffsetY, lerpRate);
+    
+    se.overrideEyeStyle = targetEmotion.overrideEyeStyle;
+    se.overrideMouthStyle = targetEmotion.overrideMouthStyle;
+
+    face.eyeScaleX *= se.eyeScaleX;
+    face.eyeScaleY *= se.eyeScaleY;
+    face.mouthScaleX *= se.mouthScaleX;
+    face.mouthScaleY *= se.mouthScaleY;
+    face.browLift += se.browLift;
+    face.browTilt += se.browTilt;
+    face.faceOffsetY += se.faceOffsetY;
+
+    // Apply styles only if action hasn't already overridden it
+    if (!face.overrideEyeStyle) face.overrideEyeStyle = se.overrideEyeStyle;
+    if (!face.overrideMouthStyle) face.overrideMouthStyle = se.overrideMouthStyle;
+    // ────────────────────────────────────────────────────────────────────────
+
+    // Dynamic lively overlays based on mapped emotion
+    if (this.emotion === 'discussion') {
+        const talkPulse = Math.sin(now * 0.018 + this.animSeed);
+        const talkWobble = Math.cos(now * 0.007 + this.animSeed * 2.3);
+        face.mouthScaleY *= 1 + Math.max(0, talkPulse) * 0.6; // Ouvre/ferme la bouche en parlant
+        face.mouthScaleX *= 1 - Math.max(0, talkPulse) * 0.15;
+        face.browLift += talkWobble * 0.25;
+        face.lookBiasX += talkWobble * 2.5;
+        if (Math.sin(now * 0.003 + this.animSeed * 5) > 0.96) {
+            face.eyeScaleY *= 0.1; // Clins d'oeil (wink)
+        }
+    } else if (this.emotion === 'joie') {
+        const happyPulse = Math.sin(now * 0.012 + this.animSeed);
+        face.browLift += Math.max(0, happyPulse * 0.3);
+        face.mouthScaleX *= 1 + happyPulse * 0.15;
+        face.eyeScaleY *= 1 - Math.max(0, happyPulse * 0.15); // Squint happy
+    } else if (this.emotion === 'tristesse') {
+        const sadTremble = Math.sin(now * 0.03 + this.animSeed) * 0.1;
+        face.mouthScaleY *= 1 + sadTremble;
+    }
+
     face.lookBiasX = clamp(face.lookBiasX, -10, 10);
     face.lookBiasY = clamp(face.lookBiasY, -8, 8);
-    face.eyeScaleX = clamp(face.eyeScaleX, 0.8, 1.22);
-    face.eyeScaleY = clamp(face.eyeScaleY, 0.18, 1.28);
-    face.mouthScaleX = clamp(face.mouthScaleX, 0.72, 1.35);
-    face.mouthScaleY = clamp(face.mouthScaleY, 0.52, 1.35);
-    face.browLift = clamp(face.browLift, -0.2, 0.72);
-    face.browTilt = clamp(face.browTilt, -0.1, 0.8);
+    face.eyeScaleX = clamp(face.eyeScaleX, 0.7, 1.6);
+    face.eyeScaleY = clamp(face.eyeScaleY, 0.18, 1.6);
+    face.mouthScaleX = clamp(face.mouthScaleX, 0.6, 1.6);
+    face.mouthScaleY = clamp(face.mouthScaleY, 0.4, 1.6);
+    face.browLift = clamp(face.browLift, -1.0, 1.5);
+    face.browTilt = clamp(face.browTilt, -1.2, 1.2);
     face.symbolAlpha = clamp(face.symbolAlpha || 0, 0, 1);
     
     this.renderPose = pose;

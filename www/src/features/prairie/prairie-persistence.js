@@ -18,10 +18,12 @@ export function persistAllActiveRecords(ctx, reason = 'manual') {
     const payloads = getActiveEntries(ctx).map((entry) => {
         const slime = entry.slime;
         const center = slime.getVisualCenter?.() || slime.getRawVisualCenter?.();
+        const exportedAffinities = slime._prairieBrain?.exportStrongAffinities?.();
         return {
             canonicalId: entry.canonicalId,
             snapshot: slime.exportCanonicalSnapshot?.() || null,
             livingState: slime.exportLivingStateSnapshot?.() || null,
+            exportedAffinities,
             prairieState: {
                 x: Number.isFinite(center?.x) ? center.x : entry.record?.prairieState?.x,
                 y: Number.isFinite(center?.y) ? center.y : entry.record?.prairieState?.y,
@@ -45,6 +47,14 @@ export function persistAllActiveRecords(ctx, reason = 'manual') {
             if (!record) return;
             if (payload.snapshot) record.canonicalSnapshot = payload.snapshot;
             if (payload.livingState) record.livingState = payload.livingState;
+            
+            if (payload.exportedAffinities) {
+                record.socialAffinities = {
+                    ...(record.socialAffinities || {}),
+                    ...payload.exportedAffinities
+                };
+            }
+            
             upsertPrairieState(draft, payload.canonicalId, payload.prairieState);
         });
         return draft;

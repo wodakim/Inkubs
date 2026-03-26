@@ -23,6 +23,10 @@ export function installInteraction(Slime) {
         this.draggedNode = closestNode;
         this.dragX = x;
         this.dragY = y;
+        this._grabStartTime = performance.now();
+        this.emotion = 'surprise';
+        this._emotionUntil = performance.now() + 1500;
+        if (typeof this.triggerAction === 'function') this.triggerAction('observe', 400, 1.2);
         recordSlimeEvent(this, 'grab_start', { x, y, minDist }, { importance: 'routine' });
     }
   };
@@ -36,6 +40,18 @@ export function installInteraction(Slime) {
 
   Slime.prototype.releaseGrab = function() {
     if (this.draggedNode) {
+        const duration = performance.now() - (this._grabStartTime || 0);
+        if (duration < 250) {
+            // Poke / Click rapide
+            this.emotion = 'joie';
+            this._emotionUntil = performance.now() + 1500;
+            if (typeof this.triggerAction === 'function') this.triggerAction('observe', 300, 0.6);
+        } else {
+            // Drop après un grab long
+            this.emotion = 'surprise';
+            this._emotionUntil = performance.now() + 800;
+            if (typeof this.triggerAction === 'function') this.triggerAction('hurt', 250, 0.4);
+        }
         recordSlimeEvent(this, 'grab_release', { x: this.dragX, y: this.dragY }, { importance: 'routine' });
     }
     this.draggedNode = null;

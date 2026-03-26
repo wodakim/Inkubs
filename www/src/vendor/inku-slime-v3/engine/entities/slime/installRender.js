@@ -2157,15 +2157,15 @@ export function installRender(Slime) {
     const mouthY = 9 + this.mouthOffsetY;
     const isScary = this.type === 'scary';
     const isCute  = this.type === 'cute';
-    // Rich mouth stroke: use hue-derived tint instead of plain black
     const hue = this.hue;
     const strokeColor = isScary
       ? `hsl(${hue},60%,12%)`
       : `hsl(${hue},40%,18%)`;
-    // Inner fill: always warm and visible — pink/peach tint for cute/normal, dark for scary
+    
+    // Cohérence corrigée : intérieur de bouche profond et chaud, pas un voile blanc opaque
     const innerFill = isScary
-      ? `hsla(${(hue+180)%360},60%,15%,0.65)`
-      : `hsla(${(hue+20)%360},65%,82%,0.55)`;
+      ? `hsla(${(hue+180)%360},60%,15%,0.9)`
+      : `hsla(350,70%,35%,0.85)`; // Rouge/rose foncé profond
 
     // Shadow under mouth for depth
     ctx.shadowColor = 'rgba(0,0,0,0.18)';
@@ -2218,8 +2218,8 @@ export function installRender(Slime) {
     ctx.stroke();
     ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
 
-    // Inner fill for open mouths — extended to more styles
-    if (['open_smile','laugh_open','wide_gape','abyss_mouth','grin','smile','candy_smile','drool','cat_open'].includes(mouthStyle)) {
+    // Inner fill n'est appliqué qu'aux bouches prévues pour être des "cavités" fermées
+    if (['open_smile','laugh_open','wide_gape','abyss_mouth'].includes(mouthStyle)) {
       ctx.fillStyle = innerFill;
       ctx.beginPath();
       switch (mouthStyle) {
@@ -2227,11 +2227,6 @@ export function installRender(Slime) {
         case 'laugh_open':  ctx.arc(0,mouthY,8,0,Math.PI); ctx.closePath(); break;
         case 'wide_gape':   ctx.roundRect(-8,mouthY-1,16,9, 3); break;
         case 'abyss_mouth': ctx.arc(0,mouthY,8,0,Math.PI*2); break;
-        case 'grin':        ctx.moveTo(-8,mouthY); ctx.quadraticCurveTo(0,mouthY+9,8,mouthY); ctx.closePath(); break;
-        case 'smile':       ctx.moveTo(-6,mouthY-1); ctx.quadraticCurveTo(0,mouthY+6,6,mouthY-1); ctx.closePath(); break;
-        case 'candy_smile': ctx.moveTo(-7,mouthY); ctx.quadraticCurveTo(0,mouthY+7,7,mouthY); ctx.closePath(); break;
-        case 'drool':       ctx.moveTo(-7,mouthY-1); ctx.quadraticCurveTo(0,mouthY+7,7,mouthY-1); ctx.closePath(); break;
-        case 'cat_open':    ctx.moveTo(-6,mouthY-1); ctx.quadraticCurveTo(-3,mouthY+4,0,mouthY); ctx.quadraticCurveTo(3,mouthY+4,6,mouthY-1); ctx.closePath(); break;
       }
       ctx.fill();
     }
@@ -2251,7 +2246,7 @@ export function installRender(Slime) {
 
     // Drool drop
     if (mouthStyle === 'drool' || mouthStyle === 'venom_drip') {
-      const dColor = mouthStyle === 'venom_drip' ? 'rgba(80,220,80,0.7)' : innerFill;
+      const dColor = mouthStyle === 'venom_drip' ? 'rgba(80,220,80,0.85)' : 'rgba(180,230,255,0.75)'; // Couleur liquide/baveuse
       ctx.fillStyle = dColor;
       ctx.beginPath(); ctx.ellipse(mouthStyle==='venom_drip'?-3:2, mouthY+8, 2, 4, 0, 0, Math.PI*2); ctx.fill();
       if (mouthStyle === 'venom_drip') {

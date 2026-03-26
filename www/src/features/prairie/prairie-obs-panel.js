@@ -119,24 +119,76 @@ export function updateObsContent(ctx) {
 function renderLogPage(ctx, brain, entry) {
     if (!ctx.obsPageLog) return;
     const log = brain.interactionLog;
+    
+    // Section 1 : Journal d'Activité
+    let html = '<div class="prairie-obs__section prairie-obs__section--activity">';
     if (!log.length) {
-        ctx.obsPageLog.innerHTML = `<p class="prairie-obs__empty-msg">${t('prairie.no_interaction')}</p>`;
-        return;
-    }
-    const items = log.slice(-20).reverse();
-    let html = '';
-    for (const ev of items) {
-        const label = BEHAVIOR_LABELS[ev.type] || ev.type;
-        const ago = formatTimeAgo(ev.time);
-        const detail = ev.detail ? `<span class="prairie-obs__detail">${ev.detail}</span>` : '';
-        let targetStr = '';
-        if (ev.targetId) {
-            const tRecord = findRecordById(ctx, ev.targetId);
-            const tName = tRecord?.identity?.name || tRecord?.canonicalSnapshot?.identity?.name || '';
-            if (tName) targetStr = `<span class="prairie-obs__target">→ ${tName}</span>`;
+        html += `<p class="prairie-obs__empty-msg">${t('prairie.no_interaction')}</p>`;
+    } else {
+        const items = log.slice(-20).reverse();
+        for (const ev of items) {
+            const label = BEHAVIOR_LABELS[ev.type] || ev.type;
+            const ago = formatTimeAgo(ev.time);
+            const detail = ev.detail ? `<span class="prairie-obs__detail">${ev.detail}</span>` : '';
+            let targetStr = '';
+            if (ev.targetId) {
+                const tRecord = findRecordById(ctx, ev.targetId);
+                const tName = tRecord?.identity?.name || tRecord?.canonicalSnapshot?.identity?.name || '';
+                if (tName) targetStr = `<span class="prairie-obs__target">→ ${tName}</span>`;
+            }
+            html += `<div class="prairie-obs__log-item"><span class="prairie-obs__log-label">${label}</span>${targetStr}${detail}<span class="prairie-obs__log-time">${ago}</span></div>`;
         }
-        html += `<div class="prairie-obs__log-item"><span class="prairie-obs__log-label">${label}</span>${targetStr}${detail}<span class="prairie-obs__log-time">${ago}</span></div>`;
     }
+    html += '</div>';
+
+    // Section 2 : Relations
+    html += '<div class="prairie-obs__section prairie-obs__section--relations">';
+    html += `    <div class="prairie-obs__section-title">${t('prairie.obs.relations_title') || 'Relations'}</div>`;
+    html += '    <div id="obs-social-affinities-container" class="prairie-obs__social-container">';
+    
+    // Extraction des relations
+    const record = findRecordById(ctx, ctx.obsSelectedSlimeId);
+    let socialAffinities = {};
+    if (entry?.slime?.identity?.canonical?.socialAffinities) {
+        socialAffinities = entry.slime.identity.canonical.socialAffinities;
+    } else if (record?.identity?.canonical?.socialAffinities) {
+        socialAffinities = record.identity.canonical.socialAffinities;
+    } else if (record?.canonicalSnapshot?.canonical?.socialAffinities) {
+        socialAffinities = record.canonicalSnapshot.canonical.socialAffinities;
+    }
+
+    const affinityKeys = Object.keys(socialAffinities);
+    if (affinityKeys.length === 0) {
+        html += '<p class="prairie-obs__empty-msg" style="padding-left:12px;opacity:0.6;">Aucune relation marquante</p>';
+    } else {
+        html += '<ul class="prairie-obs__social-list" style="list-style:none; padding:12px; margin:0; line-height:1.4em;">';
+        for (const targetId of affinityKeys) {
+            const score = socialAffinities[targetId];
+            let relLabel = "Neutre";
+            let color = "rgba(180, 200, 195, 0.7)";
+            
+            if (score <= -0.6) { relLabel = "Rival"; color = "#ff6b6b"; }
+            else if (score >= 0.6) { relLabel = "Ami"; color = "#7ceb8b"; }
+            else if (score < -0.2) { relLabel = "Hostile"; color = "#ffa86b"; }
+            else if (score > 0.2) { relLabel = "Amical"; color = "#a5eb7c"; }
+            
+            // Tentative de récupération du nom de la cible
+            const targetRecord = findRecordById(ctx, targetId);
+            const targetName = targetRecord?.displayName 
+                            || targetRecord?.identity?.name 
+                            || targetRecord?.canonicalSnapshot?.identity?.name 
+                            || `ID #${String(targetId).slice(-4)}`;
+                            
+            html += `<li class="prairie-obs__social-item" style="display:flex; justify-content:space-between; margin-bottom:4px; font-size:0.9em;">
+                <span>${targetName}</span>
+                <strong style="color:${color}">${relLabel}</strong>
+            </li>`;
+        }
+        html += '</ul>';
+    }
+    html += '    </div>';
+    html += '</div>';
+
     ctx.obsPageLog.innerHTML = html;
 }
 

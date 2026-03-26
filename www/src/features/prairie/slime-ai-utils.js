@@ -23,7 +23,7 @@ export function getSlimeName(slime) {
 
 // ── Per-slime brain ──────────────────────────────────────────────────────────
 export class SlimeBrain {
-    constructor(id) {
+    constructor(id, initialAffinities = null) {
         this.selfId = id;
         this.behavior = 'wander';
         this.targetId = null;
@@ -38,6 +38,13 @@ export class SlimeBrain {
         this.pauseUntil = 0;
         this.seed = Math.random();
         this.biasByTarget = new Map();
+        
+        if (initialAffinities) {
+            for (const [targetId, bias] of Object.entries(initialAffinities)) {
+                this.biasByTarget.set(targetId, bias);
+            }
+        }
+        
         this.recentBehaviors = [];
         this.interactionLog = [];
         this.statChangeLog = [];
@@ -82,5 +89,15 @@ export class SlimeBrain {
     logStatChange(stat, oldVal, newVal, cause) {
         this.statChangeLog.push({ time: Date.now(), stat, oldVal: Math.round(oldVal*10)/10, newVal: Math.round(newVal*10)/10, cause });
         if (this.statChangeLog.length > 40) this.statChangeLog.shift();
+    }
+
+    exportStrongAffinities() {
+        const result = {};
+        for (const [id, value] of this.biasByTarget) {
+            if (value > 0.6 || value < -0.6) {
+                result[id] = value;
+            }
+        }
+        return result;
     }
 }

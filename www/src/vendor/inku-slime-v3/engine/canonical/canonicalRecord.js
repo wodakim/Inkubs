@@ -70,7 +70,8 @@ export function createProceduralIdentity({
       canonicalId: null,
       claimedAt: null,
       ownerId: null,
-      source: null
+      source: null,
+      socialAffinities: {}
     }
   };
 }
@@ -127,7 +128,8 @@ export function applyCanonicalClaim(slime, canonicalRecord) {
     canonicalId: canonicalRecord.canonicalId,
     claimedAt: canonicalRecord.claimedAt || new Date().toISOString(),
     ownerId: canonicalRecord.ownerId || null,
-    source: normalizeClaimSource(canonicalRecord.source)
+    source: normalizeClaimSource(canonicalRecord.source),
+    socialAffinities: canonicalRecord.socialAffinities || {}
   };
 
   bindLivingStateCanonicalClaim(slime, canonicalRecord);

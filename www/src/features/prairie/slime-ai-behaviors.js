@@ -108,9 +108,15 @@ export function resolveFightClash(brainA, slimeA, slimeB, now) {
     if (loserBrain) {
         startBehavior(loserBrain, 'recoil', winnerBrain ? winnerBrain.selfId : idA, now);
         loser.triggerAction('hurt', 900, 1.2);
+        loser.emotion = 'tristesse';
+        loser._emotionUntil = now + 2500;
     }
-    if (winnerBrain) winner.triggerAction('attack', 600, 1.0);
-    if (winnerBrain) winnerBrain._pendingBubble = { emotion: 'combat' };
+    if (winnerBrain) {
+        winner.triggerAction('attack', 600, 1.0);
+        winner.emotion = 'joie';
+        winner._emotionUntil = now + 2500;
+        winnerBrain._pendingBubble = { emotion: 'combat' };
+    }
     if (loserBrain) loserBrain._pendingBubble = { emotion: 'pain' };
 }
 
@@ -150,7 +156,9 @@ export function resolveObstacle(slime, brain, blocker, world, now) {
         const force = 3.5 + sigmoid(fer) * 4.0;
         applyKnockbackToSlime(blocker, pushDir * force, -1.5);
         blocker.triggerAction('hurt', 400, 0.8);
+        blocker.emotion = 'surprise'; blocker._emotionUntil = now + 1000;
         slime.triggerAction('attack', 350, 0.9);
+        slime.emotion = 'discussion'; slime._emotionUntil = now + 1000;
         const ob = blocker._prairieBrain;
         if (ob && ob.behavior !== 'fight_clash' && ob.behavior !== 'flee') {
             ob.addBias(brain.selfId, -0.04);
@@ -159,50 +167,76 @@ export function resolveObstacle(slime, brain, blocker, world, now) {
         tryJump(slime, brain, now - 9999, 1.3 + sigmoid(agi) * 0.5);
         brain.lastJumpAt = 0;
         slime.triggerAction('observe', 300, 0.6);
+        slime.emotion = 'surprise'; slime._emotionUntil = now + 1200;
     } else {
         const pushDir = Math.sign(bc.x - sc.x) || 1;
         applyKnockbackToSlime(blocker, pushDir * 2.0, -0.8);
         blocker.triggerAction('hurt', 250, 0.5);
+        blocker.emotion = 'surprise'; blocker._emotionUntil = now + 800;
         brain.pauseUntil = now + randRange(150, 350);
     }
 }
 
 export function driveFace(slime, behavior, brain, target, dist, now) {
-    if (!slime._aiFaceOverride) slime._aiFaceOverride = {};
-    const ov = slime._aiFaceOverride;
+    if (slime._aiFaceOverride) {
+        const ov = slime._aiFaceOverride;
+        ov.eyeScaleX = null; ov.eyeScaleY = null; ov.browLift = null;
+        ov.browTilt = null; ov.lookBiasX = null; ov.lookBiasY = null;
+        ov.mouthScaleX = null; ov.overrideEyeStyle = null; ov.overrideMouthStyle = null;
+    }
 
-    ov.eyeScaleX = null; ov.eyeScaleY = null; ov.browLift = null;
-    ov.browTilt = null; ov.lookBiasX = null; ov.lookBiasY = null;
-    ov.mouthScaleX = null; ov.overrideEyeStyle = null; ov.overrideMouthStyle = null;
+    if (now < (slime._emotionUntil || 0)) {
+        return;
+    }
 
-    const elapsed = now - brain.startedAt;
-    const ramp = Math.min(1, elapsed / 1000);
-
+    let targetEmotion = 'neutre';
+    
     switch (behavior) {
         case 'romance':
-            ov.eyeScaleX = 1 + ramp * 0.16; ov.eyeScaleY = 1 + ramp * 0.18;
-            ov.browLift = 0.25 + ramp * 0.2; ov.mouthScaleX = 1 + ramp * 0.1;
-            ov.lookBiasY = -2 * ramp;
-            ov.overrideEyeStyle = ramp > 0.65 && dist < 80 ? 'heart' : null;
-            ov.overrideMouthStyle = ramp > 0.55 ? 'kiss' : null;
-            break;
         case 'bond':
-            ov.eyeScaleX = 1 + ramp * 0.12; ov.eyeScaleY = 1 + ramp * 0.14;
-            ov.browLift = 0.18 + ramp * 0.18;
-            ov.overrideEyeStyle = ramp > 0.7 ? 'sparkle' : null;
-            ov.overrideMouthStyle = ramp > 0.6 ? 'candy_smile' : null;
+        case 'play_ball':
+        case 'eat_berry':
+        case 'sit_bench':
+            targetEmotion = 'joie';
             break;
+            
+        case 'communicate':
+        case 'investigate':
+        case 'sniff_object':
+            targetEmotion = 'discussion';
+            break;
+            
+        case 'flee':
+        case 'recoil':
+        case 'teleport_flee':
+        case 'hunt_bird':
+            targetEmotion = 'tristesse';
+            break;
+
+        case 'challenge':
+        case 'intimidate':
         case 'fight_clash':
-            const fierce = (slime.stats?.ferocity ?? 50) > 62;
-            ov.eyeScaleY = Math.max(0.2, 1 - ramp * 0.65);
-            ov.browTilt = slime.facing * 0.65 * ramp;
-            ov.browLift = -0.18 * ramp;
-            ov.lookBiasX = slime.facing * 9 * ramp;
-            ov.overrideEyeStyle = fierce && ramp > 0.55 ? 'flame_eye' : ramp > 0.45 ? 'angry_arc' : null;
-            ov.overrideMouthStyle = fierce && ramp > 0.65 ? 'venom_drip' : ramp > 0.35 ? 'fangs' : null;
+        case 'reckless_chase':
+        case 'falcon_dive':
+        case 'eject_bench':
+        case 'explore_jump':
+            targetEmotion = 'surprise';
             break;
-        // ... (Reste de la fonction driveFace tronquée pour faire place mais l'idée est d'inclure le reste du switch)
+
+        case 'idle_look':
+        case 'sit_stump':
+        case 'wander':
+        case 'calm':
+        case 'approach':
+        case 'follow':
+        case 'orbit':
+        case 'seek_food':
+        default:
+            targetEmotion = 'neutre';
+            break;
     }
+
+    slime.emotion = targetEmotion;
 }
 
 export function pickBehavior(brain, slime, others, world, now, prairieObjects) {
@@ -369,11 +403,14 @@ export function execBehavior(brain, slime, others, world, now) {
                 tryJump(slime, brain, now - 9999, 1.2 + sigmoid(ag) * 0.4);
                 brain.lastJumpAt = 0;
                 slime.triggerAction('observe', 260, 0.5);
+                slime.emotion = 'surprise'; slime._emotionUntil = now + 800;
             } else if (fer > 50 && fer >= ag) {
                 const pushDir = Math.sign(oc.x - sc.x) || moveDir;
                 applyKnockbackToSlime(other, pushDir * (4.5 + sigmoid(fer) * 5.0), -2.5);
                 other.triggerAction('hurt', 420, 0.85);
+                other.emotion = 'surprise'; other._emotionUntil = now + 1000;
                 slime.triggerAction('attack', 280, 0.88);
+                slime.emotion = 'discussion'; slime._emotionUntil = now + 1000;
                 if (ob) {
                     ob.addBias(brain.selfId, -0.05);
                     brain._pendingBubble = { emotion: 'angry' };
@@ -384,6 +421,7 @@ export function execBehavior(brain, slime, others, world, now) {
                 const pushDir = Math.sign(oc.x - sc.x) || moveDir;
                 applyKnockbackToSlime(other, pushDir * 2.5, -1.0);
                 other.triggerAction('hurt', 200, 0.42);
+                other.emotion = 'surprise'; other._emotionUntil = now + 800;
                 brain.pauseUntil = now + randRange(180, 420);
             }
             break;
