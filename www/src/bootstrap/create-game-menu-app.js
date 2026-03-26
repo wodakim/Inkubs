@@ -17,6 +17,7 @@ import { createPassiveIncomeEngine } from '../features/economy/passive-income-en
 import { getStorageRuntimeContext } from '../features/storage/storage-runtime-context.js';
 import { createNotificationSettingsController } from '../features/economy/notification-settings-controller.js';
 import { createSettingsPanelController } from '../features/settings/settings-panel-controller.js';
+import { mountDevConsole } from '../utils/dev-console.js';
 
 export function createGameMenuApp(root = document) {
     const refs = getDomRefs(root);
@@ -24,6 +25,9 @@ export function createGameMenuApp(root = document) {
         activeSectionId: DEFAULT_ACTIVE_SECTION_ID,
         activeSectionIndex: NAV_ITEMS.findIndex((item) => item.id === DEFAULT_ACTIVE_SECTION_ID),
     });
+
+    // Dev console — activée si localStorage 'inku.dev' === '1'
+    mountDevConsole(store);
 
     const hudController = createHudController({ refs, store });
     const navigationController = createNavigationController({ refs, store });

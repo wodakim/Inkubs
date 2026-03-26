@@ -1,17 +1,15 @@
-/* www/styles/features/potion-factory.css */
+/* www/styles/features/potion-factory.css ── Top-down workbench, mobile-first */
 
-/* ========================================================================
-   RÈGLES DE BASE ET VERROUILLAGE DES INTERACTIONS GLOBALES
-   ======================================================================== */
+/* ═══════════════════════════════════════════════════════════════════
+   BASE
+══════════════════════════════════════════════════════════════════ */
 .potion-factory-root-container {
     width: 100%;
     height: 100%;
     position: relative;
-    /* VERROUILLAGE ABSOLU DES BUGS NATIFS ET MENUS CONTEXTUELS */
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
-    -webkit-user-drag: none;
     -webkit-tap-highlight-color: transparent;
 }
 
@@ -20,359 +18,512 @@
     flex-direction: column;
     height: 100%;
     width: 100%;
-    background-color: var(--background-color-page, #1a1515);
-    color: #ffffff;
+    background: #0f0c0b;
+    color: #f0e8dd;
     box-sizing: border-box;
     overflow: hidden;
-    /* Interdit le scroll global de la page */
+    font-family: inherit;
 }
 
-/* ========================================================================
+/* ═══════════════════════════════════════════════════════════════════
    HEADER
-   ======================================================================== */
+══════════════════════════════════════════════════════════════════ */
 .pf-header {
+    flex-shrink: 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 16px 20px;
-    background: rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    flex-shrink: 0;
+    padding: 9px 16px;
+    background: rgba(0,0,0,0.4);
+    border-bottom: 1px solid rgba(255, 190, 80, 0.1);
 }
 
 .pf-title {
     margin: 0;
-    font-size: 1.4rem;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: #e0d4d4;
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: #f0dcc0;
+    letter-spacing: 0.06em;
 }
 
 .pf-btn-team {
-    background: #3e2723;
-    color: #fff;
-    border: 1px solid #5d4037;
-    padding: 8px 16px;
-    border-radius: 8px;
+    background: linear-gradient(150deg, #4a2d1a, #321a0c);
+    color: #f0c878;
+    border: 1px solid rgba(200,140,50,0.35);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.78rem;
     font-weight: 700;
-    display: flex;
-    align-items: center;
-    gap: 6px;
     cursor: pointer;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    letter-spacing: 0.03em;
+    transition: transform 0.12s;
 }
+.pf-btn-team:active { transform: scale(0.92); }
 
-.pf-btn-team:active {
-    transform: scale(0.95);
-}
-
-/* ========================================================================
-   ÉTAGÈRE (SHELF)
-   ======================================================================== */
-.pf-shelf-area {
-    width: 100%;
-    height: 160px;
-    /* Hauteur strictement verrouillée */
-    min-height: 160px;
-    max-height: 160px;
+/* ═══════════════════════════════════════════════════════════════════
+   BANNIÈRE
+══════════════════════════════════════════════════════════════════ */
+.pf-intro-banner {
     flex-shrink: 0;
-    background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.2));
-    border-bottom: 4px solid #2e1c18;
+    text-align: center;
+    font-size: 0.71rem;
+    font-weight: 600;
+    color: rgba(240, 200, 110, 0.8);
+    background: linear-gradient(90deg, transparent, rgba(180,100,0,0.12), transparent);
+    border-bottom: 1px solid rgba(180,100,0,0.15);
+    padding: 4px 16px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.pf-intro-banner strong { color: #ffd54f; font-weight: 800; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   ÉTAGÈRE SLIMES
+══════════════════════════════════════════════════════════════════ */
+.pf-shelf-area {
+    flex-shrink: 0;
+    width: 100%;
+    height: clamp(80px, 15vh, 108px);
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(60,35,15,0.4) 0%, rgba(30,15,5,0.6) 100%);
+    border-bottom: 3px solid #2a1408;
+    box-shadow: inset 0 -3px 10px rgba(0,0,0,0.4);
 }
 
 .pf-shelf-track {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     height: 100%;
-    gap: 16px;
-    padding: 0 20px;
+    gap: 8px;
+    padding: 8px 14px 4px;
     overflow-x: auto;
     overflow-y: hidden;
     scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
 }
-
-.pf-shelf-track::-webkit-scrollbar {
-    display: none;
-}
-
-/* Cache la scrollbar visuellement */
+.pf-shelf-track::-webkit-scrollbar { display: none; }
 
 .pf-empty-state {
     width: 100%;
     text-align: center;
-    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.25);
     font-style: italic;
-    font-weight: 600;
+    align-self: center;
+    padding-bottom: 8px;
 }
 
 .pf-slime-card {
-    flex: 0 0 100px;
-    /* Largeur strictement verrouillée */
-    height: 120px;
+    flex: 0 0 70px;
+    height: clamp(66px, 13vh, 92px);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: flex-end;
     scroll-snap-align: center;
     cursor: pointer;
-    position: relative;
-    transition: transform 0.2s ease;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
 }
+.pf-slime-card.is-selected { transform: translateY(-8px); }
 
-.pf-slime-card.is-selected {
-    transform: translateY(-10px);
-}
-
-/* LE VERROU CLÉ POUR EMPÊCHER LE SVG DE CAPTURER LES CLICS OU DE SE DÉFORMER */
 .pf-slime-visual-wrapper {
-    width: 90px;
-    height: 90px;
+    width: 64px;
+    height: 64px;
     pointer-events: none;
-    /* Le SVG/Canvas ne captent aucun clic, seul la carte les capte et ils sont insensibles au drap/drop physique */
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    filter: drop-shadow(0 5px 5px rgba(0, 0, 0, 0.5));
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.6));
+    transition: filter 0.2s;
 }
-
 .pf-slime-card.is-selected .pf-slime-visual-wrapper {
-    filter: drop-shadow(0 10px 15px rgba(255, 255, 255, 0.3));
+    filter: drop-shadow(0 0 10px rgba(200,160,255,0.5)) drop-shadow(0 4px 8px rgba(0,0,0,0.5));
 }
 
 .pf-slime-nameplate {
-    margin-top: 4px;
-    background: #1a1a1a;
-    border: 1px solid #333;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.75rem;
+    margin-top: 2px;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 1px 7px;
+    border-radius: 20px;
+    font-size: 0.59rem;
     font-weight: 800;
-    width: 100%;
+    max-width: 68px;
     text-align: center;
-    box-sizing: border-box;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
-
 .pf-slime-card.is-selected .pf-slime-nameplate {
-    background: #a881af;
+    background: rgba(140,90,200,0.7);
     color: #fff;
-    border-color: #d1b3d6;
+    border-color: rgba(200,160,255,0.45);
 }
 
-/* ========================================================================
-   TABLE DE TRAVAIL (WORKSPACE)
-   ======================================================================== */
+/* ═══════════════════════════════════════════════════════════════════
+   TABLE DE TRAVAIL (vue de dessus)
+══════════════════════════════════════════════════════════════════ */
 .pf-workspace {
-    flex-grow: 1;
-    /* Prend tout l'espace restant */
+    flex: 1 1 0;
+    min-height: 0;
     display: flex;
     flex-direction: column;
-    justify-content: flex-end;
-    /* Pousse la table vers le bas */
-    padding: 0 20px;
-    position: relative;
+    padding: 8px 10px 0;
 }
 
 .pf-desk {
     width: 100%;
-    max-width: 500px;
-    height: 250px;
+    max-width: 480px;
+    height: 100%;
     margin: 0 auto;
-    background: linear-gradient(180deg, #4e342e 0%, #3e2723 100%);
-    border-top: 15px solid #2e1c18;
-    border-radius: 20px 20px 0 0;
-    box-shadow: inset 0 5px 10px rgba(255, 255, 255, 0.05), inset 0 -20px 40px rgba(0, 0, 0, 0.8);
+    /* Bois sombre vu de dessus */
+    background:
+        linear-gradient(160deg,
+            rgba(255,255,255,0.03) 0%, transparent 30%),
+        linear-gradient(180deg, #3d2510 0%, #2a1708 100%);
+    border-radius: 12px 12px 0 0;
+    border: 1px solid rgba(80,40,10,0.8);
+    border-bottom: none;
+    box-shadow:
+        inset 0 1px 0 rgba(255,200,100,0.07),
+        0 -2px 16px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
     position: relative;
 }
 
-/* ========================================================================
-   BOÎTE EN CARTON (ARRIÈRE-PLAN SUR LA TABLE)
-   ======================================================================== */
-.pf-box-zone {
+/* Veines de bois subtiles */
+.pf-desk::before {
+    content: '';
     position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
+    inset: 0;
+    background: repeating-linear-gradient(
+        91deg,
+        transparent, transparent 22px,
+        rgba(0,0,0,0.04) 22px, rgba(0,0,0,0.04) 23px
+    );
+    pointer-events: none;
+    border-radius: inherit;
 }
 
-.pf-box {
-    width: 120px;
-    height: 120px;
-    background: #8d6e63;
-    border: 5px solid #5d4037;
-    border-radius: 8px;
+/* ═══════════════════════════════════════════════════════════════════
+   ZONE BOÎTES — grille 1×1 ou 2×2 sur la table
+══════════════════════════════════════════════════════════════════ */
+.pf-boxes-area {
+    flex: 1 1 0;
+    min-height: 0;
+    display: grid;
+    /* 2 colonnes, max 2 lignes → 4 boîtes max */
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
+    gap: 8px;
+    padding: 10px 10px 6px;
+    align-content: start;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     position: relative;
-    box-shadow: inset 0 10px 20px rgba(0, 0, 0, 0.6), 0 10px 15px rgba(0, 0, 0, 0.4);
+    z-index: 1;
+}
+.pf-boxes-area::-webkit-scrollbar { display: none; }
+
+/* Si 1 seule boîte → prend toutes les colonnes */
+.pf-boxes-area:has(.pf-box:only-child) .pf-box { grid-column: span 2; }
+
+/* État vide */
+.pf-no-boxes {
+    grid-column: span 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: rgba(240,200,130,0.2);
+    font-size: 0.72rem;
+    text-align: center;
+    padding: 14px 20px;
+    letter-spacing: 0.02em;
+}
+.pf-no-boxes span { font-size: 1.8rem; opacity: 0.4; }
+.pf-no-boxes p { margin: 0; line-height: 1.5; }
+
+/* ── Boîte (vue de dessus = carton ouvert) ── */
+.pf-box {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 10px;
     cursor: pointer;
     overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.2s;
+
+    /* Fond carton — couleur chaude brun clair */
+    background:
+        radial-gradient(ellipse at 50% 10%, rgba(255,230,180,0.18) 0%, transparent 60%),
+        linear-gradient(170deg, #c4956a 0%, #a0724a 40%, #7a5032 100%);
+    border: 2px solid rgba(90,50,20,0.8);
+    box-shadow:
+        /* Ombre portée sur la table */
+        0 6px 18px rgba(0,0,0,0.55),
+        /* Rebord intérieur haut (lumière venant du dessus) */
+        inset 0 2px 0 rgba(255,220,150,0.2),
+        inset 0 -4px 8px rgba(0,0,0,0.3);
+}
+.pf-box:active { transform: scale(0.94); }
+
+/* Ligne de pliure centrale du carton */
+.pf-box::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        linear-gradient(180deg,
+            rgba(255,240,200,0.06) 0%,
+            transparent 30%,
+            transparent 70%,
+            rgba(0,0,0,0.1) 100%);
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 2;
 }
 
-.pf-box:active {
-    transform: scale(0.95);
+/* ── Boîte active (sélectionnée) */
+.pf-box.pf-box--selected {
+    border-color: #f5c842;
+    box-shadow:
+        0 0 0 3px rgba(245,200,66,0.3),
+        0 6px 18px rgba(0,0,0,0.55),
+        inset 0 2px 0 rgba(255,220,150,0.25),
+        inset 0 -4px 8px rgba(0,0,0,0.3);
+}
+.pf-box-selected-badge {
+    position: absolute;
+    top: 4px;
+    right: 5px;
+    font-size: 0.5rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #f5c842;
+    background: rgba(0,0,0,0.4);
+    padding: 1px 4px;
+    border-radius: 4px;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* ── Boîte prête à vendre */
+.pf-box.pf-box--ready {
+    border-color: #6ec97a;
+    animation: pfReadyPulse 1.6s ease-in-out infinite;
+}
+@keyframes pfReadyPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(110,201,122,0.7), 0 6px 18px rgba(0,0,0,0.55); }
+    65%  { box-shadow: 0 0 0 9px rgba(110,201,122,0), 0 6px 18px rgba(0,0,0,0.55); }
+    100% { box-shadow: 0 0 0 0 rgba(110,201,122,0), 0 6px 18px rgba(0,0,0,0.55); }
+}
+
+/* ── Animation démarrage emballage */
+@keyframes pfPackStart {
+    0%   { transform: scale(1); }
+    20%  { transform: scale(1.06) rotate(-1deg); }
+    40%  { transform: scale(0.97) rotate(1deg); }
+    60%  { transform: scale(1.04) rotate(-0.5deg); }
+    80%  { transform: scale(0.99); }
+    100% { transform: scale(1); }
+}
+.pf-box.pf-box--pack-start { animation: pfPackStart 0.7s ease; }
+
+/* ── Grille 2×2 dans la boîte ── */
+.pf-box-inner {
+    position: absolute;
+    inset: 8px;
+    z-index: 1;
 }
 
 .pf-box-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
+    gap: 5px;
     width: 100%;
     height: 100%;
-    padding: 6px;
-    gap: 6px;
-    box-sizing: border-box;
 }
 
-.pf-box-slot {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 4px;
-    border: 1px solid rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-/* Vue de dessus de la potion */
-.pf-packed-item {
-    width: 26px;
-    height: 26px;
+/* ── Slot potion ── */
+.pf-potion-slot {
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.5);
-    box-shadow: inset 0 -4px 6px rgba(0, 0, 0, 0.4), 0 4px 6px rgba(0, 0, 0, 0.5);
-}
-
-/* HUD Boîte (Overlay) */
-.pf-box-hud {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    display: none;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 2;
-}
-
-.pf-box[data-status="packaging"] .pf-box-hud {
-    display: flex;
-}
-
-.pf-box[data-status="ready"] .pf-box-hud {
-    display: flex;
-    background: rgba(46, 125, 50, 0.85);
-}
-
-.pf-timer-txt {
-    font-size: 1.4rem;
-    font-weight: 900;
-    color: #fff;
-}
-
-.pf-ready-txt {
-    display: none;
-    font-size: 1.1rem;
-    font-weight: 900;
-    color: #fff;
-    flex-direction: column;
-    align-items: center;
-}
-
-.pf-box[data-status="packaging"] .pf-ready-txt {
-    display: none;
-}
-
-.pf-box[data-status="ready"] .pf-timer-txt {
-    display: none;
-}
-
-.pf-box[data-status="ready"] .pf-ready-txt {
-    display: flex;
-}
-
-.pf-box[data-status="ready"] {
-    border-color: #66bb6a;
-    animation: pulseReady 1.5s infinite;
-}
-
-@keyframes pulseReady {
-    0% {
-        box-shadow: 0 0 0 0 rgba(102, 187, 106, 0.6);
-    }
-
-    70% {
-        box-shadow: 0 0 0 15px rgba(102, 187, 106, 0);
-    }
-
-    100% {
-        box-shadow: 0 0 0 0 rgba(102, 187, 106, 0);
-    }
-}
-
-/* ========================================================================
-   FIOLES (PREMIER PLAN SUR LA TABLE)
-   ======================================================================== */
-.pf-flasks-zone {
-    position: absolute;
-    bottom: 20px;
-    left: 0;
-    width: 100%;
-    display: flex;
-    justify-content: space-evenly;
-    padding: 0 10px;
-    box-sizing: border-box;
-    z-index: 20;
-}
-
-.pf-flask {
-    display: flex;
-    flex-direction: column-reverse;
-    align-items: center;
-    cursor: pointer;
-    transition: transform 0.2s ease;
-}
-
-.pf-flask:active {
-    transform: scale(0.9) translateY(4px);
-}
-
-.pf-flask.is-full {
-    transform: translateY(-10px);
-}
-
-.pf-flask.is-full:active {
-    transform: scale(0.9);
-}
-
-.pf-flask-body {
-    width: 48px;
-    height: 65px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 6px 6px 24px 24px;
     position: relative;
     overflow: hidden;
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
-    box-shadow: inset -4px -4px 10px rgba(0, 0, 0, 0.4), 0 10px 15px rgba(0, 0, 0, 0.6);
-    transition: border-color 0.3s, box-shadow 0.3s;
 }
 
-.pf-flask-neck {
-    width: 18px;
-    height: 14px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-bottom: none;
-    border-radius: 2px 2px 0 0;
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+/* Emplacement vide non-acheté */
+.pf-potion-slot--empty-slot {
+    background: rgba(0,0,0,0.18);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.35);
+}
+
+/* Emplacement acheté mais non rempli */
+.pf-potion-slot--partial {
+    background: rgba(255,255,255,0.06);
+    border: 1.5px dashed rgba(255,255,255,0.25);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: flex-end;
+    overflow: hidden;
+}
+.pf-potion-fill {
+    width: 100%;
+    border-radius: 0 0 50% 50%;
+    transition: height 0.4s ease;
+    opacity: 0.85;
+}
+
+/* Potion pleine — vue de dessus (sphère colorée) */
+.pf-potion-slot--full {
+    box-shadow:
+        inset 0 -4px 8px rgba(0,0,0,0.4),
+        0 4px 12px rgba(0,0,0,0.35),
+        0 0 12px hsla(var(--p-hue,180), 80%, 60%, 0.35);
+}
+.pf-potion-body {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+}
+.pf-potion-shine {
+    position: absolute;
+    top: 15%;
+    left: 20%;
+    width: 28%;
+    height: 22%;
+    background: rgba(255,255,255,0.45);
+    border-radius: 50%;
+    filter: blur(1.5px);
+}
+
+/* ── Overlay HUD (timer / vendre) ── */
+.pf-box-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border-radius: 8px;
+    z-index: 5;
+    backdrop-filter: blur(3px);
+}
+.pf-box-overlay--packaging {
+    background: rgba(0,0,0,0.78);
+}
+.pf-box-overlay--ready {
+    background: rgba(25,90,30,0.9);
+}
+
+.pf-box-timer {
+    font-size: 1.15rem;
+    font-weight: 900;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    color: #fff;
+}
+.pf-box-reward {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: #ffd54f;
+    letter-spacing: 0.03em;
+}
+.pf-sell-label {
+    font-size: 0.88rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    color: #cfffcf;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   SÉPARATEUR DE TABLE
+══════════════════════════════════════════════════════════════════ */
+.pf-desk-divider {
+    flex-shrink: 0;
+    height: 1px;
+    margin: 2px 12px;
+    background: linear-gradient(90deg, transparent, rgba(255,200,80,0.15), transparent);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   RACK DE 6 FIOLES
+══════════════════════════════════════════════════════════════════ */
+.pf-flasks-rack {
+    flex-shrink: 0;
+    padding: 4px 8px 10px;
+}
+
+.pf-flasks-label {
+    text-align: center;
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,220,130,0.3);
+    margin-bottom: 4px;
+    font-weight: 700;
+}
+
+.pf-flasks-zone {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: flex-end;
+    gap: 2px;
+}
+
+/* ── Fiole individuelle ── */
+.pf-flask {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative;
+    gap: 0;
+}
+.pf-flask:active { transform: scale(0.85) translateY(3px); }
+.pf-flask.is-full  { transform: translateY(-7px); }
+.pf-flask.is-half  { transform: translateY(-3px); }
+.pf-flask.is-full:active { transform: scale(0.9) translateY(-4px); }
+
+/* Glow sur fiole pleine */
+.pf-flask.is-full .pf-flask-body {
+    border-color: rgba(255,255,255,0.7);
+    box-shadow:
+        0 0 14px hsla(var(--flask-hue,180), 80%, 60%, 0.5),
+        inset 0 1px 3px rgba(255,255,255,0.2);
+}
+.pf-flask.is-full .pf-flask-stand { border-color: rgba(255,255,255,0.5); }
+
+.pf-flask-body {
+    width: 28px;
+    height: 44px;
+    /* Verre transparent avec légère teinte bleutée */
+    background: linear-gradient(150deg,
+        rgba(255,255,255,0.14) 0%,
+        rgba(255,255,255,0.04) 50%,
+        rgba(0,0,0,0.08) 100%);
+    border: 1.5px solid rgba(255,255,255,0.2);
+    border-radius: 5px 5px 18px 18px;
+    position: relative;
+    overflow: hidden;
+    box-shadow:
+        inset -1px -2px 6px rgba(0,0,0,0.4),
+        inset 1px 1px 2px rgba(255,255,255,0.12),
+        0 5px 10px rgba(0,0,0,0.35);
+    transition: border-color 0.25s, box-shadow 0.25s;
 }
 
 .pf-flask-liquid {
@@ -381,16 +532,94 @@
     left: 0;
     width: 100%;
     height: 0%;
-    background-color: transparent;
-    transition: height 0.4s ease, background-color 0.4s ease;
-    box-shadow: inset 0 4px 6px rgba(255, 255, 255, 0.3);
+    transition: height 0.4s ease, background 0.4s ease;
+    border-radius: 0 0 16px 16px;
+}
+/* Reflet lumière sur le liquide */
+.pf-flask-liquid::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 5%;
+    width: 40%; height: 30%;
+    background: rgba(255,255,255,0.28);
+    border-radius: 50%;
+    filter: blur(1px);
 }
 
-.pf-flask.is-full .pf-flask-body {
-    border-color: rgba(255, 255, 255, 0.8);
-    box-shadow: 0 0 20px var(--flask-color, rgba(255, 255, 255, 0.5)), 0 10px 15px rgba(0, 0, 0, 0.6);
+.pf-flask-shine {
+    position: absolute;
+    top: 8%; left: 15%;
+    width: 22%; height: 35%;
+    background: rgba(255,255,255,0.18);
+    border-radius: 50%;
+    filter: blur(1.5px);
+    pointer-events: none;
 }
 
-.pf-flask.is-full .pf-flask-neck {
-    border-color: rgba(255, 255, 255, 0.8);
+/* Petit socle en verre */
+.pf-flask-stand {
+    width: 20px;
+    height: 5px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    transition: border-color 0.25s;
+}
+
+.pf-flask-label {
+    font-size: 0.5rem;
+    font-weight: 900;
+    color: rgba(255,255,255,0.22);
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   BARRE BOUTIQUE
+══════════════════════════════════════════════════════════════════ */
+.pf-shop-bar {
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px 12px;
+    background: rgba(0,0,0,0.5);
+    border-top: 1px solid rgba(180,100,10,0.12);
+}
+
+.pf-shop-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 8px 6px;
+    border-radius: 12px;
+    border: 1.5px solid rgba(180,110,40,0.4);
+    background: linear-gradient(160deg, rgba(90,52,20,0.75), rgba(55,30,10,0.9));
+    color: #f0d8b0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 2px 8px rgba(0,0,0,0.4);
+    transition: opacity 0.15s, transform 0.1s;
+    letter-spacing: 0.02em;
+}
+.pf-shop-btn:active:not(:disabled) { transform: scale(0.94); }
+.pf-shop-btn:hover:not(:disabled) { opacity: 0.88; }
+.pf-shop-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.pf-shop-btn--secondary {
+    border-color: rgba(120,160,80,0.35);
+    background: linear-gradient(160deg, rgba(50,70,25,0.75), rgba(25,40,10,0.9));
+    color: #d8f0b0;
+}
+
+.pf-shop-cost {
+    display: block;
+    font-size: 0.65rem;
+    color: #ffd54f;
+    font-weight: 900;
+    letter-spacing: 0.06em;
 }
