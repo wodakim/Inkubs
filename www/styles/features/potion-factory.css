@@ -130,7 +130,7 @@
     width: 90px;
     height: 90px;
     pointer-events: none;
-    /* Le SVG ne captera AUCUN clic, seul la carte gère le clic */
+    /* Le SVG/Canvas ne captent aucun clic, seul la carte les capte et ils sont insensibles au drap/drop physique */
     display: flex;
     justify-content: center;
     align-items: flex-end;

@@ -3,7 +3,152 @@ import { getStorageRuntimeContext } from '../storage/storage-runtime-context.js'
 import { getPotionDropLimit, PotionPersistence } from './potion-persistence.js';
 import { PotionEngine } from './potion-engine.js';
 import { createStoragePanelController } from '../storage/storage-panel-controller.js';
-import { buildCanonicalPortraitSvg } from '../storage/storage-canonical-visual-renderer.js';
+import { buildCanonicalBlueprintFromRecord } from '../storage/storage-canonical-inspection-sandbox.js';
+
+import { Slime } from '../../vendor/inku-slime-v3/engine/entities/Slime.js';
+import { deepClone } from '../../vendor/inku-slime-v3/shared/object.js';
+import {
+    canvas as globalCanvas, ctx as globalCtx,
+    viewportWidth as globalVW, viewportHeight as globalVH,
+    worldWidth as globalWW, worldHeight as globalWH,
+    currentSlime as globalSlime,
+    particles,
+    setCanvas, setViewport, setWorldBounds, setCurrentSlime,
+} from '../../vendor/inku-slime-v3/runtime/runtimeState.js';
+
+function createLightweightShelfRenderer() {
+    let slimes = new Map();
+    let rafId = 0;
+
+    function mount(id, domWrapper, record) {
+        if (!domWrapper) return;
+        let blueprint = buildCanonicalBlueprintFromRecord(record);
+
+        // Fallback : si le blueprint échoue (procCore incomplet côté serveur),
+        // on reconstruit un blueprint minimal depuis storageDisplay pour afficher quand même le slime
+        if (!blueprint && record) {
+            const sd = record.storageDisplay || {};
+            const pc = record.proceduralCore || record.canonicalSnapshot?.proceduralCore || {};
+            if (pc.type || sd.typeLabel) {
+                blueprint = {
+                    schemaVersion: 1,
+                    proceduralSeed: record.canonicalId || `shelf_${id}`,
+                    type: pc.type || sd.typeLabel || 'blob',
+                    baseRadius: pc.baseRadius || 38,
+                    numNodes: pc.numNodes || 25,
+                    genome: pc.genome || {
+                        hue: sd.hue ?? 180,
+                        saturation: 80,
+                        lightness: 55,
+                        colorPattern: sd.colorPattern || 'solid',
+                        rarityTier: sd.rarityTier || 'common',
+                        rarityScore: sd.rarityScore ?? 0,
+                    },
+                    stats: pc.stats || {},
+                    bodyProfile: pc.bodyProfile || { numNodes: 25 },
+                    livingState: record.livingState || null,
+                    identity: {
+                        schemaVersion: 1, lifecycle: 'canonical',
+                        blueprintSchemaVersion: 1,
+                        canonical: {
+                            schemaVersion: 2, status: 'claimed',
+                            canonicalId: record.canonicalId || null,
+                        },
+                    },
+                };
+            }
+        }
+
+        if (!blueprint) return;
+
+        domWrapper.innerHTML = `<canvas aria-hidden="true" style="display: block; width: 100%; height: 100%; pointer-events: none; touch-action: none;"></canvas>`;
+        const canvas = domWrapper.querySelector('canvas');
+        const ctx = canvas.getContext('2d', { alpha: true });
+        
+        // Taille CSS stricte fixée dynamiquement pour ne jamais avoir de "boîtes noires" off-screen
+        canvas.width = 90;
+        canvas.height = 90;
+
+        let slimeInstance = null;
+        let localParticles = [];
+
+        withOwnContext(canvas, ctx, null, localParticles, () => {
+            slimeInstance = new Slime({
+                blueprint: deepClone(blueprint),
+                spawnX: canvas.width * 0.5,
+                spawnY: canvas.height * 0.65,
+                spawnImpulseY: -1,
+                spawnImpulseX: 0,
+                boxPadding: 4,
+            });
+            slimeInstance.worldBounds = { left: 4, top: 4, right: canvas.width - 4, bottom: canvas.height - 4 };
+
+            // Avance rapide pour l'état de repos
+            for(let i=0; i<15; i++) slimeInstance.update();
+        });
+
+        slimes.set(id, { canvas, ctx, slimeInstance, localParticles });
+        if (!rafId) rafId = requestAnimationFrame(tick);
+    }
+
+    function unmountAll() {
+        slimes.clear();
+        if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+    }
+
+    function tick() {
+        if (slimes.size === 0) { rafId = 0; return; }
+        
+        for (const item of slimes.values()) {
+            withOwnContext(item.canvas, item.ctx, item.slimeInstance, item.localParticles, () => {
+                item.slimeInstance.update();
+                for (let i = item.localParticles.length - 1; i >= 0; i--) {
+                    item.localParticles[i].update();
+                    if (item.localParticles[i].life <= 0) item.localParticles.splice(i, 1);
+                }
+                item.ctx.setTransform(1, 0, 0, 1, 0, 0);
+                item.ctx.clearRect(0, 0, item.canvas.width, item.canvas.height);
+                item.slimeInstance.draw();
+                for (const p of item.localParticles) p.draw();
+                item.ctx.setTransform(1, 0, 0, 1, 0, 0);
+            });
+        }
+        rafId = requestAnimationFrame(tick);
+    }
+
+    function withOwnContext(canvas, localCtx, slime, localParticles, fn) {
+        if (!canvas || !localCtx) { fn(); return; }
+
+        const savedCanvas  = globalCanvas;
+        const savedCtx     = globalCtx;
+        const savedVW      = globalVW;
+        const savedVH      = globalVH;
+        const savedWW      = globalWW;
+        const savedWH      = globalWH;
+        const savedSlime   = globalSlime;
+
+        setCanvas(canvas, localCtx);
+        setViewport(canvas.width, canvas.height);
+        setWorldBounds(canvas.width, canvas.height);
+        setCurrentSlime(slime);
+
+        const externalParticles = particles.splice(0);
+        particles.push(...localParticles);
+
+        try { fn(); } finally {
+            localParticles.length = 0;
+            localParticles.push(...particles);
+            particles.splice(0);
+            particles.push(...externalParticles);
+            if (savedCanvas && savedCtx) setCanvas(savedCanvas, savedCtx);
+            setViewport(savedVW, savedVH);
+            setWorldBounds(savedWW, savedWH);
+            setCurrentSlime(savedSlime);
+        }
+    }
+
+    return { mount, unmountAll };
+}
 
 export function createPotionFactoryController({ store }) {
     let root = null;
@@ -12,6 +157,8 @@ export function createPotionFactoryController({ store }) {
     let unsubscribeStore = null;
     let unsubscribeRepo = null;
     let timerInterval = null;
+    let currentTeamIds = [];
+    let shelfRenderer = createLightweightShelfRenderer();
 
     // -------------------------------------------------------------------------
     // ÉTAT PAR DÉFAUT
@@ -249,7 +396,7 @@ export function createPotionFactoryController({ store }) {
         // --- CAS 2 : Ajout de gouttes depuis le slime sélectionné ---
         if (state.selectedSlimeId && state.box.status === 'idle') {
             const team = getTeamRecords();
-            const activeSlime = team.find(s => s.id === state.selectedSlimeId);
+            const activeSlime = team.find(s => s.canonicalId === state.selectedSlimeId);
 
             if (!activeSlime) return;
 
@@ -261,7 +408,7 @@ export function createPotionFactoryController({ store }) {
 
             if (dosesToAdd <= 0) return;
 
-            const hue = activeSlime.proceduralCore?.genome?.hue || 0;
+            const hue = activeSlime.storageDisplay?.hue ?? activeSlime.proceduralCore?.genome?.hue ?? 0;
             const rarity = activeSlime.storageDisplay?.rarityScore ?? activeSlime.rarity ?? 1;
 
             for (let i = 0; i < dosesToAdd; i++) {
@@ -315,26 +462,52 @@ export function createPotionFactoryController({ store }) {
         const teamSlimes = getTeamRecords();
 
         // Désélection automatique si le slime sélectionné a quitté l'équipe
-        if (state.selectedSlimeId && !teamSlimes.find(s => s.id === state.selectedSlimeId)) {
+        if (state.selectedSlimeId && !teamSlimes.find(s => s.canonicalId === state.selectedSlimeId)) {
             state.selectedSlimeId = null;
         }
 
         if (teamSlimes.length === 0) {
+            shelfRenderer.unmountAll();
+            currentTeamIds = [];
             track.innerHTML = `<div class="pf-empty-state">Aucun slime dans l'équipe active.</div>`;
             return;
         }
 
-        track.innerHTML = teamSlimes.map(slime => {
-            const isSelected = slime.id === state.selectedSlimeId;
-            return `
-                <div class="pf-slime-card ${isSelected ? 'is-selected' : ''}" data-slime-id="${slime.id}">
-                    <div class="pf-slime-visual-wrapper">
-                        ${buildCanonicalPortraitSvg(slime, { size: 80, variant: 'slot', includePlate: true })}
+        // Vérification si la composition de l'équipe a changé depuis la dernière fois
+        const newIds = teamSlimes.map(s => s.canonicalId);
+        const hasTeamChanged = currentTeamIds.length !== newIds.length || !currentTeamIds.every((id, i) => id === newIds[i]);
+
+        if (hasTeamChanged) {
+            // Nettoyage complet
+            shelfRenderer.unmountAll();
+            currentTeamIds = newIds;
+
+            track.innerHTML = teamSlimes.map(slime => {
+                const isSelected = slime.canonicalId === state.selectedSlimeId;
+                return `
+                    <div class="pf-slime-card ${isSelected ? 'is-selected' : ''}" data-slime-id="${slime.canonicalId}">
+                        <div class="pf-slime-visual-wrapper" data-slime-canvas="${slime.canonicalId}">
+                        </div>
+                        <div class="pf-slime-nameplate">${slime.displayName || slime.speciesKey}</div>
                     </div>
-                    <div class="pf-slime-nameplate">${slime.displayName || slime.speciesKey}</div>
-                </div>
-            `;
-        }).join('');
+                `;
+            }).join('');
+
+            // Montage au sein des conteneurs isolés
+            teamSlimes.forEach(slime => {
+                const wrapper = track.querySelector(`[data-slime-canvas="${slime.canonicalId}"]`);
+                if (wrapper) {
+                    shelfRenderer.mount(slime.canonicalId, wrapper, slime);
+                }
+            });
+        } else {
+            // L'équipe est restée indentique, mettons uniquement à jour la sélection DOM
+            const cards = track.querySelectorAll('.pf-slime-card');
+            cards.forEach(card => {
+                const isSelected = card.dataset.slimeId === state.selectedSlimeId;
+                card.classList.toggle('is-selected', isSelected);
+            });
+        }
     }
 
     function updateFlasksUI() {
@@ -461,6 +634,9 @@ export function createPotionFactoryController({ store }) {
             if (timerInterval) clearInterval(timerInterval);
             if (unsubscribeRepo) unsubscribeRepo();
             if (unsubscribeStore) unsubscribeStore();
+            
+            shelfRenderer.unmountAll();
+
             if (storagePanel) {
                 storagePanel.destroy();
                 storagePanel = null;
