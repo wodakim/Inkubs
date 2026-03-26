@@ -10,7 +10,7 @@ export function createStorageAcquisitionPipeline({ repository, teamService }) {
 
     let inFlight = false;
 
-    async function acquireCurrentCandidate({ candidate, preview }) {
+    async function acquireCurrentCandidate({ candidate, preview, targetPlacement }) {
         if (inFlight) {
             throw new Error('A storage acquisition is already in progress.');
         }
@@ -82,7 +82,7 @@ export function createStorageAcquisitionPipeline({ repository, teamService }) {
                     return draft;
                 }
 
-                const archivePlacement = findFirstEmptyArchiveSlot(draft);
+                const archivePlacement = targetPlacement || findFirstEmptyArchiveSlot(draft);
                 if (!archivePlacement) {
                     throw new Error('No storage slot is available for this canonical acquisition.');
                 }
@@ -114,16 +114,21 @@ export function createStorageAcquisitionPipeline({ repository, teamService }) {
     };
 }
 
-function findFirstEmptyArchiveSlot(snapshot) {
+function findFirstEmptyArchiveSlot(snapshot, startPage = 1) {
     const maxPage = snapshot.meta.devUnlockAllPages ? snapshot.meta.maxPages : snapshot.meta.unlockedPages;
 
-    for (let page = 1; page <= maxPage; page += 1) {
+    for (let page = startPage; page <= maxPage; page += 1) {
         const pageKey = String(page);
         snapshot.pages[pageKey] ||= Array.from({ length: snapshot.meta.archiveSlotsPerPage }, () => null);
         const slotIndex = snapshot.pages[pageKey].findIndex((value) => !value);
         if (slotIndex >= 0) {
             return { page, slotIndex };
         }
+    }
+
+    // If startPage was specified and we didn't find anything, try from page 1 as fallback
+    if (startPage > 1) {
+        return findFirstEmptyArchiveSlot(snapshot, 1);
     }
 
     return null;

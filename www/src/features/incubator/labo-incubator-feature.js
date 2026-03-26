@@ -178,10 +178,24 @@ export function createLaboIncubatorFeature({ store } = {}) {
                             }
 
                             try {
-                                await ensureStorageContext().acquisitionPipeline.acquireCurrentCandidate({
-                                    candidate: candidatePayload,
-                                    preview,
-                                });
+                                if (acquisitionMode === 'store') {
+                                    const selection = await ensureStorageContext().panel.requestBoxSelection();
+                                    if (!selection) {
+                                        // User cancelled box selection, abort purchase (stay in suspended state)
+                                        return;
+                                    }
+                                    
+                                    await ensureStorageContext().acquisitionPipeline.acquireCurrentCandidate({
+                                        candidate: candidatePayload,
+                                        preview,
+                                        targetPlacement: { page: selection.page }
+                                    });
+                                } else {
+                                    await ensureStorageContext().acquisitionPipeline.acquireCurrentCandidate({
+                                        candidate: candidatePayload,
+                                        preview,
+                                    });
+                                }
                                 // Deduct the cost from the player's balance
                                 store?.dispatch?.({
                                     type: 'ADD_CURRENCY',

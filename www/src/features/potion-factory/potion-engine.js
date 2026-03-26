@@ -16,11 +16,11 @@
 
 /** Table de rareté exponentielle — [durationSec, rewardMin, rewardMax, label] */
 const RARITY_TABLE = {
-    common:    [  60,    5,   12, 'Commun'     ],
-    uncommon:  [ 180,   18,   40, 'Peu commun' ],
-    rare:      [ 420,   60,  130, 'Rare'       ],
-    epic:      [ 900,  200,  420, 'Épique'     ],
-    legendary: [1800,  700, 1400, 'Légendaire' ],
+    common:    [  60,    10,   25, 'Commun'     ],
+    uncommon:  [ 180,    80,  200, 'Peu commun' ],
+    rare:      [ 420,   350,  900, 'Rare'       ],
+    epic:      [ 900,  1500, 4000, 'Épique'     ],
+    legendary: [1800,  7000, 18000, 'Légendaire' ],
 };
 
 /** Convertit un rarityScore numérique (0–5) en tier string */

@@ -416,20 +416,25 @@ export function createStoragePanelController({ mountTarget, repository, store = 
                 ` : ''}
             </div>
 
-            <div class="storage-confirm-modal" data-storage-sell-modal hidden inert>
-                <div class="storage-confirm-modal__backdrop" data-storage-sell-cancel></div>
-                <section class="storage-confirm-modal__dialog" aria-label="${t('storage.confirm_sell_aria')}">
-                    <div class="storage-confirm-modal__modal-header">
-                        <span class="storage-confirm-modal__warn-icon" aria-hidden="true">⚠</span>
-                        <h3 class="storage-confirm-modal__title">${t('storage.sell_modal_title')}</h3>
-                    </div>
-                    <div class="storage-confirm-modal__subject" data-storage-sell-subject></div>
-                    <p class="storage-confirm-modal__copy" data-storage-sell-copy>${t('storage.irreversible')}</p>
+            <div class="storage-confirm-modal" data-storage-sell-modal hidden inert aria-hidden="true" role="dialog" aria-modal="true">
+                <div class="storage-confirm-modal__content">
+                    <h3 class="storage-confirm-modal__title">${t('storage.sell_title')}</h3>
+                    <p class="storage-confirm-modal__text">${t('storage.sell_text')}</p>
                     <div class="storage-confirm-modal__actions">
-                        <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--secondary" data-storage-sell-cancel>${t('storage.cancel')}</button>
+                        <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--secondary" data-storage-sell-cancel>${t('common.cancel')}</button>
                         <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--danger" data-storage-sell-confirm>${t('storage.sell_confirm')}</button>
                     </div>
-                </section>
+                </div>
+            </div>
+
+            <div class="storage-box-selector" data-storage-box-modal hidden inert aria-hidden="true" role="dialog" aria-modal="true">
+                <div class="storage-box-selector__content">
+                    <h3 class="storage-box-selector__title">${t('storage.select_box_title')}</h3>
+                    <div class="storage-box-selector__grid" data-storage-box-grid></div>
+                    <div class="storage-box-selector__actions">
+                        <button type="button" class="storage-box-selector__button storage-box-selector__button--secondary" data-storage-box-cancel>${t('common.cancel')}</button>
+                    </div>
+                </div>
             </div>
 
             <div class="storage-detail-modal" data-storage-detail-modal hidden inert>
@@ -496,6 +501,8 @@ export function createStoragePanelController({ mountTarget, repository, store = 
             sellZone: dragActionsEl.querySelector('[data-storage-action-zone="sell"]'),
             sellPrice: dragActionsEl.querySelector('[data-storage-sell-price]'),
             sellModal: root.querySelector('[data-storage-sell-modal]'),
+            boxModal: root.querySelector('[data-storage-box-modal]'),
+            boxGrid: root.querySelector('[data-storage-box-grid]'),
             sellCopy: root.querySelector('[data-storage-sell-copy]'),
             sellSubject: root.querySelector('[data-storage-sell-subject]'),
             sortChips: [...root.querySelectorAll('[data-storage-sort-key]')],
@@ -550,6 +557,34 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         root.addEventListener('click', onRootClick);
         root.addEventListener('keydown', onRootKeyDown);
         root.addEventListener('pointerdown', onPointerDown);
+
+        // Delegation for detail panel actions
+        root.addEventListener('click', async (e) => {
+            const moveBtn = e.target.closest('[data-storage-detail-move]');
+            if (moveBtn && selectedCanonicalId) {
+                const canonicalId = selectedCanonicalId;
+                const selection = await requestBoxSelection();
+                if (selection) {
+                    const snapshot = repository.getSnapshot();
+                    const record = snapshot.recordsById[canonicalId];
+                    if (record && record.placement) {
+                        const targetPlacement = { kind: 'archive', page: selection.page, slotIndex: -1 };
+                        repository.transact((draft) => {
+                            moveOrSwapCanonicalInSnapshot(draft, { 
+                                from: record.placement, 
+                                to: targetPlacement 
+                            });
+                            return draft;
+                        }, { type: 'storage:move', from: record.placement, to: targetPlacement });
+                        
+                        // Close detail and switch to the new page
+                        closeDetail();
+                        setPage(selection.page);
+                        setTab('archive');
+                    }
+                }
+            }
+        });
 
         mountTarget.appendChild(root);
         // Init tab state : équipe visible, archive cachée
@@ -711,6 +746,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         isOpen = false;
         selectedCanonicalId = null;
         pendingSell = null;
+        pendingBoxSelection = null;
         onVisibilityChange?.(false);
     }
 
@@ -754,6 +790,19 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         const sellConfirmTrigger = event.target.closest?.('[data-storage-sell-confirm]');
         if (sellConfirmTrigger) {
             confirmSell();
+            return;
+        }
+
+        const boxCancelTrigger = event.target.closest?.('[data-storage-box-cancel]');
+        if (boxCancelTrigger) {
+            cancelBoxSelection();
+            return;
+        }
+
+        const boxChoiceTrigger = event.target.closest?.('[data-storage-box-choice]');
+        if (boxChoiceTrigger) {
+            const page = Number(boxChoiceTrigger.dataset.page);
+            confirmBoxSelection(page);
             return;
         }
 
@@ -1301,6 +1350,20 @@ export function createStoragePanelController({ mountTarget, repository, store = 
                 <h4 class="storage-detail-modal__stats-title">${t('storage.detail.section_mental')}</h4>
                 <div class="storage-detail-modal__stat-list">${renderStatRows(record.livingState?.cognition?.mentalAxes || {})}</div>
             </section>` : ''}
+
+            <section class="storage-detail-modal__actions">
+                ${record.placement?.kind === 'team' ? `
+                    <button type="button" class="storage-detail-modal__action-btn" data-storage-detail-move>
+                        <span class="storage-detail-modal__action-icon">📦</span>
+                        ${t('storage.action_store_label')}
+                    </button>
+                ` : `
+                    <button type="button" class="storage-detail-modal__action-btn" data-storage-detail-move>
+                        <span class="storage-detail-modal__action-icon">🚚</span>
+                        ${t('storage.action_move_label') || 'DÉPLACER'}
+                    </button>
+                `}
+            </section>
         `;
 
         const liveStage = refs.detailContent.querySelector('[data-storage-live-stage]');
@@ -1337,6 +1400,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
 
         refs.sellModal.hidden = false;
         refs.sellModal.setAttribute('aria-hidden', 'false');
+        refs.sellModal.removeAttribute('inert');
     }
 
     function closeSellModal() {
@@ -1346,6 +1410,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         }
         refs.sellModal.hidden = true;
         refs.sellModal.setAttribute('aria-hidden', 'true');
+        refs.sellModal.setAttribute('inert', '');
     }
 
     function confirmSell() {
@@ -1374,6 +1439,77 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         }
 
         closeSellModal();
+    }
+
+    // --- BOX SELECTION ---
+
+    function requestBoxSelection() {
+        return new Promise((resolve) => {
+            pendingBoxSelection = { resolve };
+            openBoxModal();
+        });
+    }
+
+    function confirmBoxSelection(page) {
+        const resolve = pendingBoxSelection?.resolve;
+        pendingBoxSelection = null;
+        closeBoxModal();
+        if (resolve) resolve({ page });
+    }
+
+    function cancelBoxSelection() {
+        const resolve = pendingBoxSelection?.resolve;
+        pendingBoxSelection = null;
+        closeBoxModal();
+        if (resolve) resolve(null);
+    }
+
+    function openBoxModal() {
+        ensureRoot();
+        renderBoxGrid();
+        refs.boxModal.hidden = false;
+        refs.boxModal.setAttribute('aria-hidden', 'false');
+        refs.boxModal.removeAttribute('inert');
+    }
+
+    function closeBoxModal() {
+        if (!refs.boxModal) return;
+        refs.boxModal.hidden = true;
+        refs.boxModal.setAttribute('aria-hidden', 'true');
+        refs.boxModal.setAttribute('inert', '');
+    }
+
+    function renderBoxGrid() {
+        if (!refs.boxGrid) return;
+        const snapshot = repository.getSnapshot();
+        const unlockedPages = snapshot.meta.unlockedPages || snapshot.meta.maxPages || 1;
+        
+        refs.boxGrid.innerHTML = '';
+        
+        for (let i = 1; i <= unlockedPages; i++) {
+            const pageKey = String(i);
+            const slots = snapshot.pages[pageKey] || [];
+            const fillCount = slots.filter(Boolean).length;
+            const max = snapshot.meta.archiveSlotsPerPage || 16;
+            
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'storage-box-selector__item';
+            btn.dataset.storageBoxChoice = 'true';
+            btn.dataset.page = String(i);
+            btn.innerHTML = `
+                <div class="storage-box-selector__item-icon">📦</div>
+                <div class="storage-box-selector__item-label">${t('storage.box')} ${i}</div>
+                <div class="storage-box-selector__item-count">${fillCount}/${max}</div>
+            `;
+            
+            if (fillCount >= max) {
+                btn.disabled = true;
+                btn.classList.add('storage-box-selector__item--full');
+            }
+            
+            refs.boxGrid.appendChild(btn);
+        }
     }
 
     function saveDetailName() {
@@ -1408,6 +1544,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         setPage,
         render,
         destroy,
+        requestBoxSelection,
         get isOpen() {
             return isOpen;
         },

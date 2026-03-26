@@ -22,11 +22,11 @@
  */
 export const RARITY_INCOME_BASE = Object.freeze({
     common:    2.0,
-    uncommon:  7.0,
-    rare:      20.0,
-    epic:      60.0,
-    legendary: 180.0,
-    instable:  80.0,  // Base; real income = base × genome.marketValueMultiplier (2.5–5.0)
+    uncommon:  12.0,
+    rare:      45.0,
+    epic:      180.0,
+    legendary: 750.0,
+    instable:  120.0,
 });
 
 /** Multiplicateurs de revenu selon l'humeur du slime. */

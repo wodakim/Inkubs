@@ -477,19 +477,8 @@
         }
 
         function executeReset() {
-            // Supprimer toutes les clés INKU connues
-            const inkuKeys = [
-                'inku.storage.v1',
-                'inku.storage.panel.session.v1',
-                'inku.prairie.session.v3',
-            ];
-            inkuKeys.forEach(k => localStorage.removeItem(k));
-
-            // Supprimer toutes les clés inku.* restantes (futures)
-            Object.keys(localStorage)
-                .filter(k => k.startsWith('inku.'))
-                .forEach(k => localStorage.removeItem(k));
-
+            localStorage.clear();
+            
             closeResetModal();
 
             // Feedback visuel bref puis reload

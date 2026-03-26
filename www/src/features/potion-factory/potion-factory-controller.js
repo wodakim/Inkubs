@@ -408,8 +408,15 @@ export function createPotionFactoryController({ store }) {
 
             if (dosesToAdd <= 0) return;
 
-            const hue = activeSlime.storageDisplay?.hue ?? activeSlime.proceduralCore?.genome?.hue ?? 0;
-            const rarity = activeSlime.storageDisplay?.rarityScore ?? activeSlime.rarity ?? 1;
+            const hue = activeSlime.storageDisplay?.hue ?? 
+                        activeSlime.proceduralCore?.genome?.hue ?? 
+                        activeSlime.canonicalSnapshot?.proceduralCore?.genome?.hue ?? 
+                        0;
+
+            const rarity = activeSlime.storageDisplay?.rarityScore ?? 
+                           activeSlime.proceduralCore?.genome?.stats?.rarityScore ?? 
+                           activeSlime.canonicalSnapshot?.proceduralCore?.genome?.stats?.rarityScore ?? 
+                           1;
 
             for (let i = 0; i < dosesToAdd; i++) {
                 flask.doses.push({ hue, rarity });
