@@ -58,11 +58,11 @@ function createLightweightShelfRenderer() {
         domWrapper.innerHTML = `<canvas aria-hidden="true" style="display:block;width:100%;height:100%;pointer-events:none;touch-action:none;"></canvas>`;
         const canvas = domWrapper.querySelector('canvas');
         const ctx = canvas.getContext('2d', { alpha: true });
-        canvas.width = 64; canvas.height = 64;
+        canvas.width = 56; canvas.height = 56;
         let slimeInstance = null, localParticles = [];
         withOwnCtx(canvas, ctx, null, localParticles, () => {
-            slimeInstance = new Slime({ blueprint: deepClone(blueprint), spawnX: 32, spawnY: 42, spawnImpulseY: -1, boxPadding: 4 });
-            slimeInstance.worldBounds = { left: 4, top: 4, right: 60, bottom: 60 };
+            slimeInstance = new Slime({ blueprint: deepClone(blueprint), spawnX: 28, spawnY: 36, spawnImpulseY: -1, boxPadding: 3 });
+            slimeInstance.worldBounds = { left: 3, top: 3, right: 53, bottom: 53 };
             for (let i = 0; i < 15; i++) slimeInstance.update();
         });
         slimes.set(id, { canvas, ctx, slimeInstance, localParticles });
@@ -482,22 +482,28 @@ export function createPotionFactoryController({ store }) {
         area.innerHTML = state.boxes.map(box => {
             const isSel = box.id === selectedBoxId;
 
-            // 4 slots : 2×2
+            // 4 slots : 2×2 — VUE DE DESSUS (disques, pas liquide vertical)
             const slots = Array.from({ length: POTION_MAX }, (_, i) => {
                 const p = box.potions[i];
-                if (!p) return `<div class="pf-potion-slot pf-potion-slot--empty-slot"></div>`;
+                // Slot non acheté = creux vide dans la paille
+                if (!p) return `<div class="pf-potion-slot pf-potion-slot--hole"></div>`;
+                // Slot acheté vide = creux visible (emplacement libre)
+                if (p.doses.length === 0) {
+                    return `<div class="pf-potion-slot pf-potion-slot--purchased"></div>`;
+                }
+                // Potion partiellement remplie = disque coloré atténué (vue dessus)
                 if (p.doses.length < FLASK_MAX_DOSES) {
-                    // Partiellement remplie
-                    const fill = p.doses.length / FLASK_MAX_DOSES;
-                    const hue = p.doses.length > 0 ? PotionEngine.mixColorsHSL(p.doses.map(d => d.hue)) : null;
-                    return `<div class="pf-potion-slot pf-potion-slot--partial"
-                        style="${hue != null ? `--p-hue:${hue};--p-fill:${fill}` : ''}">
-                        <div class="pf-potion-fill" style="${hue != null ? `background:hsl(${hue},80%,55%);height:${fill*100}%` : 'height:0'}"></div>
+                    const hue = PotionEngine.mixColorsHSL(p.doses.map(d => d.hue));
+                    return `<div class="pf-potion-slot pf-potion-slot--partial" style="--p-hue:${hue}">
+                        <div class="pf-potion-disc pf-potion-disc--partial"
+                             style="background:radial-gradient(circle at 40% 35%, hsl(${hue},70%,70%), hsl(${hue},60%,40%))"></div>
                     </div>`;
                 }
+                // Potion pleine = disque brillant (vue dessus)
                 const hue = PotionEngine.mixColorsHSL(p.doses.map(d => d.hue));
                 return `<div class="pf-potion-slot pf-potion-slot--full" style="--p-hue:${hue}">
-                    <div class="pf-potion-body" style="background:radial-gradient(circle at 38% 32%, hsl(${hue},85%,72%), hsl(${hue},75%,42%))">
+                    <div class="pf-potion-disc"
+                         style="background:radial-gradient(circle at 38% 32%, hsl(${hue},90%,78%), hsl(${hue},80%,45%))">
                         <div class="pf-potion-shine"></div>
                     </div>
                 </div>`;
@@ -506,25 +512,35 @@ export function createPotionFactoryController({ store }) {
             let overlay = '';
             if (box.status === 'packaging') {
                 const rem = Math.max(0, box.timerEnd - Date.now());
+                // Boîte en cours d'emballage : scotch en croix + timer
                 overlay = `<div class="pf-box-overlay pf-box-overlay--packaging">
-                    <span class="pf-box-timer">${formatTime(rem)}</span>
-                    <span class="pf-box-reward">+${box.rewardValue} 💎</span>
+                    <div class="pf-tape pf-tape--h"></div>
+                    <div class="pf-tape pf-tape--v"></div>
+                    <div class="pf-box-hud">
+                        <span class="pf-box-timer">${formatTime(rem)}</span>
+                        <span class="pf-box-reward">+${box.rewardValue} 💎</span>
+                    </div>
                 </div>`;
             } else if (box.status === 'ready') {
+                // Boîte prête : scotch + message vendre
                 overlay = `<div class="pf-box-overlay pf-box-overlay--ready">
-                    <span class="pf-sell-label">VENDRE</span>
-                    <span class="pf-box-reward">+${box.rewardValue} 💎</span>
+                    <div class="pf-tape pf-tape--h"></div>
+                    <div class="pf-tape pf-tape--v"></div>
+                    <div class="pf-box-hud">
+                        <span class="pf-sell-label">✅ VENDRE</span>
+                        <span class="pf-box-reward">+${box.rewardValue} 💎</span>
+                    </div>
                 </div>`;
             }
 
             return `
             <div class="pf-box ${isSel ? 'pf-box--selected' : ''} ${box.status === 'ready' ? 'pf-box--ready' : ''} ${box.status === 'packaging' ? 'pf-box--packaging' : ''}"
                  data-box-id="${box.id}" data-status="${box.status}">
-                <div class="pf-box-inner">
+                <div class="pf-box-interior">
+                    <div class="pf-box-straw"></div>
                     <div class="pf-box-grid">${slots}</div>
                 </div>
                 ${overlay}
-                ${isSel && box.status === 'idle' ? '<div class="pf-box-selected-badge">active</div>' : ''}
             </div>`;
         }).join('');
 
