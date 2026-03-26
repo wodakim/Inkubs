@@ -13,7 +13,12 @@ export function createPotionFactoryFeature({ store }) {
             controller.mount(context.mount);
         },
         resume(context) {
-            this.mount(context);
+            if (!controller) {
+                controller = createPotionFactoryController({ store });
+                controller.mount(context.mount);
+            } else {
+                controller.resume();
+            }
         },
         suspend() {
             if (controller) {

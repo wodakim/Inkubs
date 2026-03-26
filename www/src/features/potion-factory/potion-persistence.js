@@ -7,7 +7,7 @@
  * de manière sécurisée pour garantir aucune perte de données entre les sessions.
  */
 
-const STORAGE_KEY = 'inkubs_potion_factory_state_v1';
+const STORAGE_KEY = 'inku.factory.v1';
 
 /**
  * Calcule la limite de gouttes (doses) qu'un slime peut fournir.

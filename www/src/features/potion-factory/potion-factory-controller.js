@@ -600,6 +600,13 @@ export function createPotionFactoryController({ store }) {
 
     return {
         mount(mountPoint) {
+            // Guard: if already mounted (container exists), just do a resume
+            if (container) {
+                container.style.display = '';
+                updateTeamUI();
+                return;
+            }
+
             root = mountPoint;
             container = document.createElement('div');
             container.className = 'potion-factory-root-container';
@@ -622,6 +629,18 @@ export function createPotionFactoryController({ store }) {
             }
             if (store && typeof store.subscribe === 'function') {
                 unsubscribeStore = store.subscribe(() => updateTeamUI());
+            }
+        },
+
+        resume() {
+            if (container) {
+                container.style.display = '';
+                // Rafraîchit l'équipe en cas de changement pendant la suspension
+                updateTeamUI();
+                // Redémarre le timer si nécessaire
+                if (state.box.status === 'packaging' && !timerInterval) {
+                    startTimerLoop();
+                }
             }
         },
 
