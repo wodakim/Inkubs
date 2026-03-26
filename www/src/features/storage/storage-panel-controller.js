@@ -14,6 +14,11 @@ const PANEL_MIN_WIDTH = 286;
 const PANEL_MAX_WIDTH = 520;
 const PANEL_MIN_HEIGHT = 320;
 const PANEL_MAX_HEIGHT = 760;
+const DETAIL_PANEL_SESSION_KEY = 'inku.storage.detail.panel.session.v1';
+const DETAIL_MIN_WIDTH = 260;
+const DETAIL_MAX_WIDTH = 500;
+const DETAIL_MIN_HEIGHT = 300;
+const DETAIL_MAX_HEIGHT = 720;
 const PANEL_MARGIN = 12;
 
 function clamp(value, min, max) {
@@ -67,6 +72,35 @@ function normalizePanelLayout(layout = {}) {
     };
 }
 
+function loadDetailPanelSession() {
+    try {
+        const raw = window.localStorage.getItem(DETAIL_PANEL_SESSION_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) { return {}; }
+}
+
+function saveDetailPanelSession(session) {
+    try { window.localStorage.setItem(DETAIL_PANEL_SESSION_KEY, JSON.stringify(session || {})); } catch (_) {}
+}
+
+function normalizeDetailPanelLayout(layout = {}) {
+    const viewport = getViewportSize();
+    const maxW = Math.max(DETAIL_MIN_WIDTH, Math.min(DETAIL_MAX_WIDTH, viewport.width - PANEL_MARGIN * 2));
+    const maxH = Math.max(DETAIL_MIN_HEIGHT, Math.min(DETAIL_MAX_HEIGHT, viewport.height - PANEL_MARGIN * 2));
+    const width  = clamp(Number.isFinite(layout.width)  ? layout.width  : Math.min(maxW, Math.round(viewport.width * 0.88)),  DETAIL_MIN_WIDTH,  maxW);
+    const height = clamp(Number.isFinite(layout.height) ? layout.height : Math.min(maxH, Math.round(viewport.height * 0.70)), DETAIL_MIN_HEIGHT, maxH);
+    const maxOffsetX = Math.max(0, (viewport.width  - width)  * 0.5 - PANEL_MARGIN);
+    const maxOffsetY = Math.max(0, (viewport.height - height) * 0.5 - PANEL_MARGIN);
+    return {
+        width,
+        height,
+        offsetX: clamp(Number.isFinite(layout.offsetX) ? layout.offsetX : 0, -maxOffsetX, maxOffsetX),
+        offsetY: clamp(Number.isFinite(layout.offsetY) ? layout.offsetY : 0, -maxOffsetY, maxOffsetY),
+    };
+}
+
 export function createStoragePanelController({ mountTarget, repository, store = null, inspectionBridge = null, onVisibilityChange = null, floatingPanel = false }) {
     if (!mountTarget) {
         throw new Error('A mount target is required for the storage panel controller.');
@@ -89,6 +123,9 @@ export function createStoragePanelController({ mountTarget, repository, store = 
     let panelLayout = normalizePanelLayout(loadPanelSession());
     let panelDrag = null;
     let panelResize = null;
+    let detailLayout = normalizeDetailPanelLayout(loadDetailPanelSession());
+    let detailPanelDrag = null;
+    let detailPanelResize = null;
     const detailSandbox = createCanonicalInspectionSandbox();
 
     function applyPanelLayout() {
@@ -205,6 +242,91 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         globalThis.removeEventListener('pointercancel', onPanelPointerUp, { passive: false });
     }
 
+    /* ── Detail panel : drag / resize ─────────────────────────────────── */
+
+    function applyDetailLayout() {
+        const dialog = refs.detailModal?.querySelector('.storage-detail-modal__dialog');
+        if (!dialog) return;
+        detailLayout = normalizeDetailPanelLayout(detailLayout || {});
+        dialog.style.setProperty('--detail-width',    `${detailLayout.width}px`);
+        dialog.style.setProperty('--detail-height',   `${detailLayout.height}px`);
+        dialog.style.setProperty('--detail-offset-x', `${detailLayout.offsetX}px`);
+        dialog.style.setProperty('--detail-offset-y', `${detailLayout.offsetY}px`);
+        saveDetailPanelSession(detailLayout);
+    }
+
+    function onDetailDragStart(event) {
+        if (event.button > 0) return;
+        if (event.target.closest?.('[data-storage-detail-close]')) return;
+        event.preventDefault();
+        event.stopPropagation();
+        detailPanelDrag = {
+            pointerId: event.pointerId,
+            startX: event.clientX, startY: event.clientY,
+            originX: detailLayout.offsetX, originY: detailLayout.offsetY,
+        };
+        globalThis.addEventListener('pointermove', onDetailPointerMove, { passive: false });
+        globalThis.addEventListener('pointerup',   onDetailPointerUp,   { passive: false });
+        globalThis.addEventListener('pointercancel', onDetailPointerUp, { passive: false });
+    }
+
+    function onDetailResizeStart(event) {
+        if (event.button > 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const corner = event.currentTarget.dataset.detailCorner || 'br';
+        detailPanelResize = {
+            pointerId: event.pointerId,
+            startX: event.clientX, startY: event.clientY,
+            originWidth: detailLayout.width, originHeight: detailLayout.height,
+            originOffsetX: detailLayout.offsetX, originOffsetY: detailLayout.offsetY,
+            wSign: (corner === 'tr' || corner === 'br') ? 1 : -1,
+            hSign: (corner === 'bl' || corner === 'br') ? 1 : -1,
+        };
+        globalThis.addEventListener('pointermove', onDetailPointerMove, { passive: false });
+        globalThis.addEventListener('pointerup',   onDetailPointerUp,   { passive: false });
+        globalThis.addEventListener('pointercancel', onDetailPointerUp, { passive: false });
+    }
+
+    function onDetailPointerMove(event) {
+        if (detailPanelDrag && detailPanelDrag.pointerId === event.pointerId) {
+            event.preventDefault();
+            const vp = getViewportSize();
+            const rawX = detailPanelDrag.originX + (event.clientX - detailPanelDrag.startX);
+            const rawY = detailPanelDrag.originY + (event.clientY - detailPanelDrag.startY);
+            const maxOffsetX = Math.max(0, (vp.width  - detailLayout.width)  * 0.5 - PANEL_MARGIN);
+            const maxOffsetY = Math.max(0, (vp.height - detailLayout.height) * 0.5 - PANEL_MARGIN);
+            detailLayout.offsetX = clamp(rawX, -maxOffsetX, maxOffsetX);
+            detailLayout.offsetY = clamp(rawY, -maxOffsetY, maxOffsetY);
+            applyDetailLayout();
+            return;
+        }
+        if (detailPanelResize && detailPanelResize.pointerId === event.pointerId) {
+            event.preventDefault();
+            const dx = event.clientX - detailPanelResize.startX;
+            const dy = event.clientY - detailPanelResize.startY;
+            detailLayout.width   = detailPanelResize.originWidth   + detailPanelResize.wSign * dx;
+            detailLayout.height  = detailPanelResize.originHeight  + detailPanelResize.hSign * dy;
+            detailLayout.offsetX = detailPanelResize.originOffsetX + dx / 2;
+            detailLayout.offsetY = detailPanelResize.originOffsetY + dy / 2;
+            detailLayout = normalizeDetailPanelLayout(detailLayout);
+            applyDetailLayout();
+        }
+    }
+
+    function onDetailPointerUp(event) {
+        const isDrag   = detailPanelDrag   && detailPanelDrag.pointerId   === event.pointerId;
+        const isResize = detailPanelResize && detailPanelResize.pointerId === event.pointerId;
+        if (!isDrag && !isResize) return;
+        event.preventDefault();
+        detailPanelDrag = null;
+        detailPanelResize = null;
+        applyDetailLayout();
+        globalThis.removeEventListener('pointermove', onDetailPointerMove, { passive: false });
+        globalThis.removeEventListener('pointerup',   onDetailPointerUp,   { passive: false });
+        globalThis.removeEventListener('pointercancel', onDetailPointerUp, { passive: false });
+    }
+
     function buildRoot() {
         root = document.createElement('section');
         root.className = floatingPanel ? 'storage-panel storage-panel--floating' : 'storage-panel';
@@ -313,7 +435,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
             <div class="storage-detail-modal" data-storage-detail-modal hidden inert>
                 <div class="storage-detail-modal__backdrop" data-storage-detail-close></div>
                 <section class="storage-detail-modal__dialog" aria-label="${t('storage.slime_file_aria')}">
-                    <header class="storage-detail-modal__header">
+                    <header class="storage-detail-modal__header" data-detail-drag-handle>
                         <div>
                             <p class="storage-detail-modal__eyebrow">${t('storage.profile_eyebrow')}</p>
                             <h3 class="storage-detail-modal__title" data-storage-detail-title>${t('storage.specimen')}</h3>
@@ -321,6 +443,10 @@ export function createStoragePanelController({ mountTarget, repository, store = 
                         <button type="button" class="storage-detail-modal__close" data-storage-detail-close aria-label="${t('storage.close_detail_aria')}">×</button>
                     </header>
                     <div class="storage-detail-modal__content" data-storage-detail-content></div>
+                    <div class="storage-detail-modal__corner" data-detail-corner="tl"></div>
+                    <div class="storage-detail-modal__corner" data-detail-corner="tr"></div>
+                    <div class="storage-detail-modal__corner" data-detail-corner="bl"></div>
+                    <div class="storage-detail-modal__corner" data-detail-corner="br"></div>
                 </section>
             </div>
         `;
@@ -392,6 +518,27 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         if (refs.detailModal) {
             refs.detailModal.addEventListener('wheel', (e) => e.stopPropagation());
             refs.detailModal.addEventListener('touchmove', (e) => e.stopPropagation());
+
+            const detailDialog = refs.detailModal.querySelector('.storage-detail-modal__dialog');
+            if (detailDialog) {
+                // Bloquer pointerdown pour éviter que le storage intercepte les
+                // interactions dans la fenêtre de détail — SAUF si l'event vient
+                // du canvas du sandbox (sinon pinch/grab sont bloqués).
+                detailDialog.addEventListener('pointerdown', (e) => {
+                    if (e.target?.closest?.('.storage-live-sandbox__canvas')) return;
+                    e.stopPropagation();
+                });
+            }
+
+            // Drag handle sur le header
+            const detailDragHandle = refs.detailModal.querySelector('[data-detail-drag-handle]');
+            detailDragHandle?.addEventListener('pointerdown', onDetailDragStart);
+
+            // Coins de resize
+            refs.detailModal.querySelectorAll('[data-detail-corner]').forEach((c) =>
+                c.addEventListener('pointerdown', onDetailResizeStart)
+            );
+
             // Empêcher un drag depuis le fond de la modale de déclencher le drag du panneau
             refs.detailModal.addEventListener('pointerdown', (e) => {
                 if (e.target === refs.detailModal || e.target.classList.contains('storage-detail-modal__backdrop')) {
@@ -551,6 +698,11 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         globalThis.visualViewport?.removeEventListener('scroll', applyPanelLayout);
         panelDrag = null;
         panelResize = null;
+        detailPanelDrag = null;
+        detailPanelResize = null;
+        globalThis.removeEventListener('pointermove', onDetailPointerMove);
+        globalThis.removeEventListener('pointerup',   onDetailPointerUp);
+        globalThis.removeEventListener('pointercancel', onDetailPointerUp);
         detailSandbox.destroy();
         refs.dragActions?.remove();
         root?.remove();
@@ -613,6 +765,11 @@ export function createStoragePanelController({ mountTarget, repository, store = 
 
     function onPointerDown(event) {
         if (!isOpen || event.button > 0) {
+            return;
+        }
+
+        // Ne pas intercepter les clics quand la modale de détail est ouverte
+        if (refs.detailModal && !refs.detailModal.hidden) {
             return;
         }
 
@@ -1047,7 +1204,8 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         selectedCanonicalId = canonicalId;
         renderDetail(record);
         refs.detailModal.hidden = false;
-        refs.detailModal.setAttribute('aria-hidden', 'false');
+        refs.detailModal.removeAttribute('inert');
+        applyDetailLayout();
     }
 
     function closeDetail() {
@@ -1057,7 +1215,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         const detailWasOpen = !refs.detailModal.hidden;
         selectedCanonicalId = null;
         refs.detailModal.hidden = true;
-        refs.detailModal.setAttribute('aria-hidden', 'true');
+        refs.detailModal.setAttribute('inert', '');
         detailSandbox.destroy();
         refs.detailContent?.replaceChildren();
         if (detailWasOpen) {

@@ -27,7 +27,10 @@ import {
 
 const TAP_MAX_MS      = 220;
 const TAP_MAX_MOVE    = 10;
-const PINCH_SENS      = 0.04; // was 0.08 – halved to prevent over-aggressive pinch deformation
+const PINCH_SENS      = 0.04; // déformation physique momentanée
+const PINCH_SCALE_SENS = 0.006; // sensibilité du resize réel du baseRadius
+const PINCH_RADIUS_MIN = 12;   // baseRadius minimum
+const PINCH_RADIUS_MAX = 120;  // baseRadius maximum
 
 /* ─── blueprint builder ──────────────────────────────────────────────── */
 
@@ -87,9 +90,9 @@ export function createCanonicalInspectionSandbox() {
 
         root = document.createElement('div');
         root.className = 'storage-live-sandbox';
-        root.innerHTML = `<div class="storage-live-sandbox__viewport">
-            <canvas class="storage-live-sandbox__canvas" aria-label="${t('sandbox.canvas_aria')}"></canvas>
-            <span class="storage-live-sandbox__live-dot" aria-hidden="true"></span>
+        root.innerHTML = `<div class="storage-live-sandbox__viewport" style="position: relative; width: 100%; height: 100%; pointer-events: none;">
+            <canvas class="storage-live-sandbox__canvas" aria-label="${t('sandbox.canvas_aria')}" style="display: block; width: 100%; height: 100%; pointer-events: auto; touch-action: none;"></canvas>
+            <span class="storage-live-sandbox__live-dot" aria-hidden="true" style="pointer-events: none;"></span>
         </div>`;
         mountTarget.replaceChildren(root);
 
@@ -272,7 +275,8 @@ export function createCanonicalInspectionSandbox() {
                 const [a, b] = [...activePointers.values()];
                 const nd = pdist(a, b), nc = midXY(a, b);
                 if (pinchState && nc) {
-                    withOwnContext(() => applyPinch(nc, (nd - pinchState.distance) * PINCH_SENS));
+                    const rawDelta = nd - pinchState.distance;
+                    withOwnContext(() => applyPinch(nc, rawDelta));
                     pinchState = { distance: nd, center: nc };
                 }
                 return;
@@ -337,9 +341,15 @@ export function createCanonicalInspectionSandbox() {
         slime.triggerAction?.(/shy|scary|timid/i.test(arch) ? 'question' : 'observe', 440, 0.6);
     }
 
-    function applyPinch(center, delta) {
-        if (!slime || !center || !Number.isFinite(delta) || Math.abs(delta) < 0.02) return;
-        const s   = Math.max(-1.0, Math.min(1.0, delta)); // was ±1.8 – clamped tighter to prevent explosive deformation
+    function applyPinch(center, rawDelta) {
+        if (!slime || !center || !Number.isFinite(rawDelta) || Math.abs(rawDelta) < 0.5) return;
+
+        // ── Resize réel du baseRadius (persistant) ─────────────────────────
+        const newRadius = slime.baseRadius + rawDelta * PINCH_SCALE_SENS;
+        slime.baseRadius = Math.max(PINCH_RADIUS_MIN, Math.min(PINCH_RADIUS_MAX, newRadius));
+
+        // ── Déformation physique momentanée (effet visuel) ──────────────────
+        const s   = Math.max(-1.0, Math.min(1.0, rawDelta * PINCH_SENS));
         const dir = s < 0 ? -1 : 1;
         for (const n of slime.nodes || []) {
             const dx = n.x - center.x, dy = n.y - center.y;
