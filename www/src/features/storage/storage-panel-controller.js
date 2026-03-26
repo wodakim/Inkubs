@@ -574,10 +574,14 @@ export function createStoragePanelController({ mountTarget, repository, store = 
                     const snapshot = repository.getSnapshot();
                     const record = snapshot.recordsById[canonicalId];
                     if (record) {
+                        const slotsPerPage = snapshot.meta?.archiveSlotsPerPage || 16;
                         const sourceSlots = snapshot.pages[String(selection.page)] || [];
-                        const slotIndex = sourceSlots.findIndex((v) => !v);
+                        let slotIndex = sourceSlots.findIndex((v) => !v);
+                        if (slotIndex < 0 && sourceSlots.length < slotsPerPage) {
+                            slotIndex = sourceSlots.length;
+                        }
                         const targetPlacement = { kind: 'archive', page: selection.page, slotIndex: slotIndex >= 0 ? slotIndex : 0 };
-                        const sourcePlacement = record.placement || { kind: 'archive', page: currentPage, slotIndex: 0 };
+                        const sourcePlacement = resolvePlacement(snapshot, canonicalId) || { kind: 'archive', page: currentPage, slotIndex: 0 };
                         repository.transact((draft) => {
                             moveOrSwapCanonicalInSnapshot(draft, { 
                                 from: sourcePlacement, 
@@ -1130,8 +1134,11 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         const maxPages = snapshot.meta?.unlockedPages || snapshot.meta?.maxPages || 1;
         const slotsPerPage = snapshot.meta?.archiveSlotsPerPage || 16;
         for (let page = 1; page <= maxPages; page++) {
-            const slots = snapshot.pages[String(page)] || Array.from({ length: slotsPerPage }, () => null);
-            const slotIndex = slots.findIndex((v) => !v);
+            const slots = snapshot.pages[String(page)] || [];
+            let slotIndex = slots.findIndex((v) => !v);
+            if (slotIndex < 0 && slots.length < slotsPerPage) {
+                slotIndex = slots.length;
+            }
             if (slotIndex >= 0) {
                 return { kind: 'archive', page, slotIndex };
             }
@@ -1140,8 +1147,12 @@ export function createStoragePanelController({ mountTarget, repository, store = 
     }
 
     function findFirstEmptyTeamPlacement(snapshot) {
+        const maxTeamSize = snapshot.meta?.teamSlotCount || 4;
         const slots = snapshot.teamSlots || [];
-        const slotIndex = slots.findIndex((v) => !v);
+        let slotIndex = slots.findIndex((v) => !v);
+        if (slotIndex < 0 && slots.length < maxTeamSize) {
+            slotIndex = slots.length;
+        }
         return slotIndex >= 0 ? { kind: 'team', slotIndex } : null;
     }
 
@@ -1302,6 +1313,9 @@ export function createStoragePanelController({ mountTarget, repository, store = 
             return;
         }
 
+        const snapshot = repository.getSnapshot();
+        const currentPlacement = resolvePlacement(snapshot, selectedCanonicalId);
+
         refs.detailTitle.textContent = record.displayName || record.storageDisplay?.label || 'Specimen';
         const display = record.storageDisplay || {};
         const genome = record.proceduralCore?.genome || {};
@@ -1377,7 +1391,7 @@ export function createStoragePanelController({ mountTarget, repository, store = 
             </section>` : ''}
 
             <section class="storage-detail-modal__actions">
-                ${record.placement?.kind === 'team' ? `
+                ${currentPlacement?.kind === 'team' ? `
                     <button type="button" class="storage-detail-modal__action-btn" data-storage-detail-move>
                         <span class="storage-detail-modal__action-icon">📦</span>
                         ${t('storage.action_store_label')}
@@ -1590,6 +1604,19 @@ function placementFromSlot(slot) {
         page: slot.dataset.slotPage ? Number(slot.dataset.slotPage) : null,
         slotIndex: Number(slot.dataset.slotIndex),
     });
+}
+
+function resolvePlacement(snapshot, canonicalId) {
+    if (!snapshot || !canonicalId) return null;
+    const teamIndex = (snapshot.teamSlots || []).indexOf(canonicalId);
+    if (teamIndex >= 0) return { kind: 'team', slotIndex: teamIndex };
+    
+    for (const [pageStr, pageSlots] of Object.entries(snapshot.pages || {})) {
+        if (!Array.isArray(pageSlots)) continue;
+        const archiveIndex = pageSlots.indexOf(canonicalId);
+        if (archiveIndex >= 0) return { kind: 'archive', page: parseInt(pageStr, 10), slotIndex: archiveIndex };
+    }
+    return null;
 }
 
 // Fields that are metadata, not display stats
