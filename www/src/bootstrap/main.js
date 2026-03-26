@@ -90,6 +90,26 @@ function _initialize() {
         destroy:                 app.destroy,
         get isActive() { return app.isActive; },
     });
+
+    // ╔══════════════════════════════════════════════════════════════════╗
+    // ║  DEV ONLY — SUPPRIMER AVANT RELEASE                             ║
+    // ║  Usage console : __inkuDev.addMoney(50000)                      ║
+    // ╚══════════════════════════════════════════════════════════════════╝
+    window.__inkuDev = {
+        addMoney(amount = 10000) {
+            const n = Number(amount);
+            if (!Number.isFinite(n) || n <= 0) { console.warn('[DEV] Montant invalide.'); return; }
+            app.store.dispatch({ type: 'ADD_CURRENCY', payload: { currency: 'hexagon', amount: n } });
+            console.log(`[DEV] +${n} Inkübits ajoutés. Total : ${app.store.getState().player.currencies.hexagon}`);
+        },
+        setMoney(amount = 0) {
+            const n = Math.max(0, Number(amount));
+            if (!Number.isFinite(n)) { console.warn('[DEV] Montant invalide.'); return; }
+            app.store.dispatch({ type: 'SET_CURRENCY', payload: { currency: 'hexagon', amount: n } });
+            console.log(`[DEV] Solde fixé à ${n} Inkübits.`);
+        },
+    };
+    // ══════════════════════════════════════════════════════════════════
 }
 
 /* ── 4. Blocage du zoom gestuel natif ────────────────────────────────── */

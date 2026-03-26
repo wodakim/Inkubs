@@ -196,7 +196,15 @@ export const TRANSLATIONS = {
         'storage.action_team_aria':     'Inclure le slime dans l\'équipe',
         'storage.action_team_full':     'Équipe pleine',
         'storage.action_archive_full':  'Archive pleine',
+        'storage.action_move_label':    'Ranger',
         'storage.sell_price_hint':      '+{amount} ◆',
+
+        // Storage — modal saisie boîte
+        'storage.box_input_title':      'Ranger dans une boîte',
+        'storage.box_input_hint':       'Numéro de boîte (1–99)',
+        'storage.box_full_error':       'Cette boîte est pleine !',
+        'storage.box_invalid':          'Numéro invalide (1–99)',
+        'storage.box_confirm':          'Ranger',
 
         // Storage — sandbox aperçu
         'sandbox.unavailable':          'Aperçu indisponible',
@@ -693,7 +701,15 @@ export const TRANSLATIONS = {
         'storage.action_team_aria':     'Add slime to team',
         'storage.action_team_full':     'Team full',
         'storage.action_archive_full':  'Archive full',
+        'storage.action_move_label':    'Store',
         'storage.sell_price_hint':      '+{amount} ◆',
+
+        // Storage — box input modal
+        'storage.box_input_title':      'Move to a Box',
+        'storage.box_input_hint':       'Box number (1–99)',
+        'storage.box_full_error':       'This box is full!',
+        'storage.box_invalid':          'Invalid number (1–99)',
+        'storage.box_confirm':          'Move',
 
         // Storage — sandbox preview
         'sandbox.unavailable':          'Preview unavailable',

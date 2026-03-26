@@ -418,9 +418,10 @@ export function createStoragePanelController({ mountTarget, repository, store = 
             </div>
 
             <div class="storage-confirm-modal" data-storage-sell-modal hidden inert aria-hidden="true" role="dialog" aria-modal="true">
-                <div class="storage-confirm-modal__content">
+                <div class="storage-confirm-modal__dialog">
                     <h3 class="storage-confirm-modal__title">${t('storage.sell_title')}</h3>
-                    <p class="storage-confirm-modal__text">${t('storage.sell_text')}</p>
+                    <div class="storage-confirm-modal__subject" data-storage-sell-subject></div>
+                    <p class="storage-confirm-modal__copy" data-storage-sell-copy></p>
                     <div class="storage-confirm-modal__actions">
                         <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--secondary" data-storage-sell-cancel>${t('common.cancel')}</button>
                         <button type="button" class="storage-confirm-modal__button storage-confirm-modal__button--danger" data-storage-sell-confirm>${t('storage.sell_confirm')}</button>
@@ -428,12 +429,15 @@ export function createStoragePanelController({ mountTarget, repository, store = 
                 </div>
             </div>
 
-            <div class="storage-box-selector" data-storage-box-modal hidden inert aria-hidden="true" role="dialog" aria-modal="true">
-                <div class="storage-box-selector__content">
-                    <h3 class="storage-box-selector__title">${t('storage.select_box_title')}</h3>
-                    <div class="storage-box-selector__grid" data-storage-box-grid></div>
-                    <div class="storage-box-selector__actions">
-                        <button type="button" class="storage-box-selector__button storage-box-selector__button--secondary" data-storage-box-cancel>${t('common.cancel')}</button>
+            <div class="storage-box-input-modal" data-storage-box-modal hidden inert aria-hidden="true" role="dialog" aria-modal="true">
+                <div class="storage-box-input-modal__dialog">
+                    <h3 class="storage-box-input-modal__title">${t('storage.box_input_title')}</h3>
+                    <p class="storage-box-input-modal__hint">${t('storage.box_input_hint')}</p>
+                    <input type="number" min="1" max="99" class="storage-box-input-modal__input" data-storage-box-number-input placeholder="1–99">
+                    <p class="storage-box-input-modal__error" data-storage-box-error hidden></p>
+                    <div class="storage-box-input-modal__actions">
+                        <button type="button" class="storage-box-input-modal__btn storage-box-input-modal__btn--secondary" data-storage-box-cancel>${t('common.cancel')}</button>
+                        <button type="button" class="storage-box-input-modal__btn storage-box-input-modal__btn--confirm" data-storage-box-confirm>${t('storage.box_confirm')}</button>
                     </div>
                 </div>
             </div>
@@ -503,7 +507,8 @@ export function createStoragePanelController({ mountTarget, repository, store = 
             sellPrice: dragActionsEl.querySelector('[data-storage-sell-price]'),
             sellModal: root.querySelector('[data-storage-sell-modal]'),
             boxModal: root.querySelector('[data-storage-box-modal]'),
-            boxGrid: root.querySelector('[data-storage-box-grid]'),
+            boxNumberInput: root.querySelector('[data-storage-box-number-input]'),
+            boxError: root.querySelector('[data-storage-box-error]'),
             sellCopy: root.querySelector('[data-storage-sell-copy]'),
             sellSubject: root.querySelector('[data-storage-sell-subject]'),
             sortChips: [...root.querySelectorAll('[data-storage-sort-key]')],
@@ -568,21 +573,34 @@ export function createStoragePanelController({ mountTarget, repository, store = 
                 if (selection) {
                     const snapshot = repository.getSnapshot();
                     const record = snapshot.recordsById[canonicalId];
-                    if (record && record.placement) {
-                        const targetPlacement = { kind: 'archive', page: selection.page, slotIndex: -1 };
+                    if (record) {
+                        const sourceSlots = snapshot.pages[String(selection.page)] || [];
+                        const slotIndex = sourceSlots.findIndex((v) => !v);
+                        const targetPlacement = { kind: 'archive', page: selection.page, slotIndex: slotIndex >= 0 ? slotIndex : 0 };
+                        const sourcePlacement = record.placement || { kind: 'archive', page: currentPage, slotIndex: 0 };
                         repository.transact((draft) => {
                             moveOrSwapCanonicalInSnapshot(draft, { 
-                                from: record.placement, 
+                                from: sourcePlacement, 
                                 to: targetPlacement 
                             });
                             return draft;
-                        }, { type: 'storage:move', from: record.placement, to: targetPlacement });
+                        }, { type: 'storage:move', from: sourcePlacement, to: targetPlacement });
                         
                         // Close detail and switch to the new page
                         closeDetail();
                         setPage(selection.page);
                         setTab('archive');
                     }
+                }
+            }
+
+            const sellBtn = e.target.closest('[data-storage-detail-sell]');
+            if (sellBtn && selectedCanonicalId) {
+                const snapshot = repository.getSnapshot();
+                const record = snapshot.recordsById[selectedCanonicalId];
+                if (record) {
+                    closeDetail();
+                    openSellModal({ canonicalId: selectedCanonicalId, record });
                 }
             }
         });
@@ -760,6 +778,13 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         if (renameInput) {
             event.preventDefault();
             saveDetailName();
+            return;
+        }
+
+        const boxInput = event.target.closest?.('[data-storage-box-number-input]');
+        if (boxInput) {
+            event.preventDefault();
+            confirmBoxInputSelection();
         }
     }
 
@@ -800,10 +825,9 @@ export function createStoragePanelController({ mountTarget, repository, store = 
             return;
         }
 
-        const boxChoiceTrigger = event.target.closest?.('[data-storage-box-choice]');
-        if (boxChoiceTrigger) {
-            const page = Number(boxChoiceTrigger.dataset.page);
-            confirmBoxSelection(page);
+        const boxConfirmTrigger = event.target.closest?.('[data-storage-box-confirm]');
+        if (boxConfirmTrigger) {
+            confirmBoxInputSelection();
             return;
         }
 
@@ -1361,9 +1385,13 @@ export function createStoragePanelController({ mountTarget, repository, store = 
                 ` : `
                     <button type="button" class="storage-detail-modal__action-btn" data-storage-detail-move>
                         <span class="storage-detail-modal__action-icon">🚚</span>
-                        ${t('storage.action_move_label') || 'DÉPLACER'}
+                        ${t('storage.action_move_label') || 'Ranger'}
                     </button>
                 `}
+                <button type="button" class="storage-detail-modal__action-btn storage-detail-modal__action-btn--danger" data-storage-detail-sell>
+                    <span class="storage-detail-modal__action-icon">🛒</span>
+                    ${t('storage.sell_label')}
+                </button>
             </section>
         `;
 
@@ -1451,11 +1479,40 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         });
     }
 
-    function confirmBoxSelection(page) {
+    function confirmBoxInputSelection() {
+        if (!refs.boxNumberInput) return;
+        const raw = refs.boxNumberInput.value.trim();
+        const page = parseInt(raw, 10);
+        const snapshot = repository.getSnapshot();
+        const maxPages = snapshot.meta?.maxPages || 99;
+
+        // Validate range
+        if (!Number.isInteger(page) || page < 1 || page > Math.min(99, maxPages)) {
+            showBoxError(t('storage.box_invalid'));
+            return;
+        }
+
+        // Check if target page is full
+        const slotsPerPage = snapshot.meta?.archiveSlotsPerPage || 16;
+        const pageSlots = snapshot.pages[String(page)] || [];
+        const emptySlot = pageSlots.findIndex((v) => !v);
+        const isFull = emptySlot < 0 && pageSlots.length >= slotsPerPage;
+
+        if (isFull) {
+            showBoxError(t('storage.box_full_error'));
+            return;
+        }
+
         const resolve = pendingBoxSelection?.resolve;
         pendingBoxSelection = null;
         closeBoxModal();
         if (resolve) resolve({ page });
+    }
+
+    function showBoxError(msg) {
+        if (!refs.boxError) return;
+        refs.boxError.textContent = msg;
+        refs.boxError.hidden = false;
     }
 
     function cancelBoxSelection() {
@@ -1467,10 +1524,14 @@ export function createStoragePanelController({ mountTarget, repository, store = 
 
     function openBoxModal() {
         ensureRoot();
-        renderBoxGrid();
+        // Reset input and error on open
+        if (refs.boxNumberInput) refs.boxNumberInput.value = '';
+        if (refs.boxError) { refs.boxError.textContent = ''; refs.boxError.hidden = true; }
         refs.boxModal.hidden = false;
         refs.boxModal.setAttribute('aria-hidden', 'false');
         refs.boxModal.removeAttribute('inert');
+        // Auto-focus the input
+        setTimeout(() => refs.boxNumberInput?.focus(), 80);
     }
 
     function closeBoxModal() {
@@ -1478,39 +1539,6 @@ export function createStoragePanelController({ mountTarget, repository, store = 
         refs.boxModal.hidden = true;
         refs.boxModal.setAttribute('aria-hidden', 'true');
         refs.boxModal.setAttribute('inert', '');
-    }
-
-    function renderBoxGrid() {
-        if (!refs.boxGrid) return;
-        const snapshot = repository.getSnapshot();
-        const unlockedPages = snapshot.meta.unlockedPages || snapshot.meta.maxPages || 1;
-        
-        refs.boxGrid.innerHTML = '';
-        
-        for (let i = 1; i <= unlockedPages; i++) {
-            const pageKey = String(i);
-            const slots = snapshot.pages[pageKey] || [];
-            const fillCount = slots.filter(Boolean).length;
-            const max = snapshot.meta.archiveSlotsPerPage || 16;
-            
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'storage-box-selector__item';
-            btn.dataset.storageBoxChoice = 'true';
-            btn.dataset.page = String(i);
-            btn.innerHTML = `
-                <div class="storage-box-selector__item-icon">📦</div>
-                <div class="storage-box-selector__item-label">${t('storage.box')} ${i}</div>
-                <div class="storage-box-selector__item-count">${fillCount}/${max}</div>
-            `;
-            
-            if (fillCount >= max) {
-                btn.disabled = true;
-                btn.classList.add('storage-box-selector__item--full');
-            }
-            
-            refs.boxGrid.appendChild(btn);
-        }
     }
 
     function saveDetailName() {
