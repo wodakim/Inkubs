@@ -55,6 +55,9 @@ function createLightweightShelfRenderer() {
         }
         if (!blueprint) return;
 
+        // Force scale down for shelf rendering so slimes don't break out of the 50x50 physics bounds
+        blueprint.baseRadius = Math.min((blueprint.baseRadius || 38) * 0.45, 20);
+
         domWrapper.innerHTML = `<canvas aria-hidden="true" style="display:block;width:100%;height:100%;pointer-events:none;touch-action:none;"></canvas>`;
         const canvas = domWrapper.querySelector('canvas');
         const ctx = canvas.getContext('2d', { alpha: true });

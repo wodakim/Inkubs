@@ -224,11 +224,6 @@
     padding: 12px;
     position: relative;
     z-index: 1;
-    /* Active les container queries dimensionnelles.
-       La hauteur vient du flexbox parent (pas des enfants) → pas de dépendance circulaire.
-       Les boîtes peuvent ainsi lire la hauteur réelle via cqh et s'auto-limiter. */
-    container-type: size;
-    container-name: pf-boxes;
 }
 
 /* 1 seule boîte → centrée, prend +/- 60% de l'espace par ex, mais aspect ratio 1.45 */
@@ -386,24 +381,11 @@
     border-radius: 50%;
     position: relative;
     overflow: hidden;
-    /* Les cellules de grille dans un box 1.45:1 sont plus larges que hautes.
-       width: 100% + aspect-ratio: 1/1 → le slot déborde EN HAUTEUR hors de la cellule → ellipse.
-       Fix : s'ancrer sur la HAUTEUR (dimension contrainte) :
-       height: 100% donne un carré dont le côté = hauteur de cellule → cercle parfait.
-       width: auto + margin: auto centrent horizontalement dans la cellule. */
-    height: 100%;
-    width: auto;
-    aspect-ratio: 1 / 1;
-    align-self: center;
-    justify-self: center;
-    margin: auto;
 }
 
 /* Creux non acheté — invisible, juste légèrement sombre */
 .pf-potion-slot--hole {
-    /* Focal à 40% (haut du cercle) = ombre en haut → lecture "creux éclairé du dessus"
-       stable sur toutes les rangées de la grille, y compris la rangée du bas. */
-    background: radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.38) 0%, rgba(0,0,0,0.12) 70%, transparent 100%);
+    background: radial-gradient(ellipse at 50% 55%, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.12) 70%, transparent 100%);
     box-shadow: inset 0 2px 6px rgba(0,0,0,0.3);
 }
 
@@ -635,7 +617,7 @@
         rgba(255,255,255,0.04) 45%,
         rgba(0,0,0,0.08) 100%);
     border: 1.5px solid rgba(255,255,255,0.18);
-    border-radius: 16px 16px 5px 5px;
+    border-radius: 5px 5px 16px 16px;
     position: relative;
     overflow: hidden;
     box-shadow:
@@ -651,7 +633,7 @@
     width: 100%;
     height: 0%;
     transition: height 0.4s ease, background 0.4s ease;
-    border-radius: 14px 14px 0 0;
+    border-radius: 0 0 14px 14px;
 }
 .pf-flask-liquid::after {
     content: '';
@@ -676,9 +658,8 @@
     height: 4px;
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 4px 4px 0 0;
-    border-bottom: none;
-    border-top: 1px solid rgba(255,255,255,0.15);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
     transition: border-color 0.25s;
 }
 .pf-flask-label {
@@ -736,54 +717,4 @@
     color: #ffd54f;
     font-weight: 900;
     letter-spacing: 0.06em;
-}
-/* ═══════════════════════════════════════════════════════════════════
-   CONTAINER QUERY — Auto-limitation intelligente des boîtes
-   
-   Principe : les boîtes lisent la hauteur réelle de leur container (cqh)
-   et plafonnent leur propre hauteur à (container - gap) / 2 rangées.
-   Résultat : les boîtes ne peuvent jamais déborder dans les fioles
-   en bas ni remonter dans le header, peu importe la taille d'écran.
-   
-   Requires: container-type: size sur .pf-boxes-area (ci-dessus).
-   Support : Chrome 105+, Safari 16+ (iOS 16+), Firefox 110+.
-══════════════════════════════════════════════════════════════════ */
-@container pf-boxes (height > 0px) {
-    .pf-box {
-        /* Max-height = (hauteur container - 1 gap de 12px) / 2 rangées - 1px marge sécurité */
-        max-height: calc((100cqh - 12px) / 2 - 1px);
-    }
-}
-
-/* ═══════════════════════════════════════════════════════════════════
-   PETITS ÉCRANS — iPhone SE et similaires (≤ 390px)
-   
-   Le container query gère déjà la hauteur des boîtes.
-   Ce bloc ne sert qu'à ajuster l'étagère slimes (trop haute sur SE)
-   et les fioles pour libérer de la hauteur au workspace.
-══════════════════════════════════════════════════════════════════ */
-@media (max-width: 390px) {
-
-    /* Étagère : réduite pour libérer ~26px de hauteur au workspace */
-    .pf-shelf-area {
-        height: clamp(54px, 8vh, 68px);
-    }
-
-    .pf-slime-visual-wrapper {
-        width: 44px;
-        height: 44px;
-    }
-    .pf-slime-card {
-        flex: 0 0 52px;
-        max-height: 68px;
-    }
-
-    /* Fioles : légèrement réduites */
-    .pf-flask-body {
-        width: 22px;
-        height: 34px;
-    }
-    .pf-flask-stand {
-        width: 15px;
-    }
 }
