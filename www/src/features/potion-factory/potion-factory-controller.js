@@ -367,7 +367,7 @@ export function createPotionFactoryController({ store }) {
             const rawRarity = slime.storageDisplay?.rarityScore
                 ?? slime.proceduralCore?.genome?.stats?.rarityScore
                 ?? slime.canonicalSnapshot?.proceduralCore?.genome?.stats?.rarityScore ?? 0;
-            const rarity = Math.min(5, Math.max(0, rawRarity));
+            const rarity = Math.min(100, Math.max(0, rawRarity));
 
             for (let i = 0; i < add; i++) flask.doses.push({ hue, rarity });
             PotionPersistence.saveFactoryState(state);

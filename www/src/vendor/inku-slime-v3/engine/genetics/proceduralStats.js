@@ -47,7 +47,7 @@ export function buildProceduralStats({ type, baseRadius, genome }) {
 
   // Rarity bonus: legendary/epic slimes get a small stat lift
   const rarityTier = genome.rarityTier || 'common';
-  const rarityBonus = { common:0, uncommon:2, rare:5, epic:9, legendary:15 }[rarityTier] || 0;
+  const rarityBonus = { common:0, uncommon:2, rare:4, super_rare:7, legend:11, divin:16 }[rarityTier] || 0;
   vitality  += rarityBonus * 0.6;
   curiosity += rarityBonus * 0.8;
   empathy   += rarityBonus * 0.4;

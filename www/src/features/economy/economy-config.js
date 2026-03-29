@@ -21,12 +21,13 @@
  *   - 4 rare → premier epic en ~24 min
  */
 export const RARITY_INCOME_BASE = Object.freeze({
-    common:    2.0,
-    uncommon:  12.0,
-    rare:      45.0,
-    epic:      180.0,
-    legendary: 750.0,
-    instable:  120.0,
+    common:       1.0,
+    uncommon:     3.0,
+    rare:         8.0,
+    super_rare:   20.0,
+    legend:       50.0,
+    divin:       150.0,
+    instable:     35.0,
 });
 
 /** Multiplicateurs de revenu selon l'humeur du slime. */
@@ -92,4 +93,4 @@ export const STARTING_INKUBITS = 500;
  * price = incomeRate(slime) × PRICE_RECOVERY_MINUTES
  * Garantit une cohérence directe entre prix et revenu.
  */
-export const PRICE_RECOVERY_MINUTES = 100;
+export const PRICE_RECOVERY_MINUTES = 150;

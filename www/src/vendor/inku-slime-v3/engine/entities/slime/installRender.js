@@ -281,6 +281,38 @@ export function installRender(Slime) {
       return grad;
     }
 
+    if (pattern === 'pixel_skin' || pattern === 'tribal_skin') {
+      const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, maxDist * 1.2);
+      grad.addColorStop(0, c1); grad.addColorStop(1, c2); return grad;
+    }
+
+    if (pattern === 'translucid') {
+      const grad = ctx.createRadialGradient(cx-br*0.1, cy-br*0.1, 0, cx, cy, maxDist*1.1);
+      grad.addColorStop(0, `hsla(${hue},${sat}%,${Math.min(100,lit+30)}%,0.15)`);
+      grad.addColorStop(0.7, `hsla(${hue},${sat}%,${lit}%,0.3)`);
+      grad.addColorStop(1, `hsla(${hue},${sat}%,${Math.max(0,lit-20)}%,0.65)`);
+      return grad;
+    }
+
+    if (pattern === 'magma') {
+      const h2 = this.genome?.hue2 ?? 0; // fiery fallback
+      const grad = ctx.createRadialGradient(cx, cy+br*0.2, 0, cx, cy, maxDist*1.2);
+      grad.addColorStop(0, `hsl(${h2}, 100%, 70%)`); 
+      grad.addColorStop(0.4, `hsl(${hue}, 90%, 45%)`);
+      grad.addColorStop(0.8, `hsl(${hue}, 70%, 15%)`); 
+      grad.addColorStop(1, `#1a0a0a`); 
+      return grad;
+    }
+
+    if (pattern === 'cameleon') {
+      const timeHue = (Date.now() / 30) % 360; 
+      const grad = ctx.createLinearGradient(cx - maxDist, cy - maxDist, cx + maxDist, cy + maxDist);
+      grad.addColorStop(0, `hsl(${timeHue}, ${Math.max(80,sat)}%, 60%)`);
+      grad.addColorStop(0.5, `hsl(${(timeHue + 45)%360}, ${Math.max(80,sat)}%, 50%)`);
+      grad.addColorStop(1, `hsl(${(timeHue + 90)%360}, ${Math.max(80,sat)}%, 30%)`);
+      return grad;
+    }
+
     // Fallback to radial
     const grad = ctx.createRadialGradient(cx - br*0.2, cy - br*0.3, br*0.1, cx, cy, maxDist*1.2);
     grad.addColorStop(0, c1); grad.addColorStop(1, c2); return grad;
@@ -377,6 +409,105 @@ export function installRender(Slime) {
         ctx.lineTo(cx + i * br * 0.25, cy + br);
         ctx.stroke();
       }
+      ctx.restore();
+    } else if (pattern === 'pixel_skin') {
+      ctx.save();
+      this.buildBodyPath();
+      ctx.clip();
+      const ps = br * 0.15;
+      for(let py = cy - br*1.5; py < cy + br*1.5; py += ps) {
+        for(let px = cx - br*1.5; px < cx + br*1.5; px += ps) {
+          if (Math.random() < 0.3) {
+            ctx.fillStyle = Math.random() < 0.5 ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)';
+            ctx.fillRect(px, py, ps, ps);
+          }
+        }
+      }
+      ctx.restore();
+    } else if (pattern === 'tribal_skin') {
+      ctx.save();
+      this.buildBodyPath();
+      ctx.clip();
+      ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'miter';
+      const steps = 4;
+      for (let i = 0; i < steps; i++) {
+        const yBase = cy - br * 0.5 + i * br * 0.4;
+        ctx.beginPath();
+        ctx.moveTo(cx - br, yBase);
+        ctx.lineTo(cx - br*0.5, yBase - br*0.15);
+        ctx.lineTo(cx, yBase);
+        ctx.lineTo(cx + br*0.5, yBase - br*0.15);
+        ctx.lineTo(cx + br, yBase);
+        ctx.stroke();
+      }
+      ctx.restore();
+    } else if (pattern === 'magma') {
+      ctx.save();
+      this.buildBodyPath();
+      ctx.clip();
+      // Draw dark rocky crust spots
+      ctx.fillStyle = '#110500';
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        const r = br * (0.3 + Math.random() * 0.6);
+        const ptX = cx + Math.cos(a) * r;
+        const ptY = cy + Math.sin(a) * r;
+        ctx.beginPath();
+        ctx.arc(ptX, ptY, br * (0.15 + Math.random() * 0.2), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      // Glowing cracks
+      ctx.strokeStyle = 'rgba(255, 200, 50, 0.8)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx - br*0.5, cy - br*0.5);
+      ctx.lineTo(cx - br*0.2, cy - br*0.1);
+      ctx.lineTo(cx + br*0.3, cy - br*0.3);
+      ctx.lineTo(cx + br*0.6, cy + br*0.1);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx - br*0.4, cy + br*0.4);
+      ctx.lineTo(cx + br*0.1, cy + br*0.2);
+      ctx.lineTo(cx + br*0.2, cy + br*0.6);
+      ctx.stroke();
+      ctx.restore();
+    } else if (pattern === 'cameleon') {
+      ctx.save();
+      this.buildBodyPath();
+      ctx.clip();
+      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.lineWidth = 0.5;
+      const sr = br * 0.12;
+      for (let sy = cy - br; sy < cy + br; sy += sr * 1.4) {
+        let offsetX = (Math.round(sy / (sr * 1.4)) % 2 === 0) ? 0 : sr;
+        for (let sx = cx - br; sx < cx + br; sx += sr * 2) {
+          ctx.beginPath();
+          ctx.arc(sx + offsetX, sy, sr, 0, Math.PI);
+          ctx.stroke();
+        }
+      }
+      ctx.restore();
+    } else if (pattern === 'translucid') {
+      ctx.save();
+      this.buildBodyPath();
+      ctx.clip();
+      // Inner core
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.beginPath();
+      ctx.arc(cx, cy + br*0.1, br*0.35, 0, Math.PI*2);
+      ctx.fill();
+      // Glass reflections
+      ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, br*0.8, Math.PI*1.1, Math.PI*1.6);
+      ctx.stroke();
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(cx, cy, br*0.8, Math.PI*0.1, Math.PI*0.4);
+      ctx.stroke();
       ctx.restore();
     }
   };

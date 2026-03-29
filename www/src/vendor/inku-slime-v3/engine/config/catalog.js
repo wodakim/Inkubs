@@ -181,17 +181,20 @@ export const COLOR_PATTERNS = [
   {id:'gradient_v',w:7},{id:'gradient_h',w:7},{id:'gradient_diag',w:6},
   {id:'duo_tone',w:4},{id:'soft_spots',w:3.5},{id:'stripe_v',w:3},
   {id:'galaxy_swirl',w:1.5},{id:'aurora',w:1.2},{id:'crystal_facets',w:1},
-  {id:'prismatic',w:0.4},{id:'void_rift',w:0.3}
+  {id:'prismatic',w:0.4},{id:'void_rift',w:0.3},
+  {id:'pixel_skin',w:0.8},{id:'tribal_skin',w:0.8},{id:'cameleon',w:0.6},
+  {id:'translucid',w:0.6},{id:'magma',w:0.5}
 ];
 
 // ─── RARITY TIERS ────────────────────────────────────────────────────────────
 export const RARITY_TIERS = {
-  common:   { get label() { return t('rarity.common');    }, color:'#a0a0a0', scoreMin:0,  scoreMax:29  },
-  uncommon: { get label() { return t('rarity.uncommon');  }, color:'#4caf50', scoreMin:30, scoreMax:54  },
-  rare:     { get label() { return t('rarity.rare');      }, color:'#2196f3', scoreMin:55, scoreMax:74  },
-  epic:     { get label() { return t('rarity.epic');      }, color:'#9c27b0', scoreMin:75, scoreMax:89  },
-  legendary:{ get label() { return t('rarity.legendary'); }, color:'#ff9800', scoreMin:90, scoreMax:100 },
-  instable: { get label() { return t('rarity.instable');  }, color:'#ff3333', scoreMin:0,  scoreMax:100 },
+  common:     { get label() { return t('rarity.common');     }, color:'#a0a0a0', scoreMin:0,  scoreMax:19  },
+  uncommon:   { get label() { return t('rarity.uncommon');   }, color:'#4caf50', scoreMin:20, scoreMax:39  },
+  rare:       { get label() { return t('rarity.rare');       }, color:'#2196f3', scoreMin:40, scoreMax:59  },
+  super_rare: { get label() { return t('rarity.super_rare'); }, color:'#9c27b0', scoreMin:60, scoreMax:79  },
+  legend:     { get label() { return t('rarity.legend');     }, color:'#ff9800', scoreMin:80, scoreMax:94  },
+  divin:      { get label() { return t('rarity.divin');      }, color:'#ffeb3b', scoreMin:95, scoreMax:100 },
+  instable:   { get label() { return t('rarity.instable');   }, color:'#ff3333', scoreMin:0,  scoreMax:100 },
 };
 
 // ─── ACTIONS ──────────────────────────────────────────────────────────────────

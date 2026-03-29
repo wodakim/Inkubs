@@ -76,27 +76,37 @@ function eyeRarityScore(eye) {
   return SCORES[eye] ?? 0;
 }
 
-function patternRarityScore(pat) {
-  const SCORES = {
-    solid:0,radial_glow:5,
-    gradient_v:14,gradient_h:14,gradient_diag:16,
-    duo_tone:28,soft_spots:30,stripe_v:32,
-    galaxy_swirl:55,aurora:58,crystal_facets:60,
-    prismatic:78,void_rift:82
-  };
-  return SCORES[pat] ?? 0;
-}
-
 function computeRarityScore(genome) {
-  const shapeScore   = SHAPE_RARITY[genome.bodyShape] ?? 0;
-  const accScore     = accessoryRarityScore(genome.accessory);
-  const eyeScore     = eyeRarityScore(genome.eyeStyle);
-  const patScore     = patternRarityScore(genome.colorPattern);
+  const pat = genome.colorPattern;
+  let targetTier = 'common';
+  let tierProgress = Math.abs(Math.sin((genome.hue * 13.37) + (genome.saturation * 7.73) || 1)) % 1;
 
-  // Weighted blend: pattern & accessories matter most
-  const raw = (shapeScore * 0.22) + (accScore * 0.30) + (eyeScore * 0.22) + (patScore * 0.26);
-  // Clamp to 0-100
-  return Math.min(100, Math.max(0, raw));
+  if (pat === 'solid') {
+    // Check hue distance from standard colors
+    const hDist = Math.min(...[0, 60, 120, 180, 240, 300, 360].map(p => Math.abs(genome.hue - p)));
+    if (hDist < 15) targetTier = 'common';
+    else targetTier = 'uncommon';
+  } else if (['gradient_v', 'gradient_h', 'gradient_diag', 'duo_tone'].includes(pat)) {
+    targetTier = 'rare';
+  } else if (['radial_glow', 'soft_spots', 'stripe_v'].includes(pat)) {
+    targetTier = 'super_rare';
+  } else if (['galaxy_swirl', 'crystal_facets', 'aurora'].includes(pat)) {
+    targetTier = 'legend';
+  } else if (['prismatic', 'void_rift', 'pixel_skin', 'tribal_skin', 'cameleon', 'translucid', 'magma'].includes(pat)) {
+    targetTier = 'divin';
+  }
+
+  const tierDef = RARITY_TIERS[targetTier] || RARITY_TIERS.common;
+  const min = tierDef.scoreMin;
+  const max = tierDef.scoreMax;
+  
+  const shapeBonus = (SHAPE_RARITY[genome.bodyShape] ?? 0) * 0.05; 
+  const accBonus = accessoryRarityScore(genome.accessory) * 0.05;   
+  const eyeBonus = eyeRarityScore(genome.eyeStyle) * 0.05;          
+
+  let rawScore = min + ((max - min) * tierProgress) + shapeBonus + accBonus + eyeBonus;
+  
+  return Math.min(100, Math.max(0, Math.floor(rawScore)));
 }
 
 function rarityTierFromScore(score) {

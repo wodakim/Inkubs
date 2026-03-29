@@ -17,18 +17,20 @@
 
 /** [durationSec, rewardMin, rewardMax, label] */
 const RARITY_TABLE = {
-    common:    [  120,    8,   18, 'Commun'     ],
-    uncommon:  [  300,   40,   90, 'Peu commun' ],
-    rare:      [  720,  160,  380, 'Rare'       ],
-    epic:      [ 1500,  600, 1500, 'Épique'     ],
-    legendary: [ 3000, 2500, 6000, 'Légendaire' ],
+    common:     [  120,    8,   18, 'Commun'     ],
+    uncommon:   [  300,   40,   90, 'Peu commun' ],
+    rare:       [  720,  160,  380, 'Rare'       ],
+    super_rare: [ 1500,  500, 1200, 'Super Rare' ],
+    legend:     [ 3600, 1500, 4000, 'Légendaire' ],
+    divin:      [ 7200, 4500, 9500, 'Divin'      ],
 };
 
 function scoreToTier(score) {
-    if (score >= 4.5) return 'legendary';
-    if (score >= 3.5) return 'epic';
-    if (score >= 2.5) return 'rare';
-    if (score >= 1.5) return 'uncommon';
+    if (score >= 95) return 'divin';
+    if (score >= 80) return 'legend';
+    if (score >= 60) return 'super_rare';
+    if (score >= 40) return 'rare';
+    if (score >= 20) return 'uncommon';
     return 'common';
 }
 
@@ -62,8 +64,7 @@ export const PotionEngine = {
         for (const p of potions) {
             if (!p.doses) continue;
             for (const d of p.doses) {
-                // Clamp à 5 au cas où des valeurs aberrantes viendraient du genome
-                const r = typeof d.rarity === 'number' ? Math.min(5, Math.max(0, d.rarity)) : 0;
+                const r = typeof d.rarity === 'number' ? Math.min(100, Math.max(0, d.rarity)) : 0;
                 total += r;
                 count++;
             }
@@ -95,11 +96,12 @@ export const PotionEngine = {
     getRarityColor(score) {
         const tier = scoreToTier(score);
         return {
-            common:    '#9e9e9e',
-            uncommon:  '#4caf50',
-            rare:      '#2196f3',
-            epic:      '#9c27b0',
-            legendary: '#ff9800',
+            common:     '#9e9e9e',
+            uncommon:   '#4caf50',
+            rare:       '#2196f3',
+            super_rare: '#9c27b0',
+            legend:     '#ff9800',
+            divin:      '#ffeb3b',
         }[tier] ?? '#9e9e9e';
     },
 };

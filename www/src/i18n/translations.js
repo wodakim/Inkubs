@@ -26,8 +26,9 @@ export const TRANSLATIONS = {
         'profile.notify_from':      'Notifier dès :',
         'profile.tier.uncommon':    'Peu commun',
         'profile.tier.rare':        'Rare',
-        'profile.tier.epic':        'Épique',
-        'profile.tier.legendary':   'Légendaire',
+        'profile.tier.super_rare':  'Super Rare',
+        'profile.tier.legend':      'Légendaire',
+        'profile.tier.divin':       'Divin',
         'profile.reset_data':       '⚠ Réinitialiser les données',
         'profile.language':         'Langue',
 
@@ -137,8 +138,9 @@ export const TRANSLATIONS = {
         'rarity.common':    'Commun',
         'rarity.uncommon':  'Peu commun',
         'rarity.rare':      'Rare',
-        'rarity.epic':      'Épique',
-        'rarity.legendary': 'Légendaire',
+        'rarity.super_rare': 'Super Rare',
+        'rarity.legend':    'Légendaire',
+        'rarity.divin':     'Divin',
         'rarity.instable':  'Instable',
 
         'mood.calm':        'Calme',
@@ -387,6 +389,11 @@ export const TRANSLATIONS = {
         'pattern.crystal_facets': 'Cristal',
         'pattern.prismatic':      'Prismatique',
         'pattern.void_rift':      'Rift',
+        'pattern.pixel_skin':     'Pixel',
+        'pattern.tribal_skin':    'Tribal',
+        'pattern.cameleon':       'Caméléon',
+        'pattern.translucid':     'Translucide',
+        'pattern.magma':          'Magma',
 
         // ── Tutoriel ─────────────────────────────────────────────────────
         'tuto.skip':                    'Passer le tutoriel',
@@ -531,8 +538,9 @@ export const TRANSLATIONS = {
         'profile.notify_from':      'Notify from:',
         'profile.tier.uncommon':    'Uncommon',
         'profile.tier.rare':        'Rare',
-        'profile.tier.epic':        'Epic',
-        'profile.tier.legendary':   'Legendary',
+        'profile.tier.super_rare':  'Super Rare',
+        'profile.tier.legend':      'Legendary',
+        'profile.tier.divin':       'Divine',
         'profile.reset_data':       '⚠ Reset data',
         'profile.language':         'Language',
 
@@ -642,8 +650,9 @@ export const TRANSLATIONS = {
         'rarity.common':    'Common',
         'rarity.uncommon':  'Uncommon',
         'rarity.rare':      'Rare',
-        'rarity.epic':      'Epic',
-        'rarity.legendary': 'Legendary',
+        'rarity.super_rare': 'Super Rare',
+        'rarity.legend':    'Legendary',
+        'rarity.divin':     'Divine',
         'rarity.instable':  'Instable',
 
         'mood.calm':        'Calm',
@@ -892,6 +901,11 @@ export const TRANSLATIONS = {
         'pattern.crystal_facets': 'Crystal',
         'pattern.prismatic':      'Prismatic',
         'pattern.void_rift':      'Rift',
+        'pattern.pixel_skin':     'Pixel',
+        'pattern.tribal_skin':    'Tribal',
+        'pattern.cameleon':       'Chameleon',
+        'pattern.translucid':     'Translucid',
+        'pattern.magma':          'Magma',
 
         // ── Tutorial ──────────────────────────────────────────────────────
         'tuto.skip':                    'Skip tutorial',
